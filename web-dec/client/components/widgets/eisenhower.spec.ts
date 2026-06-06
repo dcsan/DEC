@@ -25,8 +25,8 @@ export const eisenhowerSpec: WidgetSpec<EisenhowerData> = {
     "Prioritise tasks by importance and urgency to decide what to do next — " +
     "do now, schedule, delegate, or drop.",
 
-  // Template: group entries by quadrant and emit one labelled line each, so an
-  // AI agent can read the priorities directly. Empty quadrants are omitted.
+  // Group by quadrant in plain language; omit empty buckets. Title gives context
+  // for the agent without seeing the widget.
   format: (data) => {
     const pick = (important: 0 | 1, urgent: 0 | 1) =>
       data.entries
@@ -35,13 +35,17 @@ export const eisenhowerSpec: WidgetSpec<EisenhowerData> = {
         .filter(Boolean);
 
     const groups: Array<[string, string[]]> = [
-      ["Important and urgent tasks", pick(1, 1)],
-      ["Important but not urgent tasks", pick(1, 0)],
-      ["Urgent but not important tasks", pick(0, 1)],
-      ["Neither important nor urgent tasks", pick(0, 0)],
+      ["Do now (important and urgent)", pick(1, 1)],
+      ["Schedule (important, not urgent)", pick(1, 0)],
+      ["Delegate (urgent, not important)", pick(0, 1)],
+      ["Drop or defer (neither)", pick(0, 0)],
     ];
 
-    const lines = ["Here is a list of tasks"];
+    const lines: string[] = [
+      `**Eisenhower — ${data.title.trim() || "Matrix"}**`,
+      "",
+      "Tasks the user placed in each priority bucket:",
+    ];
     for (const [label, items] of groups) {
       if (items.length) lines.push(`${label}: ${items.join(", ")}`);
     }

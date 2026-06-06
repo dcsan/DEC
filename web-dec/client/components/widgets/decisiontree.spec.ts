@@ -36,12 +36,15 @@ export const decisionTreeSpec: WidgetSpec<DecisionTreeData> = {
   purpose: "Lay out conditional paths so downstream outcomes and forks stay visible.",
 
   format: (data) => {
-    const lines: string[] = [`**Decision tree — ${data.title}**`, ""];
-    lines.push(`**Root:** ${data.root.trim() || "(empty)"}`);
-    lines.push("");
+    const lines: string[] = [
+      `**Decision tree — ${data.title}**`,
+      "",
+      "Conditional branches the user wrote (read top to bottom as forks from the root):",
+    ];
+    if (data.root.trim()) lines.push(`**Root:** ${data.root.trim()}`, "");
     const filled = data.branches.filter((b) => b.condition.trim() || b.outcome.trim() || b.probability.trim());
     if (filled.length === 0) {
-      lines.push("(no branches)");
+      lines.push("(no branch rows filled in)");
       return lines.join("\n");
     }
     filled.forEach((b, i) => {

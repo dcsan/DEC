@@ -1,4 +1,5 @@
 // Spec for the generic 2×2 drag-and-drop grid — see ./types.ts for the contract.
+// format() is written for an LLM reader: labels by meaning, omits empty quadrants.
 
 import type { WidgetSpec } from "./types";
 import type { FourCells, Quadrant4Data } from "./quadrant4Types";
@@ -16,11 +17,6 @@ export function blankTwoByTwoData(title: string): TwoByTwoData {
   };
 }
 
-function cellLine(label: string, value: string): string {
-  const t = value.trim();
-  return `- **${label}:** ${t || "(empty)"}`;
-}
-
 export const twoByTwoSpec: WidgetSpec<TwoByTwoData> = {
   type: "twobytwo",
   commands: ["22", "twobytwo", "two-by-two", "2x2", "grid2"],
@@ -30,14 +26,18 @@ export const twoByTwoSpec: WidgetSpec<TwoByTwoData> = {
   purpose: "Place ideas in four buckets on two axes; swap quadrant text when your framing shifts.",
 
   format: (data) => {
-    const lines: string[] = [`**2×2 — ${data.title}**`, ""];
+    const lines: string[] = [
+      `**2×2 — ${data.title}**`,
+      "",
+      "The user organised notes into four quadrants (reading order: top-left, top-right, bottom-left, bottom-right). Only non-empty cells are listed:",
+    ];
     for (let i = 0; i < 4; i++) {
-      lines.push(cellLine(QUADRANT_LABELS[i]!, data.cells[i]!));
+      const t = data.cells[i]!.trim();
+      if (t) lines.push(`- **${QUADRANT_LABELS[i]}:** ${t}`);
     }
-    lines.push("");
-    lines.push("Grid (TL | TR / BL | BR):");
-    const [a, b, c, d] = data.cells;
     const esc = (s: string) => (s.trim() || "·").replace(/\|/g, "\\|");
+    const [a, b, c, d] = data.cells;
+    lines.push("", "Compact grid (same positions):");
     lines.push(`${esc(a)} | ${esc(b)}`);
     lines.push(`${esc(c)} | ${esc(d)}`);
     return lines.join("\n");

@@ -144,7 +144,9 @@ registry and the `WidgetOutput` shape.
 - **Plain text:**
 
   ```
-  Here is a list of tasks
-  Important but not urgent tasks: Pay taxes
-  Urgent but not important tasks: Respond to Slack messages
+  **Eisenhower — <title>**
+
+  Tasks the user placed in each priority bucket:
+  Do now (important and urgent): …
+  Schedule (important, not urgent): …
   ```

@@ -148,6 +148,7 @@ export function ProConWidget({ onSend, onRemove }: WidgetProps) {
       <div
         style={{
           display: "flex",
+          alignItems: "center",
           justifyContent: "flex-end",
           padding: "8px 10px",
           borderTop: "1px solid var(--dec-border-soft)",
@@ -155,7 +156,7 @@ export function ProConWidget({ onSend, onRemove }: WidgetProps) {
         }}
       >
         {sent && (
-          <span style={{ alignSelf: "center", marginRight: 10, fontSize: 12, color: "var(--dec-merged)" }}>
+          <span style={{ marginRight: 10, fontSize: 12, color: "var(--dec-merged)" }}>
             Sent ✓
           </span>
         )}

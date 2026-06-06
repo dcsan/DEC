@@ -4,7 +4,7 @@ import { useState, type CSSProperties } from "react";
 import type { WidgetProps } from "./types";
 import { blankExpectedValueData, expectedValueSpec, type ExpectedValueRow } from "./expectedvalue.spec";
 
-const ACCENT = "var(--dec-framework)";
+const ACCENT = "var(--dec-accent-soft)";
 
 export function ExpectedValueWidget({ onSend, onRemove }: WidgetProps) {
   const blank = blankExpectedValueData("");
@@ -111,6 +111,7 @@ export function ExpectedValueWidget({ onSend, onRemove }: WidgetProps) {
       <div
         style={{
           display: "flex",
+          alignItems: "center",
           justifyContent: "flex-end",
           padding: "8px 10px",
           borderTop: "1px solid var(--dec-border-soft)",
@@ -118,7 +119,7 @@ export function ExpectedValueWidget({ onSend, onRemove }: WidgetProps) {
         }}
       >
         {sent && (
-          <span style={{ alignSelf: "center", marginRight: 10, fontSize: 12, color: "var(--dec-merged)" }}>Sent ✓</span>
+          <span style={{ marginRight: 10, fontSize: 12, color: "var(--dec-merged)" }}>Sent ✓</span>
         )}
         <button type="button" onClick={send} disabled={!hasContent} style={sendBtn(hasContent)}>
           {sent ? "Send again ↩" : "Send to chat ↩"}

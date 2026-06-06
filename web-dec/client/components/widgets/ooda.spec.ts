@@ -22,6 +22,14 @@ export function blankOodaData(title: string): OodaData {
   };
 }
 
+const SECTIONS: Array<[keyof OodaData, string]> = [
+  ["observe", "Observe"],
+  ["orient", "Orient"],
+  ["decide", "Decide"],
+  ["act", "Act"],
+  ["firstPrinciples", "First principles"],
+];
+
 export const oodaSpec: WidgetSpec<OodaData> = {
   type: "ooda",
   commands: ["ooda", "loop", "firstprinciples", "first-principles"],
@@ -30,8 +38,17 @@ export const oodaSpec: WidgetSpec<OodaData> = {
   purpose: "Break a stuck decision by cycling facts, models, commitment, and action—and by reframing from basics.",
 
   format: (data) => {
-    const sec = (name: string, body: string) => [`### ${name}`, body.trim() || "(empty)", ""];
-    const lines: string[] = [`**OODA / first principles — ${data.title}**`, "", ...sec("Observe", data.observe), ...sec("Orient", data.orient), ...sec("Decide", data.decide), ...sec("Act", data.act), ...sec("First principles", data.firstPrinciples)];
+    const lines: string[] = [
+      `**OODA / first principles — ${data.title}**`,
+      "",
+      "Structured thinking pass the user completed (only non-empty sections are included):",
+    ];
+    for (const [key, label] of SECTIONS) {
+      const body = String(data[key]).trim();
+      if (body) {
+        lines.push("", `### ${label}`, body);
+      }
+    }
     return lines.join("\n").trimEnd();
   },
 };

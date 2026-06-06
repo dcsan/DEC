@@ -1,4 +1,5 @@
 // SWOT — strengths, weaknesses, opportunities, threats (docs/plan/overview.md).
+// format() groups by human meaning; skips empty quadrants so the agent sees signal only.
 
 import type { WidgetSpec } from "./types";
 import type { Quadrant4Data } from "./quadrant4Types";
@@ -23,18 +24,23 @@ export const swotSpec: WidgetSpec<SwotData> = {
   purpose: "Contrast internal strengths and weaknesses with external opportunities and threats.",
 
   format: (data) => {
-    const lines: string[] = [`**SWOT — ${data.title}**`, ""];
+    const lines: string[] = [
+      `**SWOT — ${data.title}**`,
+      "",
+      "Structured as internal (S/W) vs external (O/T). Only filled quadrants appear below.",
+    ];
     for (let i = 0; i < 4; i++) {
       const t = data.cells[i]!.trim();
-      lines.push(`### ${NAMES[i]}`);
-      lines.push(t || "(empty)");
-      lines.push("");
+      if (t) {
+        lines.push(`### ${NAMES[i]}`);
+        lines.push(t);
+        lines.push("");
+      }
     }
     const esc = (s: string) => (s.trim() || "·").replace(/\|/g, "\\|");
-    lines.push("| S | W |");
-    lines.push(`| ${esc(data.cells[0]!)} | ${esc(data.cells[1]!)} |`);
-    lines.push("| O | T |");
-    lines.push(`| ${esc(data.cells[2]!)} | ${esc(data.cells[3]!)} |`);
+    lines.push("Matrix snapshot (S | W / O | T):");
+    lines.push(`${esc(data.cells[0]!)} | ${esc(data.cells[1]!)}`);
+    lines.push(`${esc(data.cells[2]!)} | ${esc(data.cells[3]!)}`);
     return lines.join("\n");
   },
 };

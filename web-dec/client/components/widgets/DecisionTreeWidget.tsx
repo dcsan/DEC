@@ -4,7 +4,7 @@ import { useState, type CSSProperties } from "react";
 import type { WidgetProps } from "./types";
 import { blankDecisionTreeData, decisionTreeSpec, type DecisionBranch } from "./decisiontree.spec";
 
-const ACCENT = "var(--dec-framework)";
+const ACCENT = "var(--dec-concept)";
 
 export function DecisionTreeWidget({ onSend, onRemove }: WidgetProps) {
   const blank = blankDecisionTreeData("");
@@ -118,6 +118,7 @@ export function DecisionTreeWidget({ onSend, onRemove }: WidgetProps) {
       <div
         style={{
           display: "flex",
+          alignItems: "center",
           justifyContent: "flex-end",
           padding: "8px 10px",
           borderTop: "1px solid var(--dec-border-soft)",
@@ -125,7 +126,7 @@ export function DecisionTreeWidget({ onSend, onRemove }: WidgetProps) {
         }}
       >
         {sent && (
-          <span style={{ alignSelf: "center", marginRight: 10, fontSize: 12, color: "var(--dec-merged)" }}>Sent ✓</span>
+          <span style={{ marginRight: 10, fontSize: 12, color: "var(--dec-merged)" }}>Sent ✓</span>
         )}
         <button type="button" onClick={send} disabled={!hasContent} style={sendBtn(hasContent)}>
           {sent ? "Send again ↩" : "Send to chat ↩"}

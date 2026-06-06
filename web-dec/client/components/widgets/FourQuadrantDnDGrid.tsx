@@ -4,7 +4,8 @@ import { useState, type CSSProperties, type DragEvent, type ReactNode } from "re
 import type { WidgetProps, WidgetSpec } from "./types";
 import type { FourCells, Quadrant4Data } from "./quadrant4Types";
 
-const ACCENT = "var(--dec-framework)";
+/** Card border tint — pick a distinct `--dec-*` per widget (see references/contract.md). */
+const DEFAULT_ACCENT = "var(--dec-framework)";
 
 function swapCells(cells: FourCells, from: number, to: number): FourCells {
   if (from === to) return cells;
@@ -25,6 +26,8 @@ export interface FourQuadrantDnDGridProps extends WidgetProps {
   quadrantLabels: readonly [string, string, string, string];
   headerEmoji: string;
   hint: ReactNode;
+  /** Border + shell accent; default matches Pros & Cons style. */
+  accent?: string;
 }
 
 export function FourQuadrantDnDGrid({
@@ -35,6 +38,7 @@ export function FourQuadrantDnDGrid({
   quadrantLabels,
   headerEmoji,
   hint,
+  accent = DEFAULT_ACCENT,
   onSend,
   onRemove,
 }: FourQuadrantDnDGridProps) {
@@ -76,7 +80,7 @@ export function FourQuadrantDnDGrid({
         maxWidth: 460,
         borderRadius: 12,
         background: "var(--dec-surface-2)",
-        border: `1.5px solid ${ACCENT}`,
+        border: `1.5px solid ${accent}`,
         boxShadow: "0 1px 2px #0006",
         color: "var(--dec-text)",
         overflow: "hidden",
@@ -201,6 +205,7 @@ export function FourQuadrantDnDGrid({
       <div
         style={{
           display: "flex",
+          alignItems: "center",
           justifyContent: "flex-end",
           padding: "8px 10px",
           borderTop: "1px solid var(--dec-border-soft)",
@@ -208,16 +213,7 @@ export function FourQuadrantDnDGrid({
         }}
       >
         {sent && (
-          <span
-            style={{
-              alignSelf: "center",
-              marginRight: 10,
-              fontSize: 12,
-              color: "var(--dec-merged)",
-            }}
-          >
-            Sent ✓
-          </span>
+          <span style={{ marginRight: 10, fontSize: 12, color: "var(--dec-merged)" }}>Sent ✓</span>
         )}
         <button type="button" onClick={send} disabled={!hasContent} style={sendBtn(hasContent)}>
           {sent ? "Send again ↩" : "Send to chat ↩"}

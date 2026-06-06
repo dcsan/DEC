@@ -30,15 +30,15 @@ export const premortemSpec: WidgetSpec<PremortemData> = {
   purpose: "Surface failure modes before you commit—especially for hard-to-reverse choices.",
 
   format: (data) => {
-    const lines: string[] = [`**Pre-mortem — ${data.title}**`, ""];
-    lines.push(`**Decision:** ${data.decision.trim() || "(not stated)"}`);
-    lines.push(`**Horizon:** ${data.horizon.trim() || "(not stated)"}`);
-    lines.push("");
-    lines.push("### Imagined failure");
-    lines.push(data.imaginedFailure.trim() || "(empty)");
-    lines.push("");
-    lines.push("### Causes (working backwards)");
-    lines.push(data.causes.trim() || "(empty)");
-    return lines.join("\n");
+    const lines: string[] = [`**Pre-mortem — ${data.title}**`, "", "Working assumption: the decision has already failed at the horizon below. Use this to stress-test the plan."];
+    if (data.decision.trim()) lines.push("", `**Decision:** ${data.decision.trim()}`);
+    if (data.horizon.trim()) lines.push(`**Horizon:** ${data.horizon.trim()}`);
+    if (data.imaginedFailure.trim()) {
+      lines.push("", "### Imagined failure", data.imaginedFailure.trim());
+    }
+    if (data.causes.trim()) {
+      lines.push("", "### Causes (working backwards from that failure)", data.causes.trim());
+    }
+    return lines.join("\n").trimEnd();
   },
 };

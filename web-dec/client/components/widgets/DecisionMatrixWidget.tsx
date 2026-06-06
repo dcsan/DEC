@@ -182,6 +182,7 @@ export function DecisionMatrixWidget({ onSend, onRemove }: WidgetProps) {
       <div
         style={{
           display: "flex",
+          alignItems: "center",
           justifyContent: "flex-end",
           padding: "8px 10px",
           borderTop: "1px solid var(--dec-border-soft)",
@@ -189,7 +190,7 @@ export function DecisionMatrixWidget({ onSend, onRemove }: WidgetProps) {
         }}
       >
         {sent && (
-          <span style={{ alignSelf: "center", marginRight: 10, fontSize: 12, color: "var(--dec-merged)" }}>Sent ✓</span>
+          <span style={{ marginRight: 10, fontSize: 12, color: "var(--dec-merged)" }}>Sent ✓</span>
         )}
         <button type="button" onClick={send} disabled={!hasContent} style={sendBtn(hasContent)}>
           {sent ? "Send again ↩" : "Send to chat ↩"}
@@ -202,7 +203,7 @@ export function DecisionMatrixWidget({ onSend, onRemove }: WidgetProps) {
 function shell(accent: string): CSSProperties {
   return {
     width: "100%",
-    maxWidth: 520,
+    maxWidth: 460,
     borderRadius: 12,
     background: "var(--dec-surface-2)",
     border: `1.5px solid ${accent}`,

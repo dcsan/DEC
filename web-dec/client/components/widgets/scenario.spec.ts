@@ -31,14 +31,19 @@ export const scenarioSpec: WidgetSpec<ScenarioData> = {
 
   format: (data) => {
     const filled = data.scenarios.filter((s) => s.name.trim() || s.implications.trim());
-    const lines: string[] = [`**Scenario planning — ${data.title}**`, ""];
+    const lines: string[] = [
+      `**Scenario planning — ${data.title}**`,
+      "",
+      "Plausible futures the user sketched. Use implications when reasoning about risk and next steps:",
+    ];
     if (filled.length === 0) {
-      lines.push("(no scenarios filled in)");
+      lines.push("(no scenario content captured)");
       return lines.join("\n");
     }
     filled.forEach((s, i) => {
-      lines.push(`### Scenario ${i + 1}: ${s.name.trim() || "(untitled)"}`);
-      lines.push(s.implications.trim() || "(no implications yet)");
+      const n = s.name.trim() || `Future ${i + 1}`;
+      lines.push(`### ${n}`);
+      if (s.implications.trim()) lines.push(s.implications.trim());
       lines.push("");
     });
     return lines.join("\n").trimEnd();

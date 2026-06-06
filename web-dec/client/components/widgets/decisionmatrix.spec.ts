@@ -53,10 +53,14 @@ export const decisionMatrixSpec: WidgetSpec<DecisionMatrixData> = {
       .filter((c) => c.name !== "");
     const opts = data.options.filter((o) => o.name.trim() !== "");
     if (critEntries.length === 0 || opts.length === 0) {
-      lines.push("Add at least one named criterion and one named option to summarise.");
+      lines.push("The user did not name at least one criterion and one option; nothing to score.");
       return lines.join("\n");
     }
 
+    lines.push(
+      "Weighted decision matrix: each option has a score per criterion; weights scale scores before summing (numeric scores required for totals).",
+      "",
+    );
     lines.push("### Criteria (weight)");
     critEntries.forEach((c) => {
       lines.push(`- ${c.name} — weight ${c.weight.trim() || "1"}`);

@@ -37,7 +37,11 @@ export const expectedValueSpec: WidgetSpec<ExpectedValueData> = {
   purpose: "Weight uncertain outcomes by probability for risk-return style comparisons.",
 
   format: (data) => {
-    const lines: string[] = [`**Expected value — ${data.title}**`, ""];
+    const lines: string[] = [
+      `**Expected value — ${data.title}**`,
+      "",
+      "Discrete outcomes with probability P and value V. If probabilities look like percents (sum ≈ 100), they are scaled to fractions before E[V] = Σ P×V:",
+    ];
     const filled = data.rows.filter((r) => r.outcome.trim() || r.probability.trim() || r.value.trim());
     if (filled.length === 0) {
       lines.push("(no rows)");
@@ -64,7 +68,11 @@ export const expectedValueSpec: WidgetSpec<ExpectedValueData> = {
       }
     });
     lines.push("");
-    lines.push(ok ? `**E[value] ≈ ${ev.toFixed(3)}**` : "**E[value]** — fill numeric probability and value on each row to compute.");
+    lines.push(
+      ok
+        ? `**E[value] ≈ ${ev.toFixed(3)}** (computed from numeric P and V on each row).`
+        : "**E[value]** — needs numeric probability and value on every row to compute.",
+    );
     return lines.join("\n");
   },
 };

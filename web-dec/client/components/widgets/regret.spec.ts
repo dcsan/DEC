@@ -34,16 +34,15 @@ export const regretSpec: WidgetSpec<RegretData> = {
     const lines: string[] = [
       `**Regret minimisation — ${data.title}**`,
       "",
-      `**Horizon:** ${y} years`,
-      "",
-      `### Option A: ${data.optionA.trim() || "(unnamed)"}`,
-      "**If you choose A, your regret might be:**",
-      data.regretIfA.trim() || "(empty)",
-      "",
-      `### Option B: ${data.optionB.trim() || "(unnamed)"}`,
-      "**If you choose B, your regret might be:**",
-      data.regretIfB.trim() || "(empty)",
+      `The user compared anticipated regret **${y} years** out. Only paths where they wrote regret text are included.`,
     ];
+    const pushPath = (pathLabel: string, regret: string) => {
+      if (!regret.trim()) return;
+      lines.push("", `### ${pathLabel}`);
+      lines.push("**Possible regret:**", regret.trim());
+    };
+    pushPath(data.optionA.trim() || "Path A", data.regretIfA);
+    pushPath(data.optionB.trim() || "Path B", data.regretIfB);
     return lines.join("\n");
   },
 };
