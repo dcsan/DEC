@@ -9,6 +9,8 @@ import type { ComponentType } from "react";
 import type { WidgetProps, WidgetSpec } from "./types";
 import { proConSpec } from "./procon.spec";
 import { ProConWidget } from "./ProConWidget";
+import { eisenhowerSpec } from "./eisenhower.spec";
+import { EisenhowerWidget } from "./EisenhowerWidget";
 
 export interface WidgetEntry {
   spec: WidgetSpec;
@@ -17,6 +19,7 @@ export interface WidgetEntry {
 
 export const WIDGETS: WidgetEntry[] = [
   { spec: proConSpec as WidgetSpec, component: ProConWidget },
+  { spec: eisenhowerSpec as WidgetSpec, component: EisenhowerWidget },
 ];
 
 // Parse a composer line. Returns the matched widget (and the trailing args,

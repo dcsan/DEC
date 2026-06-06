@@ -72,8 +72,8 @@ export function ChatView() {
         <div style={{ maxWidth: 720, margin: "0 auto", padding: "0 16px" }}>
           {items.length === 0 && (
             <p style={{ color: "var(--dec-text-subtle)", fontSize: 14, marginTop: 24 }}>
-              Type a message to start. Try <code>/pc</code> to drop in a pros &amp;
-              cons widget.
+              Type a message to start. Try <code>/pc</code> for a pros &amp; cons
+              widget, or <code>/eis</code> for an Eisenhower matrix.
             </p>
           )}
 

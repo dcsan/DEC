@@ -29,6 +29,8 @@ export const proConSpec: WidgetSpec<ProConData> = {
   commands: ["pc", "procon", "proscons", "pros-cons"],
   title: "Pros & Cons",
   description: "Weigh a decision by listing items and marking each as a pro and/or con.",
+  purpose:
+    "Weigh a single option by laying its upsides against its downsides — good for go/no-go calls.",
 
   // Output contract: a compact markdown summary. Only filled-in rows are
   // included; a row can land in both lists if marked pro AND con.
