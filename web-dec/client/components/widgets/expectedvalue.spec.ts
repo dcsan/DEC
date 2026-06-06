@@ -34,6 +34,7 @@ export const expectedValueSpec: WidgetSpec<ExpectedValueData> = {
   commands: ["evtable", "expvalue", "expectedvalue"],
   title: "Expected value",
   description: "Rows of outcome, probability, and value; EV sum when numbers parse.",
+  purpose: "Weight uncertain outcomes by probability for risk-return style comparisons.",
 
   format: (data) => {
     const lines: string[] = [`**Expected value — ${data.title}**`, ""];

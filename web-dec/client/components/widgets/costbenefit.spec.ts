@@ -41,6 +41,7 @@ export const costBenefitSpec: WidgetSpec<CostBenefitData> = {
   commands: ["costbenefit", "cba", "cost-benefit"],
   title: "Cost–benefit",
   description: "List costs and benefits; amounts are summed when they parse as numbers.",
+  purpose: "Make tradeoffs explicit—especially when you can attach rough numbers to each side.",
 
   format: (data) => {
     const lines: string[] = [`**Cost–benefit — ${data.title}**`, ""];

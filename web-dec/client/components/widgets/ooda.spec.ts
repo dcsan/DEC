@@ -27,6 +27,7 @@ export const oodaSpec: WidgetSpec<OodaData> = {
   commands: ["ooda", "loop", "firstprinciples", "first-principles"],
   title: "OODA / first principles",
   description: "Observe–Orient–Decide–Act plus a space to strip the problem to first principles.",
+  purpose: "Break a stuck decision by cycling facts, models, commitment, and action—and by reframing from basics.",
 
   format: (data) => {
     const sec = (name: string, body: string) => [`### ${name}`, body.trim() || "(empty)", ""];

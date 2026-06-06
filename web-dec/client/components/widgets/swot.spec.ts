@@ -20,6 +20,7 @@ export const swotSpec: WidgetSpec<SwotData> = {
   commands: ["swot", "s-w-o-t", "swotmatrix"],
   title: "SWOT analysis",
   description: "Strengths / weaknesses / opportunities / threats in a 2×2 you can reorder by drag.",
+  purpose: "Contrast internal strengths and weaknesses with external opportunities and threats.",
 
   format: (data) => {
     const lines: string[] = [`**SWOT — ${data.title}**`, ""];

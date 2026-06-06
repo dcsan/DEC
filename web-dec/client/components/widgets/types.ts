@@ -25,6 +25,8 @@ export interface WidgetSpec<TData = unknown> {
   title: string;
   /** One-line description, shown in hints/menus. */
   description: string;
+  /** What this widget/chart is good for — its decision-making purpose. */
+  purpose: string;
   /**
    * Turn the widget's current data into the text sent back to the chat.
    * Pure function — the whole point of the spec file is to keep this output

@@ -27,6 +27,7 @@ export const twoByTwoSpec: WidgetSpec<TwoByTwoData> = {
   title: "2×2 grid",
   description:
     "Four quadrants you can label; drag the handle on any tile to swap it with another.",
+  purpose: "Place ideas in four buckets on two axes; swap quadrant text when your framing shifts.",
 
   format: (data) => {
     const lines: string[] = [`**2×2 — ${data.title}**`, ""];

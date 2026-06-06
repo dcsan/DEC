@@ -73,7 +73,7 @@ export function ChatView() {
           {items.length === 0 && (
             <p style={{ color: "var(--dec-text-subtle)", fontSize: 14, marginTop: 24 }}>
               Type a message or a slash widget: <code>/pc</code> pros &amp; cons,{" "}
-              <code>/swot</code>, <code>/eisenhower</code>, <code>/scenario</code>,{" "}
+              <code>/eis</code> Eisenhower, <code>/swot</code>, <code>/scenario</code>,{" "}
               <code>/dmatrix</code>, <code>/22</code>, <code>/costbenefit</code>,{" "}
               <code>/premortem</code>, <code>/dtree</code>, <code>/evtable</code>,{" "}
               <code>/ooda</code>, <code>/regret</code>…

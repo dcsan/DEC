@@ -27,6 +27,7 @@ export const premortemSpec: WidgetSpec<PremortemData> = {
   commands: ["premortem", "premort", "failureprep"],
   title: "Pre-mortem",
   description: "Assume the decision failed; describe how and trace causes backwards.",
+  purpose: "Surface failure modes before you commit—especially for hard-to-reverse choices.",
 
   format: (data) => {
     const lines: string[] = [`**Pre-mortem — ${data.title}**`, ""];

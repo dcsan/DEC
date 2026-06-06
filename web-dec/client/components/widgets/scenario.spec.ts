@@ -27,6 +27,7 @@ export const scenarioSpec: WidgetSpec<ScenarioData> = {
   commands: ["scenario", "scenarios", "futures", "whatif"],
   title: "Scenario planning",
   description: "Sketch plausible futures and what each would imply.",
+  purpose: "Stress-test decisions by naming futures and spelling out what each would imply.",
 
   format: (data) => {
     const filled = data.scenarios.filter((s) => s.name.trim() || s.implications.trim());

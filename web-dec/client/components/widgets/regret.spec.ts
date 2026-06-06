@@ -27,6 +27,7 @@ export const regretSpec: WidgetSpec<RegretData> = {
   commands: ["regret", "minregret", "fwthinking", "10years"],
   title: "Regret minimisation",
   description: "Which choice would you regret least at the horizon you pick?",
+  purpose: "Clarify values by comparing how you'd feel years later about each path.",
 
   format: (data) => {
     const y = data.horizonYears.trim() || "10";

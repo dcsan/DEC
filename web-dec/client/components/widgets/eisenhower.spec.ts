@@ -1,46 +1,50 @@
-// Eisenhower matrix (urgent × important) — aligns with docs/plan/overview.md.
-// Cell order (row-major): urgent+important, urgent+!important, !urgent+important, !urgent+!important.
+// Spec file for the Eisenhower (important/urgent) matrix widget.
+// Pure & React-free: data shape, slash triggers, purpose, and the template that
+// turns the structured entries into agent-friendly plain text.
 
 import type { WidgetSpec } from "./types";
-import type { Quadrant4Data } from "./quadrant4Types";
-import { emptyFourCells } from "./quadrant4Types";
 
-export type EisenhowerData = Quadrant4Data;
-
-const NAMES = [
-  "Do first (urgent & important)",
-  "Delegate (urgent, not important)",
-  "Schedule (important, not urgent)",
-  "Eliminate (neither)",
-] as const;
-
-export function blankEisenhowerData(title: string): EisenhowerData {
-  return {
-    title: title.trim() || "Eisenhower matrix",
-    cells: emptyFourCells(),
-  };
+// One task, classified by the two Eisenhower axes. 1 = yes, 0 = no.
+export interface EisenhowerEntry {
+  text: string;
+  important: 0 | 1;
+  urgent: 0 | 1;
 }
 
-function cellLine(i: number, value: string): string {
-  const t = value.trim();
-  return `- **${NAMES[i]!}:** ${t || "(empty)"}`;
+export interface EisenhowerData {
+  title: string;
+  entries: EisenhowerEntry[];
 }
 
 export const eisenhowerSpec: WidgetSpec<EisenhowerData> = {
   type: "eisenhower",
-  commands: ["eisenhower", "eih", "ike", "urgent-important", "priority2x2"],
-  title: "Eisenhower matrix",
-  description: "Urgent vs important 2×2 for prioritisation (Do / Schedule / Delegate / Eliminate).",
+  commands: ["eis", "eisenhower", "em", "matrix"],
+  title: "Eisenhower Matrix",
+  description: "Sort tasks into the important/urgent 2×2 matrix.",
+  purpose:
+    "Prioritise tasks by importance and urgency to decide what to do next — " +
+    "do now, schedule, delegate, or drop.",
 
+  // Template: group entries by quadrant and emit one labelled line each, so an
+  // AI agent can read the priorities directly. Empty quadrants are omitted.
   format: (data) => {
-    const lines: string[] = [`**Eisenhower — ${data.title}**`, ""];
-    for (let i = 0; i < 4; i++) lines.push(cellLine(i, data.cells[i]!));
-    lines.push("");
-    lines.push("| Do first | Delegate |");
-    const esc = (s: string) => (s.trim() || "·").replace(/\|/g, "\\|");
-    lines.push(`| ${esc(data.cells[0]!)} | ${esc(data.cells[1]!)} |`);
-    lines.push("| Schedule | Eliminate |");
-    lines.push(`| ${esc(data.cells[2]!)} | ${esc(data.cells[3]!)} |`);
+    const pick = (important: 0 | 1, urgent: 0 | 1) =>
+      data.entries
+        .filter((e) => e.important === important && e.urgent === urgent)
+        .map((e) => e.text.trim())
+        .filter(Boolean);
+
+    const groups: Array<[string, string[]]> = [
+      ["Important and urgent tasks", pick(1, 1)],
+      ["Important but not urgent tasks", pick(1, 0)],
+      ["Urgent but not important tasks", pick(0, 1)],
+      ["Neither important nor urgent tasks", pick(0, 0)],
+    ];
+
+    const lines = ["Here is a list of tasks"];
+    for (const [label, items] of groups) {
+      if (items.length) lines.push(`${label}: ${items.join(", ")}`);
+    }
     return lines.join("\n");
   },
 };

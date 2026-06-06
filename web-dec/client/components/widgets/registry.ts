@@ -41,7 +41,11 @@ export interface WidgetEntry {
   component: ComponentType<WidgetProps>;
 }
 
-/** Order: first match wins — keep commands disjoint across specs. */
+/**
+ * Order: first match wins — keep commands disjoint across specs.
+ * Put more specific triggers before generic ones (e.g. `/dmatrix` before any
+ * hypothetical `/matrix` overlap); Eisenhower uses `/eis` and `/matrix` on main.
+ */
 export const WIDGETS: WidgetEntry[] = [
   { spec: proConSpec as WidgetSpec, component: ProConWidget },
   { spec: twoByTwoSpec as WidgetSpec, component: TwoByTwoWidget },
