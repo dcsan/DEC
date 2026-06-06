@@ -4,11 +4,35 @@
 //
 // To add a widget: create `<name>.spec.ts` + `<name>Widget.tsx`, then append an
 // entry below. Nothing else in the chat view needs to change.
+//
+// Frameworks align with docs/plan/overview.md (Eisenhower, SWOT, scenario,
+// decision matrix, pros/cons, cost–benefit, 2×2, pre-mortem, decision tree,
+// expected value, OODA, regret minimisation).
 
 import type { ComponentType } from "react";
 import type { WidgetProps, WidgetSpec } from "./types";
+import { costBenefitSpec } from "./costbenefit.spec";
+import { CostBenefitWidget } from "./CostBenefitWidget";
+import { decisionMatrixSpec } from "./decisionmatrix.spec";
+import { DecisionMatrixWidget } from "./DecisionMatrixWidget";
+import { decisionTreeSpec } from "./decisiontree.spec";
+import { DecisionTreeWidget } from "./DecisionTreeWidget";
+import { eisenhowerSpec } from "./eisenhower.spec";
+import { EisenhowerWidget } from "./EisenhowerWidget";
+import { expectedValueSpec } from "./expectedvalue.spec";
+import { ExpectedValueWidget } from "./ExpectedValueWidget";
+import { oodaSpec } from "./ooda.spec";
+import { OodaWidget } from "./OodaWidget";
+import { premortemSpec } from "./premortem.spec";
+import { PremortemWidget } from "./PremortemWidget";
 import { proConSpec } from "./procon.spec";
 import { ProConWidget } from "./ProConWidget";
+import { regretSpec } from "./regret.spec";
+import { RegretWidget } from "./RegretWidget";
+import { scenarioSpec } from "./scenario.spec";
+import { ScenarioWidget } from "./ScenarioWidget";
+import { swotSpec } from "./swot.spec";
+import { SwotWidget } from "./SwotWidget";
 import { twoByTwoSpec } from "./twobytwo.spec";
 import { TwoByTwoWidget } from "./TwoByTwoWidget";
 
@@ -17,9 +41,20 @@ export interface WidgetEntry {
   component: ComponentType<WidgetProps>;
 }
 
+/** Order: first match wins — keep commands disjoint across specs. */
 export const WIDGETS: WidgetEntry[] = [
   { spec: proConSpec as WidgetSpec, component: ProConWidget },
   { spec: twoByTwoSpec as WidgetSpec, component: TwoByTwoWidget },
+  { spec: eisenhowerSpec as WidgetSpec, component: EisenhowerWidget },
+  { spec: swotSpec as WidgetSpec, component: SwotWidget },
+  { spec: scenarioSpec as WidgetSpec, component: ScenarioWidget },
+  { spec: decisionMatrixSpec as WidgetSpec, component: DecisionMatrixWidget },
+  { spec: costBenefitSpec as WidgetSpec, component: CostBenefitWidget },
+  { spec: premortemSpec as WidgetSpec, component: PremortemWidget },
+  { spec: decisionTreeSpec as WidgetSpec, component: DecisionTreeWidget },
+  { spec: expectedValueSpec as WidgetSpec, component: ExpectedValueWidget },
+  { spec: oodaSpec as WidgetSpec, component: OodaWidget },
+  { spec: regretSpec as WidgetSpec, component: RegretWidget },
 ];
 
 // Parse a composer line. Returns the matched widget (and the trailing args,

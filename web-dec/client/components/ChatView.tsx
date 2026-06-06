@@ -72,8 +72,11 @@ export function ChatView() {
         <div style={{ maxWidth: 720, margin: "0 auto", padding: "0 16px" }}>
           {items.length === 0 && (
             <p style={{ color: "var(--dec-text-subtle)", fontSize: 14, marginTop: 24 }}>
-              Type a message to start. Try <code>/pc</code> for pros &amp; cons or{" "}
-              <code>/22</code> for a 2×2 drag-and-drop grid.
+              Type a message or a slash widget: <code>/pc</code> pros &amp; cons,{" "}
+              <code>/swot</code>, <code>/eisenhower</code>, <code>/scenario</code>,{" "}
+              <code>/dmatrix</code>, <code>/22</code>, <code>/costbenefit</code>,{" "}
+              <code>/premortem</code>, <code>/dtree</code>, <code>/evtable</code>,{" "}
+              <code>/ooda</code>, <code>/regret</code>…
             </p>
           )}
 
@@ -110,7 +113,7 @@ export function ChatView() {
                 submit();
               }
             }}
-            placeholder="Type a message…  (/pc pros & cons, /22 2×2 grid)"
+            placeholder="Message or /pc /swot /eisenhower /scenario /dmatrix /22 /costbenefit /premortem /dtree /evtable /ooda /regret"
             rows={1}
             style={{
               flex: 1,

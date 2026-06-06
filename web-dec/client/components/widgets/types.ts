@@ -11,7 +11,10 @@
 //   • a *component* file (`*.tsx`) — the standalone React UI that owns the
 //     widget's live state and calls `spec.format(data)` on send.
 //
-// `registry.ts` pairs each spec with its component.
+// `registry.ts` pairs each spec with its component. Decision frameworks live in
+// `*.spec.ts` + `*Widget.tsx` (see docs/plan/overview.md): pros/cons, 2×2,
+// Eisenhower, SWOT, scenario planning, decision matrix, cost–benefit, pre-mortem,
+// decision tree, expected value, OODA, regret minimisation.
 
 export interface WidgetSpec<TData = unknown> {
   /** Stable identifier for this widget type (matches the registry + chat items). */
