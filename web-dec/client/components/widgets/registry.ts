@@ -23,6 +23,8 @@ import { expectedValueSpec } from "./expectedvalue.spec";
 import { ExpectedValueWidget } from "./ExpectedValueWidget";
 import { oodaSpec } from "./ooda.spec";
 import { OodaWidget } from "./OodaWidget";
+import { optionsSpec } from "./options.spec";
+import { OptionsWidget } from "./OptionsWidget";
 import { premortemSpec } from "./premortem.spec";
 import { PremortemWidget } from "./PremortemWidget";
 import { proConSpec } from "./procon.spec";
@@ -48,6 +50,7 @@ export interface WidgetEntry {
  */
 export const WIDGETS: WidgetEntry[] = [
   { spec: proConSpec as WidgetSpec, component: ProConWidget },
+  { spec: optionsSpec as WidgetSpec, component: OptionsWidget },
   { spec: twoByTwoSpec as WidgetSpec, component: TwoByTwoWidget },
   { spec: eisenhowerSpec as WidgetSpec, component: EisenhowerWidget },
   { spec: swotSpec as WidgetSpec, component: SwotWidget },

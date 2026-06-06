@@ -19,6 +19,12 @@ export const WIDGET_REGISTRY: WidgetInfo[] = [
       "Weigh a single option by laying its upsides against its downsides — good for go/no-go calls.",
   },
   {
+    type: "options",
+    title: "Options A/B",
+    purpose:
+      "Choose between exactly two options by scoring them across the decision points that matter — see at a glance which option wins on more counts.",
+  },
+  {
     type: "twobytwo",
     title: "2×2 grid",
     purpose:
