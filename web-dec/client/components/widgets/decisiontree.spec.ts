@@ -34,6 +34,7 @@ export const decisionTreeSpec: WidgetSpec<DecisionTreeData> = {
   title: "Decision tree",
   description: "Root decision plus branches (condition → outcome, optional probability).",
   purpose: "Lay out conditional paths so downstream outcomes and forks stay visible.",
+  example: "Map out what happens if our funding round closes or falls through.",
 
   format: (data) => {
     const lines: string[] = [

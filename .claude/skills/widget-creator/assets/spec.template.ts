@@ -34,6 +34,9 @@ export const fooSpec: WidgetSpec<FooData> = {
   purpose:
     "What decision this widget helps with — the one-sentence reason a user " +
     "would reach for it.",
+  // A concrete decision this is the obvious tool for, in a user's own words.
+  // Shown by `/ex` and used as the prefill for `/ex foo`. Make it route here.
+  example: "Should I do X or Y?",
 
   // Pure template: structured data -> agent-friendly plain text.
   // Group/label by MEANING, omit empty entries, no React, no randomness.

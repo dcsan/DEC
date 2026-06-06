@@ -4,6 +4,7 @@
 // Native HTML5 drag-and-drop — no library, no react-flow.
 
 import { useRef, useState, type CSSProperties, type DragEvent } from "react";
+import { trpc } from "../../lib/trpc";
 import type { WidgetProps } from "./types";
 import { eisenhowerSpec, type EisenhowerData } from "./eisenhower.spec";
 
@@ -59,11 +60,42 @@ export function EisenhowerWidget({ initial, onSend, onRemove }: WidgetProps) {
   const [dragId, setDragId] = useState<string | null>(null);
   const [dragOverZone, setDragOverZone] = useState<Zone | null>(null);
   const [sent, setSent] = useState(false);
+  const [genError, setGenError] = useState<string | null>(null);
   /** Survives dragend vs drop ordering — DataTransfer is still preferred on drop. */
   const draggingTaskIdRef = useRef<string | null>(null);
 
+  const more = trpc.suggest.more.useMutation();
   const isDragging = dragId !== null;
-  const dirty = () => setSent(false);
+  const dirty = () => {
+    setSent(false);
+    setGenError(null);
+  };
+
+  // The decision to seed the LLM with: what surfaced this widget, else the title.
+  const seedQuestion = () => initial?.question?.trim() || title.trim();
+
+  // Append more tasks from the LLM into the pool (never mid-drag — button only).
+  const generateMore = async () => {
+    const q = seedQuestion();
+    if (!q || more.isPending) return;
+    setGenError(null);
+    try {
+      const out = await more.mutateAsync({
+        question: q,
+        itemNoun: "task to prioritise",
+        existing: tasks.map((t) => t.text.trim()).filter(Boolean),
+      });
+      if (out.items.length) {
+        setTasks((cur) => [
+          ...cur,
+          ...out.items.map((text) => ({ id: crypto.randomUUID(), text, zone: "pool" as const })),
+        ]);
+        setSent(false);
+      }
+    } catch (err) {
+      setGenError(err instanceof Error ? err.message : "Could not generate more.");
+    }
+  };
 
   const clearDragState = () => {
     draggingTaskIdRef.current = null;
@@ -406,7 +438,18 @@ export function EisenhowerWidget({ initial, onSend, onRemove }: WidgetProps) {
           <button type="button" onClick={addTask} style={addBtn}>
             + add
           </button>
+          <button
+            type="button"
+            onClick={generateMore}
+            disabled={!seedQuestion() || more.isPending}
+            style={genBtn(!!seedQuestion() && !more.isPending)}
+          >
+            {more.isPending ? "Thinking…" : "✨ generate more"}
+          </button>
         </div>
+        {genError && (
+          <div style={{ marginTop: 4, fontSize: 11, color: "var(--dec-option)" }}>{genError}</div>
+        )}
       </div>
 
       {/* Footer */}
@@ -452,6 +495,18 @@ const addBtn: CSSProperties = {
   color: "var(--dec-text-muted)",
   cursor: "pointer",
 };
+
+const genBtn = (enabled: boolean): CSSProperties => ({
+  fontSize: 11,
+  fontWeight: 600,
+  padding: "3px 10px",
+  borderRadius: 6,
+  border: "1px solid var(--dec-border)",
+  background: enabled ? "var(--dec-accent-soft)" : "var(--dec-surface)",
+  color: enabled ? "var(--dec-text)" : "var(--dec-text-subtle)",
+  cursor: enabled ? "pointer" : "not-allowed",
+  whiteSpace: "nowrap",
+});
 
 const sendBtn = (enabled: boolean): CSSProperties => ({
   fontSize: 12,

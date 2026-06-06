@@ -23,12 +23,10 @@ import { expectedValueSpec } from "./expectedvalue.spec";
 import { ExpectedValueWidget } from "./ExpectedValueWidget";
 import { oodaSpec } from "./ooda.spec";
 import { OodaWidget } from "./OodaWidget";
-import { optionsSpec } from "./options.spec";
-import { OptionsWidget } from "./OptionsWidget";
 import { premortemSpec } from "./premortem.spec";
 import { PremortemWidget } from "./PremortemWidget";
-import { proConSpec } from "./procon.spec";
-import { ProConWidget } from "./ProConWidget";
+import { readinessSpec } from "./readiness.spec";
+import { ReadinessWidget } from "./ReadinessWidget";
 import { regretSpec } from "./regret.spec";
 import { RegretWidget } from "./RegretWidget";
 import { scenarioSpec } from "./scenario.spec";
@@ -49,8 +47,7 @@ export interface WidgetEntry {
  * hypothetical `/matrix` overlap); Eisenhower uses `/eis` and `/matrix` on main.
  */
 export const WIDGETS: WidgetEntry[] = [
-  { spec: proConSpec as WidgetSpec, component: ProConWidget },
-  { spec: optionsSpec as WidgetSpec, component: OptionsWidget },
+  { spec: readinessSpec as WidgetSpec, component: ReadinessWidget },
   { spec: twoByTwoSpec as WidgetSpec, component: TwoByTwoWidget },
   { spec: eisenhowerSpec as WidgetSpec, component: EisenhowerWidget },
   { spec: swotSpec as WidgetSpec, component: SwotWidget },
@@ -102,5 +99,45 @@ export function widgetHelpText(): string {
     ...rows,
     "",
     "Or just describe a decision and I'll pick a tool. Type /help anytime.",
+  ].join("\n");
+}
+
+// `/ex` (and aliases) — example prompts. Bare `/ex` lists one example decision
+// per widget; `/ex <command>` runs that widget's example through the router (so
+// it gets a real LLM answer and surfaces the widget). Handled in the composer.
+const EXAMPLE_COMMANDS = ["ex", "example", "examples", "eg"];
+
+export type ExampleMatch =
+  | { kind: "list" }
+  | { kind: "run"; entry: WidgetEntry; example: string };
+
+// Parse an `/ex` line. Returns null if it isn't an example command at all, a
+// "list" request for bare `/ex`, or a "run" with the chosen widget + its example
+// when an argument names a known widget (by command or type). An unknown
+// argument falls back to "list" so the user sees the menu.
+export function matchExampleCommand(input: string): ExampleMatch | null {
+  if (!input.startsWith("/")) return null;
+  const [word, ...rest] = input.slice(1).trim().split(/\s+/);
+  if (!EXAMPLE_COMMANDS.includes(word?.toLowerCase() ?? "")) return null;
+
+  const key = rest[0]?.toLowerCase();
+  if (!key) return { kind: "list" };
+  const entry = WIDGETS.find(
+    (w) => w.spec.commands.includes(key) || w.spec.type === key,
+  );
+  return entry ? { kind: "run", entry, example: entry.spec.example } : { kind: "list" };
+}
+
+// Render the example list from WIDGETS so it can't drift. Canonical command per
+// spec, its title, and the example decision it's the obvious tool for.
+export function widgetExampleText(): string {
+  const rows = WIDGETS.map(
+    (w) => `  /${w.spec.commands[0]} — ${w.spec.title}: "${w.spec.example}"`,
+  );
+  return [
+    "Example decisions — type /ex <name> to run one (e.g. /ex eis), or just",
+    "describe your own:",
+    "",
+    ...rows,
   ].join("\n");
 }

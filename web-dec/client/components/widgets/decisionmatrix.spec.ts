@@ -45,6 +45,7 @@ export const decisionMatrixSpec: WidgetSpec<DecisionMatrixData> = {
   title: "Decision matrix",
   description: "Score options against weighted criteria; weighted totals computed when numbers parse.",
   purpose: "Compare multiple options numerically against criteria you can weight.",
+  example: "Compare three apartments on rent, commute, and size.",
 
   format: (data) => {
     const lines: string[] = [`**Decision matrix — ${data.title}**`, ""];

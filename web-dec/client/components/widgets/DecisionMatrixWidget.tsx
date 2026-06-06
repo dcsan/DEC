@@ -1,6 +1,7 @@
 // Decision matrix widget — see decisionmatrix.spec.ts.
 
 import { useState, type CSSProperties } from "react";
+import { trpc } from "../../lib/trpc";
 import type { WidgetProps } from "./types";
 import {
   blankDecisionMatrixData,
@@ -11,14 +12,46 @@ import {
 
 const ACCENT = "var(--dec-framework)";
 
-export function DecisionMatrixWidget({ onSend, onRemove }: WidgetProps) {
-  const blank = blankDecisionMatrixData("");
+export function DecisionMatrixWidget({ initial, onSend, onRemove }: WidgetProps) {
+  const blank = blankDecisionMatrixData(initial?.title || "");
   const [title, setTitle] = useState(blank.title);
   const [criteria, setCriteria] = useState<Criterion[]>(blank.criteria);
   const [options, setOptions] = useState<MatrixOption[]>(blank.options);
   const [sent, setSent] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const bump = () => setSent(false);
+  const more = trpc.suggest.more.useMutation();
+
+  const bump = () => {
+    setSent(false);
+    setError(null);
+  };
+
+  // The decision to seed the LLM with: what surfaced this widget, else the title.
+  const seedQuestion = () => initial?.question?.trim() || title.trim();
+
+  // Append more options (rows) from the LLM, scored blank for the user to fill.
+  const generateMore = async () => {
+    const q = seedQuestion();
+    if (!q || more.isPending) return;
+    setError(null);
+    try {
+      const out = await more.mutateAsync({
+        question: q,
+        itemNoun: "option to compare",
+        existing: options.map((o) => o.name.trim()).filter(Boolean),
+      });
+      if (out.items.length) {
+        setOptions((cur) => [
+          ...cur,
+          ...out.items.map((name) => ({ name, scores: criteria.map(() => "") })),
+        ]);
+        setSent(false);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not generate more.");
+    }
+  };
 
   const patchCrit = (i: number, p: Partial<Criterion>) => {
     setCriteria((c) => c.map((row, idx) => (idx === i ? { ...row, ...p } : row)));
@@ -169,14 +202,25 @@ export function DecisionMatrixWidget({ onSend, onRemove }: WidgetProps) {
             ))}
           </tbody>
         </table>
-        <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8 }}>
           <button type="button" onClick={addCrit} style={addBtn}>
             + criterion
           </button>
           <button type="button" onClick={addOpt} style={addBtn}>
             + option
           </button>
+          <button
+            type="button"
+            onClick={generateMore}
+            disabled={!seedQuestion() || more.isPending}
+            style={genBtn(!!seedQuestion() && !more.isPending)}
+          >
+            {more.isPending ? "Thinking…" : "✨ generate options"}
+          </button>
         </div>
+        {error && (
+          <div style={{ marginTop: 6, fontSize: 11, color: "var(--dec-option)" }}>{error}</div>
+        )}
       </div>
 
       <div
@@ -251,6 +295,18 @@ const addBtn: CSSProperties = {
   color: "var(--dec-text-muted)",
   cursor: "pointer",
 };
+
+const genBtn = (enabled: boolean): CSSProperties => ({
+  fontSize: 11,
+  fontWeight: 600,
+  padding: "3px 10px",
+  borderRadius: 6,
+  border: "1px solid var(--dec-border)",
+  background: enabled ? "var(--dec-accent-soft)" : "var(--dec-surface)",
+  color: enabled ? "var(--dec-text)" : "var(--dec-text-subtle)",
+  cursor: enabled ? "pointer" : "not-allowed",
+  whiteSpace: "nowrap",
+});
 
 const iconBtn: CSSProperties = {
   fontSize: 12,

@@ -36,6 +36,7 @@ export const oodaSpec: WidgetSpec<OodaData> = {
   title: "OODA / first principles",
   description: "Observe–Orient–Decide–Act plus a space to strip the problem to first principles.",
   purpose: "Break a stuck decision by cycling facts, models, commitment, and action—and by reframing from basics.",
+  example: "I'm stuck on a big decision — help me think it through from first principles.",
 
   format: (data) => {
     const lines: string[] = [

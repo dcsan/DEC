@@ -98,6 +98,11 @@ Use `assets/spec.template.ts` as the starting point. Fill in:
   Give 2–4 (a short alias + the full word), and check `registry.ts` so none
   collide with an existing widget's commands.
 - `title`, `description` (one line, for menus), `purpose` (the decision use).
+- `example` — a concrete decision question this widget is the obvious tool for,
+  in a user's own words (e.g. "Should I get a dog or a cat?"). It must route
+  here through the convo router: `/ex` lists every widget's example, and `/ex
+  <command>` runs this one through the router as if the user typed it. Make it
+  distinct from neighbouring widgets' examples so routing lands on the right one.
 - The `TData` interface(s) — export them; the component imports them.
 - `format(data)` — see "Writing format()" below.
 

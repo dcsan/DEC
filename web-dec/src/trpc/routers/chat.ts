@@ -7,7 +7,9 @@ import { WIDGET_REGISTRY } from "../../services/widgetRegistry";
 // Standalone chat endpoint + conversation router for the /chat view.
 //
 // What reaches here is either:
-//   • a widget result        → acknowledge it, no routing, and
+//   • a widget result        → recommend a decision, using the original question
+//                               (carried from when the widget was surfaced) plus
+//                               the widget's formatted output for full context.
 //   • a free-text message     → classify it. If it's a decision, choose the most
 //                               relevant widget (from the catalog the client
 //                               sends) AND extract the choices to prefill it.
@@ -33,6 +35,15 @@ const RouteReplySchema = z.object({
     .describe("the choices/options/tasks from the conversation to prefill the tool, or an empty array"),
 });
 
+// What the LLM returns when recommending a decision from a submitted widget.
+const RecommendationSchema = z.object({
+  recommendation: z
+    .string()
+    .describe(
+      "a concise, decisive recommendation grounded in the user's original question and their widget input — state what to do and the key reason, 2-4 sentences, no hedging",
+    ),
+});
+
 // Shape returned to the client.
 export interface RouteResult {
   reply: string;
@@ -47,6 +58,7 @@ export const chatRouter = router({
       z.object({
         text: z.string().min(1).max(8000),
         widget: z.object({ type: z.string(), data: z.unknown() }).optional(),
+        question: z.string().max(2000).optional(),
         history: z.array(HistoryMessage).optional(),
       }),
     )
@@ -59,9 +71,16 @@ export const chatRouter = router({
       }
       console.log("[chat] received text:", input.text);
 
-      // A widget result → simple acknowledgement, no routing.
+      // A widget result → recommend a decision from the original question +
+      // the widget's formatted output. No routing.
       if (input.widget) {
-        return { reply: `you said: ${input.text}`, widget: null, title: null, items: [] };
+        const reply = await recommend(
+          ctx.env.OPENROUTER_API_KEY,
+          input.question,
+          input.widget.type,
+          input.text,
+        );
+        return { reply, widget: null, title: null, items: [] };
       }
 
       const result = await route(
@@ -141,10 +160,52 @@ async function route(
   }
   return {
     reply:
-      `Got it — "${text.slice(0, 80)}". Tell me more, or try /pc (pros & cons) ` +
+      `Got it — "${text.slice(0, 80)}". Tell me more, or try /rc (decision factors) ` +
       `or /eis (Eisenhower matrix). (Add OPENROUTER_API_KEY for smarter routing.)`,
     widget: null,
     title: null,
     items: [],
   };
+}
+
+// Turn a submitted widget into a decision recommendation. Uses the original
+// question (what the user was deciding) plus the widget's plain-text output so
+// the model reasons over the full context, not just the filled-in tool.
+async function recommend(
+  apiKey: string | undefined,
+  question: string | undefined,
+  widgetType: string,
+  widgetText: string,
+): Promise<string> {
+  if (apiKey) {
+    try {
+      const out = await structuredChat({
+        apiKey,
+        schema: RecommendationSchema,
+        schemaName: "recommendation",
+        system:
+          "You are DEC, a decisive decision assistant. The user worked through a " +
+          "thinking tool and submitted it. Using their original question and the " +
+          "filled-in tool, give a clear recommendation: say what you'd do and the " +
+          "one or two reasons why. Be concise and don't hedge.",
+        prompt:
+          `Original decision: ${question?.trim() || "(not stated — infer from the tool)"}\n\n` +
+          `The user worked through it with the "${widgetType}" tool and submitted:\n` +
+          `${widgetText}\n\n` +
+          `Give your recommendation.`,
+        temperature: 0.4,
+        title: "decision-recommend",
+      });
+      return out.recommendation;
+    } catch (err) {
+      console.error("[chat] recommend failed, using fallback", err);
+    }
+  }
+
+  // No-key / LLM-failed fallback: reflect the input without a tailored call.
+  const lead = question?.trim() ? `On "${question.trim()}": ` : "";
+  return (
+    `${lead}thanks — I've captured your ${widgetType} input. ` +
+    `Add OPENROUTER_API_KEY for a tailored recommendation.`
+  );
 }

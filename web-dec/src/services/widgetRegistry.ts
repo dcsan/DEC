@@ -13,22 +13,10 @@ import type { WidgetInfo } from "./convoRouter";
 
 export const WIDGET_REGISTRY: WidgetInfo[] = [
   {
-    type: "procon",
-    title: "Pros & Cons",
+    type: "readiness",
+    title: "Decision Factors",
     purpose:
-      "Weigh a single option by laying its upsides against its downsides — good for go/no-go calls.",
-  },
-  {
-    type: "options",
-    title: "Options A/B",
-    purpose:
-      "Choose between exactly two options by scoring them across the decision points that matter — see at a glance which option wins on more counts.",
-  },
-  {
-    type: "options",
-    title: "Options A/B",
-    purpose:
-      "Choose between exactly two options by scoring them across the decision points that matter — see at a glance which option wins on more counts.",
+      "Work through a single yes/no / go-no-go life decision (e.g. should I join a startup, take the job, make the leap) by surfacing the factors that pull on it — both ways — and ranking how much each one matters to you (1-5), so the trade-off is explicit.",
   },
   {
     type: "twobytwo",

@@ -1,24 +1,63 @@
 // Pre-mortem widget — see premortem.spec.ts.
 
-import { useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { trpc } from "../../lib/trpc";
 import type { WidgetProps } from "./types";
 import { blankPremortemData, premortemSpec } from "./premortem.spec";
 
 const ACCENT = "var(--dec-framework)";
 
-export function PremortemWidget({ onSend, onRemove }: WidgetProps) {
-  const blank = blankPremortemData("");
+export function PremortemWidget({ initial, onSend, onRemove }: WidgetProps) {
+  const blank = blankPremortemData(initial?.title || "");
   const [title, setTitle] = useState(blank.title);
   const [decision, setDecision] = useState(blank.decision);
   const [horizon, setHorizon] = useState(blank.horizon);
   const [imaginedFailure, setImaginedFailure] = useState(blank.imaginedFailure);
   const [causes, setCauses] = useState(blank.causes);
   const [sent, setSent] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const bump = () => setSent(false);
+  const suggest = trpc.premortem.suggest.useMutation();
 
-  const hasContent =
-    decision.trim() || horizon.trim() || imaginedFailure.trim() || causes.trim();
+  const bump = () => {
+    setSent(false);
+    setError(null);
+  };
+
+  // The decision to seed the LLM with: the Decision field if typed, else what
+  // surfaced this widget.
+  const seedQuestion = () =>
+    decision.trim() || initial?.question?.trim() || initial?.title?.trim() || "";
+
+  // Draft (or redraft) all four pre-mortem fields from the decision.
+  const runSuggest = async () => {
+    const q = seedQuestion();
+    if (!q || suggest.isPending) return;
+    setError(null);
+    try {
+      const out = await suggest.mutateAsync({ question: q });
+      setDecision(out.decision);
+      setHorizon(out.horizon);
+      setImaginedFailure(out.imaginedFailure);
+      setCauses(out.causes);
+      setSent(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not generate the pre-mortem.");
+    }
+  };
+
+  // Surfaced with a decision already → draft the pre-mortem once on mount.
+  const autofilled = useRef(false);
+  useEffect(() => {
+    if (autofilled.current) return;
+    autofilled.current = true;
+    if (initial?.question?.trim() || initial?.title?.trim()) void runSuggest();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const hasContent = Boolean(
+    decision.trim() || horizon.trim() || imaginedFailure.trim() || causes.trim(),
+  );
 
   const send = () => {
     if (!hasContent) return;
@@ -61,6 +100,31 @@ export function PremortemWidget({ onSend, onRemove }: WidgetProps) {
           ⨯
         </button>
       </div>
+
+      {/* Suggest bar */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 8,
+          padding: "6px 10px",
+          borderBottom: "1px solid var(--dec-border-soft)",
+        }}
+      >
+        <span style={{ fontSize: 11, color: "var(--dec-text-subtle)" }}>
+          {suggest.isPending ? "Thinking…" : error ? error : "Let AI draft the pre-mortem."}
+        </span>
+        <button
+          type="button"
+          onClick={runSuggest}
+          disabled={!seedQuestion() || suggest.isPending}
+          style={suggestBtn(!!seedQuestion() && !suggest.isPending)}
+        >
+          {hasContent ? "↻ Regenerate" : "✨ Suggest"}
+        </button>
+      </div>
+
       <div style={{ padding: 10, display: "flex", flexDirection: "column", gap: 10 }}>
         <Field label="Decision" value={decision} onChange={setDecision} bump={bump} ph="What you're about to do…" />
         <Field label="Time horizon" value={horizon} onChange={setHorizon} bump={bump} ph="e.g. 12 months from now" />
@@ -162,6 +226,18 @@ const iconBtn: CSSProperties = {
   cursor: "pointer",
   flexShrink: 0,
 };
+
+const suggestBtn = (enabled: boolean): CSSProperties => ({
+  fontSize: 11,
+  fontWeight: 600,
+  padding: "4px 10px",
+  borderRadius: 8,
+  border: "1px solid var(--dec-border)",
+  background: enabled ? "var(--dec-accent-soft)" : "var(--dec-surface)",
+  color: enabled ? "var(--dec-text)" : "var(--dec-text-subtle)",
+  cursor: enabled ? "pointer" : "not-allowed",
+  flexShrink: 0,
+});
 
 const sendBtn = (enabled: boolean): CSSProperties => ({
   fontSize: 12,

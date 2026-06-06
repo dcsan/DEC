@@ -18,12 +18,13 @@ export function RegretWidget({ onSend, onRemove }: WidgetProps) {
 
   const bump = () => setSent(false);
 
-  const hasContent =
+  const hasContent = Boolean(
     optionA.trim() ||
-    optionB.trim() ||
-    regretIfA.trim() ||
-    regretIfB.trim() ||
-    horizonYears.trim();
+      optionB.trim() ||
+      regretIfA.trim() ||
+      regretIfB.trim() ||
+      horizonYears.trim(),
+  );
 
   const send = () => {
     if (!hasContent) return;

@@ -28,6 +28,13 @@ export interface WidgetSpec<TData = unknown> {
   /** What this widget/chart is good for — its decision-making purpose. */
   purpose: string;
   /**
+   * A real-sounding decision question this widget is the obvious tool for — and
+   * that the convo router would confidently route here. Shown by `/ex`, and used
+   * as the prefill when the user runs `/ex <command>`. Keep it concrete and in a
+   * user's own words (e.g. "Should I get a dog or a cat?").
+   */
+  example: string;
+  /**
    * Turn the widget's current data into the text sent back to the chat.
    * Pure function — the whole point of the spec file is to keep this output
    * formatting in one obvious, React-free place.
@@ -52,6 +59,13 @@ export interface WidgetOutput<TData = unknown> {
 export interface WidgetInit {
   title?: string;
   items?: string[];
+  /**
+   * The original free-text decision that surfaced this widget (or the slash
+   * command's trailing args). Carried so the chat can forward it to the server
+   * on the final post — giving the recommendation full context, not just the
+   * widget's formatted output.
+   */
+  question?: string;
 }
 
 // Props every widget component receives from the chat view.

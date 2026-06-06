@@ -24,6 +24,7 @@ export const twoByTwoSpec: WidgetSpec<TwoByTwoData> = {
   description:
     "Four quadrants you can label; drag the handle on any tile to swap it with another.",
   purpose: "Place ideas in four buckets on two axes; swap quadrant text when your framing shifts.",
+  example: "Help me sort my project ideas by impact and effort.",
 
   format: (data) => {
     const lines: string[] = [

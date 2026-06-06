@@ -35,6 +35,7 @@ export const expectedValueSpec: WidgetSpec<ExpectedValueData> = {
   title: "Expected value",
   description: "Rows of outcome, probability, and value; EV sum when numbers parse.",
   purpose: "Weight uncertain outcomes by probability for risk-return style comparisons.",
+  example: "Should I take a bet with a 60% chance to win $500?",
 
   format: (data) => {
     const lines: string[] = [
@@ -50,7 +51,7 @@ export const expectedValueSpec: WidgetSpec<ExpectedValueData> = {
 
     const probs = filled.map((r) => parseNum(r.probability));
     const vals = filled.map((r) => parseNum(r.value));
-    const sumP = probs.reduce((a, p) => a + (p ?? 0), 0);
+    const sumP = probs.reduce<number>((a, p) => a + (p ?? 0), 0);
     const asPercent = probs.every((p) => p !== null) && sumP > 1.01 && sumP <= 100;
 
     let ev = 0;

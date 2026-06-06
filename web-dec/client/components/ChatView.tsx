@@ -6,7 +6,14 @@
 
 import { useEffect, useRef, useState } from "react";
 import { trpc } from "../lib/trpc";
-import { getWidget, isHelpCommand, matchWidgetCommand, widgetHelpText } from "./widgets/registry";
+import {
+  getWidget,
+  isHelpCommand,
+  matchExampleCommand,
+  matchWidgetCommand,
+  widgetExampleText,
+  widgetHelpText,
+} from "./widgets/registry";
 import type { WidgetInit, WidgetOutput } from "./widgets/types";
 
 type ChatItem =
@@ -42,11 +49,14 @@ export function ChatView() {
     ...(extra ? [extra] : []),
   ];
 
-  // Send a widget result to the server (just an ack) and show its reply.
-  const postWidgetResult = async (output: WidgetOutput) => {
+  // Send a widget result to the server along with the original question that
+  // surfaced it, so the server can recommend a decision with full context (not
+  // just the widget's formatted output). Show the recommendation as a reply.
+  const postWidgetResult = async (output: WidgetOutput, question?: string) => {
     const res = await send.mutateAsync({
       text: output.text,
       widget: { type: output.type, data: output.data },
+      question: question || undefined,
     });
     append({ kind: "message", id: uid(), role: "assistant", content: res.reply });
   };
@@ -64,7 +74,8 @@ export function ChatView() {
         kind: "widget",
         id: uid(),
         type: res.widget,
-        init: { title: res.title ?? undefined, items: res.items },
+        // Carry the original message so it's forwarded back on the final post.
+        init: { title: res.title ?? undefined, items: res.items, question: content },
       });
     }
   };
@@ -80,10 +91,33 @@ export function ChatView() {
       return;
     }
 
-    // Explicit slash command → drop the matching widget into the stream.
+    // `/ex` → example prompts. Bare `/ex` lists one example per widget; `/ex
+    // <widget>` (e.g. `/ex eis`) sends that widget's example decision through the
+    // router exactly as if the user typed it — so they get a real LLM answer and
+    // the surfaced widget, prefilled.
+    const ex = matchExampleCommand(content);
+    if (ex) {
+      setDraft("");
+      if (ex.kind === "list") {
+        append({ kind: "message", id: uid(), role: "assistant", content: widgetExampleText() });
+      } else {
+        append({ kind: "message", id: uid(), role: "user", content: ex.example });
+        void routeMessage(ex.example);
+      }
+      return;
+    }
+
+    // Explicit slash command → drop the matching widget into the stream,
+    // carrying any trailing args as the original question (e.g. `/eis taxes vs
+    // twitter` → question "taxes vs twitter") for the final recommendation.
     const match = matchWidgetCommand(content);
     if (match) {
-      append({ kind: "widget", id: uid(), type: match.entry.spec.type });
+      append({
+        kind: "widget",
+        id: uid(),
+        type: match.entry.spec.type,
+        init: match.args ? { question: match.args } : undefined,
+      });
       setDraft("");
       return;
     }
@@ -100,8 +134,11 @@ export function ChatView() {
   // A widget sending its result posts to the server (structured + text). The
   // widget itself stays in place, so we only show the server's reply — no
   // duplicate echo of the widget output.
-  const sendFromWidget = (_widgetId: string, output: WidgetOutput) =>
-    void postWidgetResult(output);
+  const sendFromWidget = (widgetId: string, output: WidgetOutput) => {
+    const item = items.find((it) => it.id === widgetId);
+    const question = item?.kind === "widget" ? item.init?.question : undefined;
+    void postWidgetResult(output, question);
+  };
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", minHeight: 0 }}>
@@ -110,9 +147,9 @@ export function ChatView() {
         <div style={{ maxWidth: 720, margin: "0 auto", padding: "0 16px" }}>
           {items.length === 0 && (
             <p style={{ color: "var(--dec-text-subtle)", fontSize: 14, marginTop: 24 }}>
-              Describe a decision (e.g. "should I rent or buy?") and I'll surface
-              a tool to help — or use a slash widget directly:{" "}
-              <code>/pc</code> pros &amp; cons, <code>/eis</code> Eisenhower,{" "}
+              Describe a decision (e.g. "should I join a startup?") and I'll
+              surface a tool to help — or use a slash widget directly:{" "}
+              <code>/rc</code> decision factors, <code>/eis</code> Eisenhower,{" "}
               <code>/swot</code>, <code>/sc</code> scenarios, <code>/dm</code>{" "}
               decision matrix, <code>/22</code>, <code>/cb</code> cost–benefit,{" "}
               <code>/pm</code> pre-mortem, <code>/dt</code> decision tree,{" "}
@@ -155,7 +192,7 @@ export function ChatView() {
                 submit();
               }
             }}
-            placeholder="Message, /help, or /pc /eis /swot /sc /dm /22 /cb /pm /dt /ev /ooda /rg"
+            placeholder="Message, /help, or /rc /eis /swot /sc /dm /22 /cb /pm /dt /ev /ooda /rg"
             rows={1}
             style={{
               flex: 1,
