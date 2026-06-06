@@ -17,8 +17,8 @@ function HomePage() {
         What are you deciding?
       </h1>
       <p style={{ color: "var(--dec-text-muted)", marginTop: 8, fontSize: 15 }}>
-        Talk through a decision in chat. Type <code>/pc</code> to drop in a
-        pros &amp; cons widget and send the result back into the conversation.
+        Talk through a decision in chat. Type <code>/help</code> to see the
+        tools, <code>/ex</code> for examples, or just describe your decision.
       </p>
 
       <Link
