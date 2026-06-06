@@ -1,38 +1,77 @@
 // Scenario planning widget — see scenario.spec.ts.
+//
+// A branching tree of futures: the decision fans out into top-level futures,
+// each of which can branch again (a → b → c) into follow-on events. Every node
+// has a likelihood and a good / bad / neutral outcome. No prose field — the
+// shape of the tree and its outcomes carry the meaning.
 
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { trpc } from "../../lib/trpc";
 import type { WidgetProps } from "./types";
-import { blankScenarioData, parseChance, scenarioSpec, type ScenarioRow } from "./scenario.spec";
+import {
+  blankScenarioData,
+  hasNamedBranch,
+  makeNode,
+  parseChance,
+  scenarioSpec,
+  type Outcome,
+  type ScenarioNode,
+} from "./scenario.spec";
+import type { ScenarioNodeSuggestion } from "../../../src/trpc/routers/scenario";
 
 const ACCENT = "var(--dec-option)";
+const GOOD = "var(--dec-merged)";
+const BAD = "#ff8b8b";
+const NEUTRAL = "var(--dec-text-subtle)";
+const outcomeColor = (o: Outcome) => (o === "good" ? GOOD : o === "bad" ? BAD : NEUTRAL);
+
+// --- immutable tree helpers (operate on a node id, recurse into children) ----
+function mapTree(nodes: ScenarioNode[], id: string, fn: (n: ScenarioNode) => ScenarioNode): ScenarioNode[] {
+  return nodes.map((n) =>
+    n.id === id ? fn(n) : { ...n, children: mapTree(n.children, id, fn) },
+  );
+}
+function removeFromTree(nodes: ScenarioNode[], id: string): ScenarioNode[] {
+  return nodes
+    .filter((n) => n.id !== id)
+    .map((n) => ({ ...n, children: removeFromTree(n.children, id) }));
+}
+function ingest(s: ScenarioNodeSuggestion): ScenarioNode {
+  return makeNode({
+    name: s.name,
+    chance: s.chance,
+    outcome: s.outcome,
+    children: s.children.map(ingest),
+  });
+}
 
 export function ScenarioWidget({ initial, onSend, onRemove }: WidgetProps) {
   const blank = blankScenarioData(initial?.title || "");
   const [title, setTitle] = useState(blank.title);
-  const [scenarios, setScenarios] = useState<ScenarioRow[]>(blank.scenarios);
+  const [tree, setTree] = useState<ScenarioNode[]>(blank.tree);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const more = trpc.suggest.more.useMutation();
   const suggest = trpc.scenario.suggest.useMutation();
 
-  const edit = (next: ScenarioRow[]) => {
-    setScenarios(next);
+  const edit = (next: ScenarioNode[]) => {
+    setTree(next);
     setSent(false);
     setError(null);
   };
 
-  const patch = (i: number, p: Partial<ScenarioRow>) =>
-    edit(scenarios.map((s, idx) => (idx === i ? { ...s, ...p } : s)));
-
-  const add = () => edit([...scenarios, { name: "", implications: "", chance: "" }]);
-  const remove = (i: number) => edit(scenarios.filter((_, idx) => idx !== i));
+  const patch = (id: string, p: Partial<ScenarioNode>) =>
+    edit(mapTree(tree, id, (n) => ({ ...n, ...p })));
+  const addChild = (id: string) =>
+    edit(mapTree(tree, id, (n) => ({ ...n, children: [...n.children, makeNode()] })));
+  const addTop = () => edit([...tree, makeNode()]);
+  const remove = (id: string) => edit(removeFromTree(tree, id));
 
   // The decision to seed the LLM with: what surfaced this widget, else the title.
   const seedQuestion = () => initial?.question?.trim() || title.trim();
 
-  // Append more plausible futures from the LLM as fresh scenario rows.
+  // Append more top-level futures from the LLM as fresh branches.
   const generateMore = async () => {
     const q = seedQuestion();
     if (!q || more.isPending) return;
@@ -41,13 +80,10 @@ export function ScenarioWidget({ initial, onSend, onRemove }: WidgetProps) {
       const out = await more.mutateAsync({
         question: q,
         itemNoun: "plausible future scenario",
-        existing: scenarios.map((s) => s.name.trim()).filter(Boolean),
+        existing: tree.map((n) => n.name.trim()).filter(Boolean),
       });
       if (out.items.length) {
-        setScenarios((cur) => [
-          ...cur,
-          ...out.items.map((name) => ({ name, implications: "", chance: "" })),
-        ]);
+        setTree((cur) => [...cur, ...out.items.map((name) => makeNode({ name }))]);
         setSent(false);
       }
     } catch (err) {
@@ -55,8 +91,7 @@ export function ScenarioWidget({ initial, onSend, onRemove }: WidgetProps) {
     }
   };
 
-  // Draft a fresh spread of futures (name + implications + chance) and replace
-  // the blank seed rows with them.
+  // Draft a fresh branching tree of futures and replace the blank seed rows.
   const runSuggest = async () => {
     const q = seedQuestion();
     if (!q || suggest.isPending) return;
@@ -64,7 +99,7 @@ export function ScenarioWidget({ initial, onSend, onRemove }: WidgetProps) {
     try {
       const out = await suggest.mutateAsync({ question: q });
       if (out.scenarios.length) {
-        setScenarios(out.scenarios);
+        setTree(out.scenarios.map(ingest));
         setSent(false);
       }
     } catch (err) {
@@ -81,11 +116,11 @@ export function ScenarioWidget({ initial, onSend, onRemove }: WidgetProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const hasContent = scenarios.some((s) => s.name.trim() || s.implications.trim());
+  const hasContent = hasNamedBranch(tree);
 
   const send = () => {
     if (!hasContent) return;
-    const data = { title, scenarios };
+    const data = { title, tree };
     onSend({ type: scenarioSpec.type, data, text: scenarioSpec.format(data) });
     setSent(true);
   };
@@ -93,44 +128,20 @@ export function ScenarioWidget({ initial, onSend, onRemove }: WidgetProps) {
   return (
     <div style={shell(ACCENT)}>
       <HeaderRow emoji="🔭" title={title} setTitle={setTitle} setSent={setSent} onRemove={onRemove} />
-      <p style={hint}>Plausible futures and what each would mean for you.</p>
-      <div style={{ padding: "0 10px 8px" }}>
-        {scenarios.map((s, i) => (
-          <div key={i} style={{ marginBottom: 10, padding: 8, borderRadius: 8, border: "1px solid var(--dec-border)" }}>
-            <div style={{ display: "flex", gap: 6, marginBottom: 6 }}>
-              <input
-                value={s.name}
-                placeholder={`Scenario ${i + 1} name`}
-                onChange={(e) => patch(i, { name: e.target.value })}
-                style={{ ...inp, flex: 1 }}
-              />
-              <div style={{ position: "relative", width: 76, flexShrink: 0 }}>
-                <input
-                  value={s.chance}
-                  placeholder="chance"
-                  inputMode="decimal"
-                  title="Chance this future occurs (e.g. 30 or 30%)"
-                  onChange={(e) => patch(i, { chance: e.target.value })}
-                  style={{ ...inp, paddingRight: 16, textAlign: "right" }}
-                />
-                <span style={pctSuffix}>%</span>
-              </div>
-            </div>
-            <textarea
-              value={s.implications}
-              placeholder="Implications if this future happens…"
-              onChange={(e) => patch(i, { implications: e.target.value })}
-              rows={3}
-              style={ta}
-            />
-            <button type="button" onClick={() => remove(i)} style={ghostBtn}>
-              Remove scenario
-            </button>
-          </div>
+      <div style={{ padding: "8px 10px 8px" }}>
+        {tree.map((n) => (
+          <NodeEditor
+            key={n.id}
+            node={n}
+            depth={0}
+            patch={patch}
+            addChild={addChild}
+            remove={remove}
+          />
         ))}
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <button type="button" onClick={add} style={addBtn}>
-            + scenario
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4 }}>
+          <button type="button" onClick={addTop} style={addBtn}>
+            + future
           </button>
           <button
             type="button"
@@ -140,73 +151,200 @@ export function ScenarioWidget({ initial, onSend, onRemove }: WidgetProps) {
           >
             {more.isPending ? "Thinking…" : "✨ generate more"}
           </button>
-          {error && <span style={{ fontSize: 11, color: "var(--dec-option)" }}>{error}</span>}
+          {suggest.isPending && (
+            <span style={{ fontSize: 11, color: "var(--dec-text-subtle)" }}>drafting tree…</span>
+          )}
+          {error && <span style={{ fontSize: 11, color: BAD }}>{error}</span>}
         </div>
 
-        <ScenarioSankey scenarios={scenarios} />
+        <ScenarioTree tree={tree} />
       </div>
       <FooterRow sent={sent} hasContent={hasContent} send={send} />
     </div>
   );
 }
 
-// A lightweight Sankey: the decision (root bar on the left) fans out into the
-// named scenarios on the right, each flow's thickness proportional to its
-// chance. When no chances are entered the split is equal. Pure SVG — no library.
-function ScenarioSankey({ scenarios }: { scenarios: ScenarioRow[] }) {
-  const named = scenarios.filter((s) => s.name.trim() !== "");
-  if (named.length === 0) return null;
+// --- recursive editor row ----------------------------------------------------
+function NodeEditor(props: {
+  node: ScenarioNode;
+  depth: number;
+  patch: (id: string, p: Partial<ScenarioNode>) => void;
+  addChild: (id: string) => void;
+  remove: (id: string) => void;
+}) {
+  const { node, depth, patch, addChild, remove } = props;
+  return (
+    <div
+      style={{
+        marginBottom: 6,
+        marginLeft: depth ? 14 : 0,
+        paddingLeft: depth ? 10 : 0,
+        borderLeft: depth ? `2px solid ${outcomeColor(node.outcome)}55` : "none",
+      }}
+    >
+      <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+        <input
+          value={node.name}
+          placeholder={depth === 0 ? "Future…" : "Then…"}
+          onChange={(e) => patch(node.id, { name: e.target.value })}
+          style={{ ...inp, flex: 1 }}
+        />
+        <div style={{ position: "relative", width: 64, flexShrink: 0 }}>
+          <input
+            value={node.chance}
+            placeholder="%"
+            inputMode="decimal"
+            title="Likelihood relative to its siblings (e.g. 30 or 30%)"
+            onChange={(e) => patch(node.id, { chance: e.target.value })}
+            style={{ ...inp, paddingRight: 14, textAlign: "right" }}
+          />
+          <span style={pctSuffix}>%</span>
+        </div>
+        <OutcomeToggle
+          value={node.outcome}
+          onChange={(o) => patch(node.id, { outcome: o })}
+        />
+        <button type="button" title="Add a follow-on event" onClick={() => addChild(node.id)} style={branchBtn}>
+          ↳
+        </button>
+        <button type="button" title="Remove this branch" onClick={() => remove(node.id)} style={removeBtn}>
+          ⨯
+        </button>
+      </div>
+      {node.children.map((c) => (
+        <NodeEditor key={c.id} node={c} depth={depth + 1} patch={patch} addChild={addChild} remove={remove} />
+      ))}
+    </div>
+  );
+}
 
-  const raw = named.map((s) => parseChance(s.chance));
-  const anyChance = raw.some((w) => w != null && w > 0);
-  const weights = named.map((_, i) => (anyChance ? raw[i] ?? 0 : 1));
-  const total = weights.reduce((a, w) => a + w, 0) || 1;
-  const shares = weights.map((w) => w / total);
+// Good / bad toggle. Clicking the active state again clears it back to neutral.
+function OutcomeToggle({ value, onChange }: { value: Outcome; onChange: (o: Outcome) => void }) {
+  const pill = (target: "good" | "bad", glyph: string, color: string): CSSProperties => {
+    const active = value === target;
+    return {
+      width: 22,
+      height: 24,
+      fontSize: 12,
+      borderRadius: 6,
+      border: `1px solid ${active ? color : "var(--dec-border)"}`,
+      background: active ? `${color}33` : "transparent",
+      color: active ? color : "var(--dec-text-subtle)",
+      cursor: "pointer",
+      padding: 0,
+    };
+  };
+  return (
+    <div style={{ display: "flex", gap: 3, flexShrink: 0 }}>
+      <button
+        type="button"
+        title="Good outcome"
+        onClick={() => onChange(value === "good" ? "neutral" : "good")}
+        style={pill("good", "✓", GOOD)}
+      >
+        ✓
+      </button>
+      <button
+        type="button"
+        title="Bad outcome"
+        onClick={() => onChange(value === "bad" ? "neutral" : "bad")}
+        style={pill("bad", "✗", BAD)}
+      >
+        ✗
+      </button>
+    </div>
+  );
+}
 
-  const W = 420;
-  const rowH = 34;
+// --- branching tree graph (pure SVG, left-to-right) --------------------------
+interface Laid {
+  id: string;
+  label: string;
+  outcome: Outcome;
+  chance: string;
+  x: number;
+  y: number;
+}
+interface Link {
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+  outcome: Outcome;
+}
+
+const isShown = (n: ScenarioNode): boolean =>
+  n.name.trim() !== "" || n.children.some(isShown);
+
+function ScenarioTree({ tree }: { tree: ScenarioNode[] }) {
+  const shownTop = tree.filter(isShown);
+  if (shownTop.length === 0) return null;
+
+  const rowH = 30;
+  const levelGap = 132;
   const padY = 8;
-  const innerH = named.length * rowH;
-  const H = padY * 2 + innerH;
-  const leftX = 16; // right edge of the root bar
-  const nodeX = 250; // left edge of scenario node bars
-  const midX = (leftX + nodeX) / 2;
-  const minT = 4; // keep tiny shares visible
+  const rootX = 10;
+  const firstX = 92;
+  const nodes: Laid[] = [];
+  const links: Link[] = [];
+  const leaf = { v: 0 };
 
-  const palette = [
-    "var(--dec-option)",
-    "var(--dec-concept)",
-    "var(--dec-framework)",
-    "var(--dec-merged)",
-  ];
+  // Place each shown node: x by depth, y centred on its shown children (or the
+  // next free leaf row). Returns the y of each placed node so a parent can
+  // centre itself and draw links down to them.
+  const place = (siblings: ScenarioNode[], depth: number): { id: string; x: number; y: number; outcome: Outcome }[] =>
+    siblings.filter(isShown).map((n) => {
+      const x = firstX + depth * levelGap;
+      const kids = place(n.children, depth + 1);
+      const y = kids.length
+        ? (kids[0].y + kids[kids.length - 1].y) / 2
+        : padY + leaf.v++ * rowH + rowH / 2;
+      nodes.push({
+        id: n.id,
+        label: n.name.trim() || "Branch",
+        outcome: n.outcome,
+        chance: n.chance,
+        x,
+        y,
+      });
+      kids.forEach((k) => links.push({ x1: x, y1: y, x2: k.x, y2: k.y, outcome: k.outcome }));
+      return { id: n.id, x, y, outcome: n.outcome };
+    });
 
-  let cum = padY; // source side: stack bands cumulatively over the height
-  const bands = shares.map((sh, i) => {
-    const t = Math.max(minT, sh * innerH);
-    const yL0 = cum;
-    const yL1 = cum + t;
-    cum += t;
-    const cY = padY + (i + 0.5) * rowH; // target side: centre on an even row
-    return { i, yL0, yL1, yR0: cY - t / 2, yR1: cY + t / 2, cY, sh };
-  });
+  const tops = place(tree, 0);
+  const leafCount = Math.max(1, leaf.v);
+  const H = padY * 2 + leafCount * rowH;
+  const rootY = tops.length ? (tops[0].y + tops[tops.length - 1].y) / 2 : H / 2;
+  tops.forEach((t) => links.push({ x1: rootX + 10, y1: rootY, x2: t.x, y2: t.y, outcome: t.outcome }));
+
+  const maxDepth = nodes.reduce((d, n) => Math.max(d, Math.round((n.x - firstX) / levelGap)), 0);
+  const W = firstX + maxDepth * levelGap + 150;
+
+  const curve = (l: Link) => {
+    const mx = (l.x1 + l.x2) / 2;
+    return `M ${l.x1} ${l.y1} C ${mx} ${l.y1}, ${mx} ${l.y2}, ${l.x2} ${l.y2}`;
+  };
 
   return (
-    <div style={{ marginTop: 12 }}>
+    <div style={{ marginTop: 12, overflowX: "auto" }}>
       <div style={{ fontSize: 11, fontWeight: 600, marginBottom: 4, color: "var(--dec-text-subtle)" }}>
-        Likelihood flow
+        Scenario tree
       </div>
-      <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} style={{ display: "block" }}>
-        <rect x={4} y={padY} width={12} height={innerH} rx={3} fill="var(--dec-text-subtle)" opacity={0.5} />
-        {bands.map((b) => {
-          const color = palette[b.i % palette.length];
-          const d = `M ${leftX} ${b.yL0} C ${midX} ${b.yL0}, ${midX} ${b.yR0}, ${nodeX} ${b.yR0} L ${nodeX} ${b.yR1} C ${midX} ${b.yR1}, ${midX} ${b.yL1}, ${leftX} ${b.yL1} Z`;
-          const label = named[b.i].name.trim() || `Future ${b.i + 1}`;
+      <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} style={{ display: "block", maxWidth: "none" }}>
+        {/* decision root */}
+        <rect x={rootX} y={rootY - 9} width={10} height={18} rx={3} fill="var(--dec-text-subtle)" opacity={0.6} />
+        {links.map((l, i) => (
+          <path key={i} d={curve(l)} fill="none" stroke={outcomeColor(l.outcome)} strokeWidth={2} opacity={0.5} />
+        ))}
+        {nodes.map((n) => {
+          const color = outcomeColor(n.outcome);
+          const pct = parseChance(n.chance);
+          const label = truncate(n.label, 18) + (pct != null ? ` · ${Math.round(pct)}%` : "");
           return (
-            <g key={b.i}>
-              <path d={d} fill={color} opacity={0.45} />
-              <rect x={nodeX} y={b.yR0} width={6} height={Math.max(minT, b.yR1 - b.yR0)} rx={2} fill={color} />
-              <text x={nodeX + 12} y={b.cY} dominantBaseline="middle" fontSize={11} fill="var(--dec-text)">
-                {truncate(label, 22)} · {Math.round(b.sh * 100)}%
+            <g key={n.id}>
+              <circle cx={n.x} cy={n.y} r={4} fill={color} />
+              <text x={n.x + 8} y={n.y} dominantBaseline="middle" fontSize={11} fill="var(--dec-text)">
+                {label}
               </text>
             </g>
           );
@@ -222,7 +360,7 @@ function truncate(s: string, n: number): string {
 
 const pctSuffix: CSSProperties = {
   position: "absolute",
-  right: 6,
+  right: 5,
   top: "50%",
   transform: "translateY(-50%)",
   fontSize: 11,
@@ -242,8 +380,6 @@ function shell(accent: string): CSSProperties {
     overflow: "hidden",
   };
 }
-
-const hint: CSSProperties = { margin: "6px 10px 0", fontSize: 11, color: "var(--dec-text-subtle)" };
 
 function HeaderRow(props: {
   emoji: string;
@@ -324,22 +460,6 @@ const inp: CSSProperties = {
   outline: "none",
 };
 
-const ta: CSSProperties = {
-  ...inp,
-  resize: "vertical",
-  fontFamily: "inherit",
-  minHeight: 56,
-};
-
-const ghostBtn: CSSProperties = {
-  marginTop: 6,
-  fontSize: 11,
-  border: "none",
-  background: "transparent",
-  color: "var(--dec-text-muted)",
-  cursor: "pointer",
-};
-
 const addBtn: CSSProperties = {
   fontSize: 11,
   padding: "4px 8px",
@@ -348,6 +468,32 @@ const addBtn: CSSProperties = {
   background: "transparent",
   color: "var(--dec-text-muted)",
   cursor: "pointer",
+};
+
+const branchBtn: CSSProperties = {
+  fontSize: 13,
+  width: 24,
+  height: 24,
+  borderRadius: 6,
+  border: "1px solid var(--dec-border)",
+  background: "var(--dec-surface)",
+  color: "var(--dec-text-muted)",
+  cursor: "pointer",
+  flexShrink: 0,
+  padding: 0,
+};
+
+const removeBtn: CSSProperties = {
+  fontSize: 12,
+  width: 24,
+  height: 24,
+  borderRadius: 6,
+  border: "1px solid var(--dec-border)",
+  background: "var(--dec-surface)",
+  color: BAD,
+  cursor: "pointer",
+  flexShrink: 0,
+  padding: 0,
 };
 
 const genBtn = (enabled: boolean): CSSProperties => ({

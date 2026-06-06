@@ -22,7 +22,9 @@ type ChatItem =
   // A text message — from the user, a widget, or the assistant (server reply).
   | { kind: "message"; id: string; role: "user" | "widget" | "assistant"; content: string }
   // An inline interactive widget instance, optionally prefilled by the router.
-  | { kind: "widget"; id: string; type: string; init?: WidgetInit };
+  | { kind: "widget"; id: string; type: string; init?: WidgetInit }
+  // A /research result: plain-text advice plus clickable web sources.
+  | { kind: "research"; id: string; advice: string; sources: { title: string; url: string }[] };
 
 const uid = () => crypto.randomUUID();
 
@@ -119,10 +121,7 @@ export function ChatView() {
     append({ kind: "message", id: uid(), role: "user", content: `/research ${question}` });
     try {
       const res = await research.mutateAsync({ question, history: toHistory() });
-      const sources = res.sources.length
-        ? "\n\nSources:\n" + res.sources.map((s) => `• ${s.title} — ${s.url}`).join("\n")
-        : "";
-      append({ kind: "message", id: uid(), role: "assistant", content: res.advice + sources });
+      append({ kind: "research", id: uid(), advice: res.advice, sources: res.sources });
     } catch (err) {
       append({
         kind: "message",
@@ -240,6 +239,9 @@ export function ChatView() {
             if (it.kind === "message") {
               return <MessageBubble key={it.id} role={it.role} content={it.content} />;
             }
+            if (it.kind === "research") {
+              return <ResearchBubble key={it.id} advice={it.advice} sources={it.sources} />;
+            }
             const entry = getWidget(it.type);
             if (!entry) return null;
             const Widget = entry.component;
@@ -306,6 +308,55 @@ export function ChatView() {
             Send
           </button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+// A /research reply: the advice as a plain-text bubble (same shell as an
+// assistant message) plus a sources list rendered as clickable links.
+function ResearchBubble({
+  advice,
+  sources,
+}: {
+  advice: string;
+  sources: { title: string; url: string }[];
+}) {
+  return (
+    <div style={{ display: "flex", justifyContent: "flex-start", marginBottom: 12 }}>
+      <div
+        style={{
+          maxWidth: "85%",
+          padding: "9px 12px",
+          borderRadius: 12,
+          fontSize: 14,
+          lineHeight: 1.5,
+          background: "var(--dec-surface-2)",
+          color: "var(--dec-text)",
+          border: "1px solid var(--dec-border-soft)",
+        }}
+      >
+        <div style={{ whiteSpace: "pre-wrap" }}>{advice}</div>
+        {sources.length > 0 && (
+          <div style={{ marginTop: 10, paddingTop: 8, borderTop: "1px solid var(--dec-border-soft)" }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "var(--dec-text-subtle)", marginBottom: 4 }}>
+              Sources
+            </div>
+            {sources.map((s, i) => (
+              <div key={i} style={{ fontSize: 12, marginBottom: 2 }}>
+                <span style={{ color: "var(--dec-text-subtle)" }}>• </span>
+                <a
+                  href={s.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ color: "var(--dec-accent)", textDecoration: "none" }}
+                >
+                  {s.title || s.url}
+                </a>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
