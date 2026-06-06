@@ -20,17 +20,26 @@ export interface DecisionMatrixData {
   options: MatrixOption[];
 }
 
-export function blankDecisionMatrixData(title: string): DecisionMatrixData {
+export function blankDecisionMatrixData(
+  title: string,
+  items: string[] = [],
+): DecisionMatrixData {
+  // Seed one option (row) per router-extracted item; fall back to two blanks.
+  const names = items.map((s) => s.trim()).filter(Boolean);
+  const options =
+    names.length > 0
+      ? names.map((name) => ({ name, scores: ["", ""] }))
+      : [
+          { name: "", scores: ["", ""] },
+          { name: "", scores: ["", ""] },
+        ];
   return {
     title: title.trim() || "Decision matrix",
     criteria: [
       { name: "", weight: "1" },
       { name: "", weight: "1" },
     ],
-    options: [
-      { name: "", scores: ["", ""] },
-      { name: "", scores: ["", ""] },
-    ],
+    options,
   };
 }
 
@@ -44,7 +53,8 @@ export const decisionMatrixSpec: WidgetSpec<DecisionMatrixData> = {
   commands: ["dm", "dmatrix", "scores", "weightmatrix", "decisionmatrix"],
   title: "Decision matrix",
   description: "Score options against weighted criteria; weighted totals computed when numbers parse.",
-  purpose: "Compare multiple options numerically against criteria you can weight.",
+  purpose:
+    "Score three or more options numerically against several explicit criteria you can weight, producing weighted totals. Use only when the user wants to rate options on criteria; for a simple either/or choice prefer Factor Weighting.",
   example: "Compare three apartments on rent, commute, and size.",
 
   format: (data) => {

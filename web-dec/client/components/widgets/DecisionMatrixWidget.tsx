@@ -13,7 +13,7 @@ import {
 const ACCENT = "var(--dec-framework)";
 
 export function DecisionMatrixWidget({ initial, onSend, onRemove }: WidgetProps) {
-  const blank = blankDecisionMatrixData(initial?.title || "");
+  const blank = blankDecisionMatrixData(initial?.title || "", initial?.items);
   const [title, setTitle] = useState(blank.title);
   const [criteria, setCriteria] = useState<Criterion[]>(blank.criteria);
   const [options, setOptions] = useState<MatrixOption[]>(blank.options);
