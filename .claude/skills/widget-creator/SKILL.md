@@ -20,26 +20,33 @@ server: a **structured payload** (`data`, for the agent to act on) and a
 **plain-text rendering** (`text`, from the spec's `format()`, for display and
 for feeding an LLM).
 
-Everything lives in `web-dec/client/components/widgets/`. Widgets are
-deliberately plain: React + local state only. **No react-flow, no shared store,
-no server changes** — `ChatView` and the chat router are already generic over
-the registry.
+The widget UI lives in `web-dec/client/components/widgets/`. Widgets are
+deliberately plain: React + local state only, **no react-flow, no shared
+store**. `ChatView` is generic over the client registry, so it never changes.
+The **one server touch-point** is the server-side widget registry
+(`web-dec/src/services/widgetRegistry.ts`): the LLM convo router reads it to
+decide *which* widget to surface for a free-text decision, so a new widget must
+be registered there too or the router can never route to it.
 
 ## The shape of every widget
 
-Each widget is **two files, kept separate on purpose** plus **one registry
-line**:
+Each widget is **two files, kept separate on purpose** plus **two registry
+lines** (client + server):
 
 | File | Role | React? |
 |------|------|--------|
-| `<name>.spec.ts` | The **contract**: `type`, `commands`, `title`, `description`, `purpose`, the `TData` interfaces, and `format(data)`. | No — pure |
-| `<name>Widget.tsx` | The **UI**: owns live state, renders the form, calls `spec.format` on Send. | Yes |
-| `registry.ts` | One appended line pairing the spec with the component. | — |
+| `client/components/widgets/<name>.spec.ts` | The **contract**: `type`, `commands`, `title`, `description`, `purpose`, the `TData` interfaces, and `format(data)`. | No — pure |
+| `client/components/widgets/<name>Widget.tsx` | The **UI**: owns live state, renders the form, accepts an optional `initial` prefill, calls `spec.format` on Send. | Yes |
+| `client/components/widgets/registry.ts` | One appended line pairing the spec with the component (type → component). | — |
+| `src/services/widgetRegistry.ts` | One appended entry (`type` + `title` + `purpose`) so the LLM router can choose this widget. | No — pure |
 
-The split keeps output-formatting logic in one obvious, React-free place and
-avoids a circular import (the component imports the spec; the registry pairs
-them). Match this — don't inline the format function into the component or merge
-the files.
+The spec/component split keeps output-formatting logic in one obvious, React-free
+place and avoids a circular import (the component imports the spec; the registry
+pairs them). Match this — don't inline the format function into the component or
+merge the files. The two registries are intentionally separate: the client one
+maps a `type` to a React component for rendering; the server one is a plain
+table the LLM reads. Keep the `type` identical across both, and keep the server
+`purpose` aligned with the spec's `purpose`.
 
 ## Before you write — read the existing widgets
 
@@ -118,9 +125,10 @@ button, body, footer with the Send button — should match the existing widgets.
 Use the **design tokens** (CSS variables), never hardcoded colors. See
 `references/contract.md` for the token list and the shared style objects.
 
-### 4. Register it
+### 4. Register it — in **both** registries
 
-Append one entry to `WIDGETS` in `registry.ts` and add the two imports:
+**(a) Client registry** — append one entry to `WIDGETS` in
+`client/components/widgets/registry.ts` and add the two imports:
 
 ```ts
 import { fooSpec } from "./foo.spec";
@@ -133,15 +141,53 @@ export const WIDGETS: WidgetEntry[] = [
 ];
 ```
 
-Nothing in `ChatView` or the server (`src/trpc/routers/chat.ts`) needs to
-change — both are generic over the registry and the `WidgetOutput` shape.
+**(b) Server registry** — append one entry to `WIDGET_REGISTRY` in
+`src/services/widgetRegistry.ts` so the LLM convo router can choose it:
 
-### 5. Verify it compiles
+```ts
+export const WIDGET_REGISTRY: WidgetInfo[] = [
+  { type: "procon", title: "Pros & Cons", purpose: "…" },
+  { type: "eisenhower", title: "Eisenhower Matrix", purpose: "…" },
+  { type: "foo", title: "Foo", purpose: "…" },   // ← new; type + purpose MUST
+                                                  //   match the spec
+];
+```
 
-Run the project's typecheck/build for `web-dec` (e.g. `npm run build` or
-`tsc --noEmit` in `web-dec`) and fix any type errors before reporting done. The
-most common slip is the `TData` generic not matching between the spec and the
-component.
+If you skip (b), `/foo` still works as an explicit slash command, but the router
+will never surface the widget from a natural-language decision. `ChatView` and
+the chat router (`src/trpc/routers/chat.ts`) themselves stay generic — you only
+add the registry row.
+
+### 5. (Optional) Support router prefill
+
+When the router surfaces a widget from a decision, it passes an `initial`
+prefill — `{ title?, items?: string[] }` — extracted from the conversation (e.g.
+"buy a house or buy a car" → `items: ["Buy a house", "Buy a car"]`). Honor it in
+the component's initial state so the widget arrives pre-populated:
+
+```ts
+export function FooWidget({ initial, onSend, onRemove }: WidgetProps) {
+  const [title, setTitle] = useState(initial?.title || "Foo");
+  const [items, setItems] = useState<FooItem[]>(() =>
+    initial?.items?.length
+      ? initial.items.map((text) => ({ text }))   // map choices → your row shape
+      : blankFooData(title).items,
+  );
+  // …
+}
+```
+
+Interpret `items` in your widget's own terms (Pros & Cons makes each a row;
+Eisenhower seeds the task pool). It's optional but strongly preferred — a
+prefilled widget is the payoff of routing.
+
+### 6. Verify it compiles
+
+Run the project's typecheck/build for `web-dec` (`pnpm run typecheck` covers both
+the client and the `src/` server, then `pnpm run build:client`) and fix any type
+errors before reporting done. The most common slips are the `TData` generic not
+matching between the spec and the component, and forgetting the server registry
+entry (no type error — the router just silently can't route to the widget).
 
 ## Writing `format()` — the heart of the spec
 

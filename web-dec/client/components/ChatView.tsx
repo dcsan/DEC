@@ -1,18 +1,19 @@
 // Standalone chat view. A plain message stream with the composer pinned to the
-// bottom. Typing a widget slash command (e.g. `/pc`) drops that widget inline
-// into the stream; sending its result (or a typed message) posts to the server,
-// which echoes a reply that's shown back in the stream.
+// bottom. Typing a widget slash command (e.g. `/pc`) drops that widget inline.
+// A free-text message goes to the server's convo router: if it's a decision, the
+// router chooses the most relevant widget and extracts the choices to prefill it
+// — both returned and rendered here. Otherwise it's interpreted in context.
 
 import { useEffect, useRef, useState } from "react";
 import { trpc } from "../lib/trpc";
 import { getWidget, matchWidgetCommand } from "./widgets/registry";
-import type { WidgetOutput } from "./widgets/types";
+import type { WidgetInit, WidgetOutput } from "./widgets/types";
 
 type ChatItem =
   // A text message — from the user, a widget, or the assistant (server reply).
   | { kind: "message"; id: string; role: "user" | "widget" | "assistant"; content: string }
-  // An inline interactive widget instance, rendered by its registry component.
-  | { kind: "widget"; id: string; type: string };
+  // An inline interactive widget instance, optionally prefilled by the router.
+  | { kind: "widget"; id: string; type: string; init?: WidgetInit };
 
 const uid = () => crypto.randomUUID();
 
@@ -29,20 +30,50 @@ export function ChatView() {
 
   const append = (item: ChatItem) => setItems((cur) => [...cur, item]);
 
-  // Post a message to the server and show its reply in the stream.
-  const post = async (text: string, widget?: WidgetOutput) => {
+  // Build the chat history (text messages only) for server-side interpretation,
+  // optionally with one not-yet-committed message appended.
+  const toHistory = (extra?: { role: "user" | "assistant"; content: string }) => [
+    ...items
+      .filter((it): it is Extract<ChatItem, { kind: "message" }> => it.kind === "message")
+      .map((it) => ({
+        role: it.role === "assistant" ? ("assistant" as const) : ("user" as const),
+        content: it.content,
+      })),
+    ...(extra ? [extra] : []),
+  ];
+
+  // Send a widget result to the server (just an ack) and show its reply.
+  const postWidgetResult = async (output: WidgetOutput) => {
     const res = await send.mutateAsync({
-      text,
-      widget: widget ? { type: widget.type, data: widget.data } : undefined,
+      text: output.text,
+      widget: { type: output.type, data: output.data },
     });
     append({ kind: "message", id: uid(), role: "assistant", content: res.reply });
+  };
+
+  // Route a free-text message: show the reply, and if the router chose a widget,
+  // drop it into the stream prefilled with the extracted choices.
+  const routeMessage = async (content: string) => {
+    const res = await send.mutateAsync({
+      text: content,
+      history: toHistory({ role: "user", content }),
+    });
+    append({ kind: "message", id: uid(), role: "assistant", content: res.reply });
+    if (res.widget && getWidget(res.widget)) {
+      append({
+        kind: "widget",
+        id: uid(),
+        type: res.widget,
+        init: { title: res.title ?? undefined, items: res.items },
+      });
+    }
   };
 
   const submit = () => {
     const content = draft.trim();
     if (!content || send.isPending) return;
 
-    // Slash command → drop the matching widget into the stream.
+    // Explicit slash command → drop the matching widget into the stream.
     const match = matchWidgetCommand(content);
     if (match) {
       append({ kind: "widget", id: uid(), type: match.entry.spec.type });
@@ -50,10 +81,10 @@ export function ChatView() {
       return;
     }
 
-    // Otherwise it's an ordinary chat message → echo it, then send to server.
+    // Free text → echo it, then let the server's convo router decide.
     append({ kind: "message", id: uid(), role: "user", content });
     setDraft("");
-    void post(content);
+    void routeMessage(content);
   };
 
   const removeItem = (id: string) =>
@@ -63,7 +94,7 @@ export function ChatView() {
   // widget itself stays in place, so we only show the server's reply — no
   // duplicate echo of the widget output.
   const sendFromWidget = (_widgetId: string, output: WidgetOutput) =>
-    void post(output.text, output);
+    void postWidgetResult(output);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", minHeight: 0 }}>
@@ -72,11 +103,13 @@ export function ChatView() {
         <div style={{ maxWidth: 720, margin: "0 auto", padding: "0 16px" }}>
           {items.length === 0 && (
             <p style={{ color: "var(--dec-text-subtle)", fontSize: 14, marginTop: 24 }}>
-              Type a message or a slash widget: <code>/pc</code> pros &amp; cons,{" "}
-              <code>/eis</code> Eisenhower, <code>/swot</code>, <code>/scenario</code>,{" "}
-              <code>/dmatrix</code>, <code>/22</code>, <code>/costbenefit</code>,{" "}
-              <code>/premortem</code>, <code>/dtree</code>, <code>/evtable</code>,{" "}
-              <code>/ooda</code>, <code>/regret</code>…
+              Describe a decision (e.g. "should I rent or buy?") and I'll surface
+              a tool to help — or use a slash widget directly:{" "}
+              <code>/pc</code> pros &amp; cons, <code>/eis</code> Eisenhower,{" "}
+              <code>/swot</code>, <code>/scenario</code>, <code>/dmatrix</code>,{" "}
+              <code>/22</code>, <code>/costbenefit</code>, <code>/premortem</code>,{" "}
+              <code>/dtree</code>, <code>/evtable</code>, <code>/ooda</code>,{" "}
+              <code>/regret</code>…
             </p>
           )}
 
@@ -90,6 +123,7 @@ export function ChatView() {
             return (
               <div key={it.id} style={{ display: "flex", justifyContent: "flex-start", marginBottom: 12 }}>
                 <Widget
+                  initial={it.init}
                   onSend={(output) => sendFromWidget(it.id, output)}
                   onRemove={() => removeItem(it.id)}
                 />

@@ -12,9 +12,15 @@ import { blankFooData, fooSpec, type FooItem } from "./foo.spec";
 // --dec-* node tint (concept/framework/option/merged). See references/contract.md.
 const ACCENT = "var(--dec-option)";
 
-export function FooWidget({ onSend, onRemove }: WidgetProps) {
-  const [title, setTitle] = useState("Foo");
-  const [items, setItems] = useState<FooItem[]>(() => blankFooData(title).items);
+export function FooWidget({ initial, onSend, onRemove }: WidgetProps) {
+  const [title, setTitle] = useState(initial?.title || "Foo");
+  // Honor the router's prefill: map each extracted choice into a row, else seed
+  // blank rows. Interpret `initial.items` in this widget's own terms.
+  const [items, setItems] = useState<FooItem[]>(() =>
+    initial?.items?.length
+      ? initial.items.map((text) => ({ text }))
+      : blankFooData(title).items,
+  );
   // Whether the current data has been posted — drives the "Sent ✓" state.
   // Every edit clears it so the widget stays live and re-sendable.
   const [sent, setSent] = useState(false);

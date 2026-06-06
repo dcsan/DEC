@@ -23,7 +23,14 @@ export interface WidgetOutput<TData = unknown> {
   text: string;   // plain-text rendering, from spec.format(data)
 }
 
+// Generic prefill the router passes when it surfaces a widget from a decision.
+export interface WidgetInit {
+  title?: string;
+  items?: string[];   // choices/tasks extracted from the conversation
+}
+
 export interface WidgetProps {
+  initial?: WidgetInit;                     // router prefill (optional)
   onSend: (output: WidgetOutput) => void;  // send result back to chat
   onRemove: () => void;                     // remove this instance
 }
@@ -34,6 +41,9 @@ The component assembles its output on send:
 ```ts
 onSend({ type: spec.type, data, text: spec.format(data) });
 ```
+
+And seeds its initial state from `initial` when present (see the component
+template / `ProConWidget` for the pattern).
 
 ## Chat flow (why the contract is shaped this way)
 
@@ -46,8 +56,15 @@ onSend({ type: spec.type, data, text: spec.format(data) });
    (no duplicate echo of the widget's own output).
 5. The server logs the structured payload + text and returns a reply.
 
-Because both `ChatView` and the server are generic over `WidgetOutput`, adding a
-widget never requires touching them — only the two widget files + the registry.
+For free-text (non-slash) messages, `ChatView` instead calls the server's convo
+router, which reads the **server-side registry** (`src/services/widgetRegistry.ts`)
+to pick a widget by `purpose`, extracts the choices, and returns
+`{ reply, widget, title, items }`. `ChatView` then drops that widget prefilled
+via `initial`.
+
+`ChatView` and the chat router stay generic over `WidgetOutput` — adding a widget
+means: the two widget files, the client registry line, and the server registry
+entry. Only the registries know the widget exists.
 
 ## Design tokens (`--dec-*`, defined in `client/index.css`)
 
