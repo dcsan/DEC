@@ -3,7 +3,7 @@
 // the structured entries (+ a templated plain-text rendering) back to the chat.
 // Native HTML5 drag-and-drop — no library, no react-flow.
 
-import { useState, type CSSProperties, type DragEvent } from "react";
+import { useRef, useState, type CSSProperties, type DragEvent } from "react";
 import type { WidgetProps } from "./types";
 import { eisenhowerSpec, type EisenhowerData } from "./eisenhower.spec";
 
@@ -39,14 +39,37 @@ function seedTasks(items?: string[]): Task[] {
   return texts.map((text) => ({ id: crypto.randomUUID(), text, zone: "pool" as const }));
 }
 
+function zoneDropSurface(active: boolean, dim: boolean, isPool: boolean): CSSProperties {
+  return {
+    minHeight: isPool ? undefined : 92,
+    padding: 8,
+    borderRadius: 8,
+    border: active ? "2px solid var(--dec-accent)" : "1px dashed var(--dec-border)",
+    background: active ? "var(--dec-accent-soft)" : "var(--dec-surface)",
+    opacity: dim ? 0.72 : 1,
+    transition: "border-color 100ms ease, background-color 100ms ease, opacity 100ms ease",
+    boxShadow: active ? "inset 0 0 0 1px var(--dec-accent)" : undefined,
+  };
+}
+
 export function EisenhowerWidget({ initial, onSend, onRemove }: WidgetProps) {
   const [title, setTitle] = useState(initial?.title || "Eisenhower Matrix");
   const [tasks, setTasks] = useState<Task[]>(() => seedTasks(initial?.items));
   const [draft, setDraft] = useState("");
   const [dragId, setDragId] = useState<string | null>(null);
+  const [dragOverZone, setDragOverZone] = useState<Zone | null>(null);
   const [sent, setSent] = useState(false);
+  /** Survives dragend vs drop ordering — DataTransfer is still preferred on drop. */
+  const draggingTaskIdRef = useRef<string | null>(null);
 
+  const isDragging = dragId !== null;
   const dirty = () => setSent(false);
+
+  const clearDragState = () => {
+    draggingTaskIdRef.current = null;
+    setDragId(null);
+    setDragOverZone(null);
+  };
 
   const move = (id: string, zone: Zone) => {
     setTasks((cur) => cur.map((t) => (t.id === id ? { ...t, zone } : t)));
@@ -81,60 +104,99 @@ export function EisenhowerWidget({ initial, onSend, onRemove }: WidgetProps) {
     setSent(true);
   };
 
-  // Drop handler factory for a zone.
+  const leaveZone = (zone: Zone) => (e: DragEvent) => {
+    const related = e.relatedTarget as Node | null;
+    if (related && (e.currentTarget as HTMLElement).contains(related as HTMLElement)) return;
+    setDragOverZone((cur) => (cur === zone ? null : cur));
+  };
+
   const dropProps = (zone: Zone) => ({
-    onDragOver: (e: DragEvent) => e.preventDefault(),
+    onDragOver: (e: DragEvent) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "move";
+      setDragOverZone(zone);
+    },
+    onDragLeave: leaveZone(zone),
     onDrop: (e: DragEvent) => {
       e.preventDefault();
-      const id = e.dataTransfer.getData("text/plain") || dragId;
+      const id =
+        e.dataTransfer.getData("text/plain") || draggingTaskIdRef.current || dragId;
       if (id) move(id, zone);
-      setDragId(null);
+      clearDragState();
     },
   });
 
-  const chip = (t: Task) => (
-    <div
-      key={t.id}
-      draggable
-      onDragStart={(e) => {
-        e.dataTransfer.setData("text/plain", t.id);
-        e.dataTransfer.effectAllowed = "move";
-        setDragId(t.id);
-      }}
-      onDragEnd={() => setDragId(null)}
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 6,
-        padding: "4px 7px",
-        marginBottom: 4,
-        fontSize: 12,
-        borderRadius: 6,
-        border: "1px solid var(--dec-border)",
-        background: "var(--dec-surface)",
-        color: "var(--dec-text)",
-        cursor: "grab",
-        opacity: dragId === t.id ? 0.4 : 1,
-      }}
-    >
-      <span style={{ flex: 1 }}>{t.text}</span>
-      <button
-        type="button"
-        title="Remove task"
-        onClick={() => removeTask(t.id)}
+  const chipDragOver = (zone: Zone) => (e: DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    setDragOverZone(zone);
+  };
+
+  const chip = (t: Task, zone: Zone) => {
+    const dragging = dragId === t.id;
+    return (
+      <div
+        key={t.id}
+        draggable
+        onDragOver={chipDragOver(zone)}
+        onDragStart={(e) => {
+          e.dataTransfer.setData("text/plain", t.id);
+          e.dataTransfer.effectAllowed = "move";
+          draggingTaskIdRef.current = t.id;
+          setDragId(t.id);
+        }}
+        onDragEnd={clearDragState}
         style={{
-          border: "none",
-          background: "transparent",
-          color: "var(--dec-text-subtle)",
-          cursor: "pointer",
+          display: "flex",
+          alignItems: "center",
+          gap: 6,
+          padding: "5px 7px",
+          marginBottom: 4,
           fontSize: 12,
-          lineHeight: 1,
+          borderRadius: 6,
+          border: "1px solid var(--dec-border)",
+          background: dragging ? "var(--dec-surface-2)" : "var(--dec-surface)",
+          color: "var(--dec-text)",
+          cursor: "grab",
+          opacity: dragging ? 0.45 : 1,
+          userSelect: "none",
         }}
       >
-        ⨯
-      </button>
-    </div>
-  );
+        <span
+          title="Drag to move"
+          style={{
+            fontSize: 12,
+            lineHeight: 1,
+            color: "var(--dec-text-muted)",
+            cursor: "grab",
+            flexShrink: 0,
+          }}
+        >
+          ⠿
+        </span>
+        <span style={{ flex: 1 }}>{t.text}</span>
+        <button
+          type="button"
+          title="Remove task"
+          draggable={false}
+          onClick={(ev) => {
+            ev.stopPropagation();
+            removeTask(t.id);
+          }}
+          style={{
+            border: "none",
+            background: "transparent",
+            color: "var(--dec-text-subtle)",
+            cursor: "pointer",
+            fontSize: 12,
+            lineHeight: 1,
+          }}
+        >
+          ⨯
+        </button>
+      </div>
+    );
+  };
 
   const pool = tasks.filter((t) => t.zone === "pool");
 
@@ -185,16 +247,15 @@ export function EisenhowerWidget({ initial, onSend, onRemove }: WidgetProps) {
         </button>
       </div>
 
+      {/* Hint: keep copy in the label — do not mount new rows mid-drag (breaks HTML5 DnD). */}
       {/* Matrix */}
       <div style={{ padding: "8px 10px" }}>
-        {/* Column axis labels */}
         <div style={{ display: "flex", paddingLeft: 56, fontSize: 11, color: "var(--dec-text-subtle)" }}>
           <span style={{ flex: 1, textAlign: "center" }}>Urgent</span>
           <span style={{ flex: 1, textAlign: "center" }}>Not urgent</span>
         </div>
 
         <div style={{ display: "flex" }}>
-          {/* Row axis labels */}
           <div
             style={{
               width: 56,
@@ -228,7 +289,6 @@ export function EisenhowerWidget({ initial, onSend, onRemove }: WidgetProps) {
             </span>
           </div>
 
-          {/* 2×2 grid */}
           <div
             style={{
               flex: 1,
@@ -237,48 +297,62 @@ export function EisenhowerWidget({ initial, onSend, onRemove }: WidgetProps) {
               gap: 6,
             }}
           >
-            {QUADRANTS.map((q) => (
-              <div
-                key={q.zone}
-                {...dropProps(q.zone)}
-                style={{
-                  minHeight: 84,
-                  padding: 6,
-                  borderRadius: 8,
-                  border: "1px dashed var(--dec-border)",
-                  background: "var(--dec-surface)",
-                }}
-              >
+            {QUADRANTS.map((q) => {
+              const inZone = tasks.filter((t) => t.zone === q.zone);
+              const active = dragOverZone === q.zone;
+              const dim = isDragging && dragOverZone !== null && dragOverZone !== q.zone;
+              return (
                 <div
-                  style={{
-                    fontSize: 10,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.05em",
-                    color: "var(--dec-text-subtle)",
-                    marginBottom: 4,
-                  }}
+                  key={q.zone}
+                  {...dropProps(q.zone)}
+                  style={zoneDropSurface(active, dim, false)}
                 >
-                  {q.label}
+                  <div
+                    onDragOver={chipDragOver(q.zone)}
+                    style={{
+                      fontSize: 10,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.05em",
+                      color: "var(--dec-text-subtle)",
+                      marginBottom: 4,
+                    }}
+                  >
+                    {q.label}
+                  </div>
+                  {inZone.length === 0 && (
+                    <div
+                      onDragOver={chipDragOver(q.zone)}
+                      style={{
+                        fontSize: 11,
+                        color: active ? "var(--dec-text)" : "var(--dec-text-muted)",
+                        padding: "10px 6px",
+                        textAlign: "center",
+                        borderRadius: 6,
+                        border: isDragging ? "1px dashed var(--dec-accent)" : "1px dashed var(--dec-border-soft)",
+                        background: active ? "var(--dec-surface-2)" : "transparent",
+                      }}
+                    >
+                      {isDragging ? "Release to drop here" : "Empty — drag a task here"}
+                    </div>
+                  )}
+                  {inZone.map((t) => chip(t, q.zone))}
                 </div>
-                {tasks.filter((t) => t.zone === q.zone).map(chip)}
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </div>
 
-      {/* Pool (drag tasks from here) */}
+      {/* Pool */}
       <div
         {...dropProps("pool")}
         style={{
           margin: "0 10px 8px",
-          padding: 8,
-          borderRadius: 8,
-          border: "1px dashed var(--dec-border)",
-          background: "var(--dec-surface)",
+          ...zoneDropSurface(dragOverZone === "pool", isDragging && dragOverZone !== null && dragOverZone !== "pool", true),
         }}
       >
         <div
+          onDragOver={chipDragOver("pool")}
           style={{
             fontSize: 10,
             textTransform: "uppercase",
@@ -287,14 +361,25 @@ export function EisenhowerWidget({ initial, onSend, onRemove }: WidgetProps) {
             marginBottom: 4,
           }}
         >
-          Tasks — drag into the matrix
+          Task pool — drag into the matrix above
         </div>
         {pool.length === 0 && (
-          <div style={{ fontSize: 11, color: "var(--dec-text-subtle)", padding: "2px 0 4px" }}>
-            (all sorted)
+          <div
+            onDragOver={chipDragOver("pool")}
+            style={{
+              fontSize: 11,
+              color: dragOverZone === "pool" ? "var(--dec-text)" : "var(--dec-text-muted)",
+              padding: "8px 4px",
+              textAlign: "center",
+              borderRadius: 6,
+              border: isDragging ? "1px dashed var(--dec-accent)" : "1px dashed var(--dec-border-soft)",
+              marginBottom: 6,
+            }}
+          >
+            {isDragging ? "Release to return tasks to the pool" : "(all tasks sorted into the matrix)"}
           </div>
         )}
-        {pool.map(chip)}
+        {pool.map((t) => chip(t, "pool"))}
 
         <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
           <input
