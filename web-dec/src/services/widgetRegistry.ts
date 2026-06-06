@@ -13,16 +13,16 @@ import type { WidgetInfo } from "./convoRouter";
 
 export const WIDGET_REGISTRY: WidgetInfo[] = [
   {
-    type: "readiness",
-    title: "Decision Factors",
+    type: "factors",
+    title: "Factor Weighting",
     purpose:
-      "Work through a single yes/no / go-no-go life decision (e.g. should I join a startup, take the job, make the leap) by surfacing the factors that pull on it — both ways — and ranking how much each one matters to you (1-5), so the trade-off is explicit.",
+      "Decide between two options, or a single yes/no choice (e.g. should I get a dog or a cat, buy or rent, join a startup or stay), by surfacing the factors that pull on the decision and ranking how much each one matters to YOU on a 1-5 scale. You don't score each option — you weight the factors — so the trade-off is explicit. This is the default tool for an either/or personal decision; prefer it over the decision matrix unless the user explicitly wants to score several options on numeric criteria.",
   },
   {
     type: "twobytwo",
-    title: "2×2 grid",
+    title: "2×2 comparison",
     purpose:
-      "Place ideas in four buckets on two axes; swap quadrant text when your framing shifts.",
+      "Compare two or more concrete options by positioning them on two automatically-derived axes (e.g. cost vs safety, impact vs effort) and scoring each 0-100 on both. Use when the user wants to visualise or plot options against dimensions; for weighing how much factors matter to them prefer Factor Weighting.",
   },
   {
     type: "eisenhower",
@@ -46,7 +46,7 @@ export const WIDGET_REGISTRY: WidgetInfo[] = [
     type: "decisionmatrix",
     title: "Decision matrix",
     purpose:
-      "Compare multiple options numerically against criteria you can weight.",
+      "Score three or more options numerically against several explicit criteria you can weight, producing weighted totals. Use only when the user wants to rate options on criteria; for a simple either/or choice prefer Factor Weighting.",
   },
   {
     type: "costbenefit",

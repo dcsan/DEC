@@ -5,7 +5,9 @@ import { edgeRouter } from "./routers/edge";
 import { messageRouter } from "./routers/message";
 import { conceptRouter } from "./routers/concept";
 import { chatRouter } from "./routers/chat";
-import { readinessRouter } from "./routers/readiness";
+import { researchRouter } from "./routers/research";
+import { factorsRouter } from "./routers/factors";
+import { axesRouter } from "./routers/axes";
 import { suggestRouter } from "./routers/suggest";
 import { treeRouter } from "./routers/tree";
 import { premortemRouter } from "./routers/premortem";
@@ -18,7 +20,9 @@ export const appRouter = router({
   message: messageRouter,
   concept: conceptRouter,
   chat: chatRouter,
-  readiness: readinessRouter,
+  research: researchRouter,
+  factors: factorsRouter,
+  axes: axesRouter,
   suggest: suggestRouter,
   tree: treeRouter,
   premortem: premortemRouter,

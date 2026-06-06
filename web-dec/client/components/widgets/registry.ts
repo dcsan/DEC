@@ -25,8 +25,8 @@ import { oodaSpec } from "./ooda.spec";
 import { OodaWidget } from "./OodaWidget";
 import { premortemSpec } from "./premortem.spec";
 import { PremortemWidget } from "./PremortemWidget";
-import { readinessSpec } from "./readiness.spec";
-import { ReadinessWidget } from "./ReadinessWidget";
+import { factorsSpec } from "./factors.spec";
+import { FactorsWidget } from "./FactorsWidget";
 import { regretSpec } from "./regret.spec";
 import { RegretWidget } from "./RegretWidget";
 import { scenarioSpec } from "./scenario.spec";
@@ -47,7 +47,7 @@ export interface WidgetEntry {
  * hypothetical `/matrix` overlap); Eisenhower uses `/eis` and `/matrix` on main.
  */
 export const WIDGETS: WidgetEntry[] = [
-  { spec: readinessSpec as WidgetSpec, component: ReadinessWidget },
+  { spec: factorsSpec as WidgetSpec, component: FactorsWidget },
   { spec: twoByTwoSpec as WidgetSpec, component: TwoByTwoWidget },
   { spec: eisenhowerSpec as WidgetSpec, component: EisenhowerWidget },
   { spec: swotSpec as WidgetSpec, component: SwotWidget },
@@ -75,8 +75,54 @@ export function matchWidgetCommand(
   return { entry, args: rest.join(" ") };
 }
 
+// Parse a "use <widget> …" line — a natural-language way to force a specific
+// widget, bypassing the LLM router (e.g. "use sc to plan what to do next" →
+// scenario widget, question "plan what to do next"). The word after `use`
+// (an optional leading article aside) must be a known widget command; anything
+// else (e.g. "use my judgment") is left for the router. The remainder becomes
+// the prefill question, with a leading connector ("to"/"for"/":"/"-") trimmed.
+export function matchUseCommand(
+  input: string,
+): { entry: WidgetEntry; args: string } | null {
+  if (input.startsWith("/")) return null;
+  const tokens = input.trim().split(/\s+/);
+  if (tokens[0]?.toLowerCase() !== "use") return null;
+
+  // Optionally skip a leading article ("use the scenario tool …").
+  let i = 1;
+  if (tokens[i]?.toLowerCase() === "the" || tokens[i]?.toLowerCase() === "a") i += 1;
+
+  const key = tokens[i]?.toLowerCase();
+  if (!key) return null;
+  const entry = WIDGETS.find((w) => w.spec.commands.includes(key));
+  if (!entry) return null;
+
+  let args = tokens.slice(i + 1).join(" ").trim();
+  // Strip leading connectors/nouns ("tool to …", "for …", ": …") repeatedly so
+  // "scenario tool for my move" and "sc to my move" both yield "my move".
+  let prev: string;
+  do {
+    prev = args;
+    args = args.replace(/^(to|for|tool|widget)\b[\s:.-]*/i, "").replace(/^[\s:.-]+/, "").trim();
+  } while (args !== prev);
+  return { entry, args };
+}
+
 export function getWidget(type: string): WidgetEntry | null {
   return WIDGETS.find((w) => w.spec.type === type) ?? null;
+}
+
+// `/research` (and aliases) — not a widget but a chat action: web-augmented
+// deeper advice on the current decision. Returns the trailing args (an explicit
+// decision to research, e.g. `/research should I move to Berlin`) or null if it
+// isn't a research command. Bare `/research` (empty args) is still a match.
+const RESEARCH_COMMANDS = ["research", "res", "deep"];
+
+export function matchResearchCommand(input: string): { args: string } | null {
+  if (!input.startsWith("/")) return null;
+  const [word, ...rest] = input.slice(1).trim().split(/\s+/);
+  if (!RESEARCH_COMMANDS.includes(word?.toLowerCase() ?? "")) return null;
+  return { args: rest.join(" ") };
 }
 
 // `/help` (and aliases) — list every widget's shortcut. Handled in the composer.
@@ -98,7 +144,10 @@ export function widgetHelpText(): string {
     "Widget shortcuts:",
     ...rows,
     "",
-    "Or just describe a decision and I'll pick a tool. Type /help anytime.",
+    "  /research — web-sourced deeper advice on your current decision",
+    "",
+    'Or just describe a decision and I\'ll pick a tool. Force one with "use ' +
+      '<name>" (e.g. "use sc to plan what to do next"). Type /help anytime.',
   ].join("\n");
 }
 
