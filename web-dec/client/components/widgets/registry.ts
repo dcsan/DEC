@@ -81,3 +81,26 @@ export function matchWidgetCommand(
 export function getWidget(type: string): WidgetEntry | null {
   return WIDGETS.find((w) => w.spec.type === type) ?? null;
 }
+
+// `/help` (and aliases) — list every widget's shortcut. Handled in the composer.
+const HELP_COMMANDS = ["help", "h", "?", "commands"];
+
+export function isHelpCommand(input: string): boolean {
+  if (!input.startsWith("/")) return false;
+  const word = input.slice(1).trim().split(/\s+/)[0]?.toLowerCase();
+  return HELP_COMMANDS.includes(word ?? "");
+}
+
+// Render the shortcut list straight from WIDGETS, so it can never drift from the
+// registered widgets. Canonical (first) command per spec, plus its title.
+export function widgetHelpText(): string {
+  const rows = WIDGETS.map(
+    (w) => `  /${w.spec.commands[0]} — ${w.spec.title}: ${w.spec.description}`,
+  );
+  return [
+    "Widget shortcuts:",
+    ...rows,
+    "",
+    "Or just describe a decision and I'll pick a tool. Type /help anytime.",
+  ].join("\n");
+}

@@ -25,6 +25,12 @@ export const WIDGET_REGISTRY: WidgetInfo[] = [
       "Choose between exactly two options by scoring them across the decision points that matter — see at a glance which option wins on more counts.",
   },
   {
+    type: "options",
+    title: "Options A/B",
+    purpose:
+      "Choose between exactly two options by scoring them across the decision points that matter — see at a glance which option wins on more counts.",
+  },
+  {
     type: "twobytwo",
     title: "2×2 grid",
     purpose:

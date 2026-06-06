@@ -41,7 +41,7 @@ function parseNum(s: string): number | null {
 
 export const decisionMatrixSpec: WidgetSpec<DecisionMatrixData> = {
   type: "decisionmatrix",
-  commands: ["dmatrix", "scores", "weightmatrix", "decisionmatrix"],
+  commands: ["dm", "dmatrix", "scores", "weightmatrix", "decisionmatrix"],
   title: "Decision matrix",
   description: "Score options against weighted criteria; weighted totals computed when numbers parse.",
   purpose: "Compare multiple options numerically against criteria you can weight.",

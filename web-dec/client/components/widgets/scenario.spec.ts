@@ -24,7 +24,7 @@ export function blankScenarioData(title: string): ScenarioData {
 
 export const scenarioSpec: WidgetSpec<ScenarioData> = {
   type: "scenario",
-  commands: ["scenario", "scenarios", "futures", "whatif"],
+  commands: ["sc", "scenario", "scenarios", "futures", "whatif"],
   title: "Scenario planning",
   description: "Sketch plausible futures and what each would imply.",
   purpose: "Stress-test decisions by naming futures and spelling out what each would imply.",

@@ -24,7 +24,7 @@ export function blankRegretData(title: string): RegretData {
 
 export const regretSpec: WidgetSpec<RegretData> = {
   type: "regret",
-  commands: ["regret", "minregret", "fwthinking", "10years"],
+  commands: ["rg", "regret", "minregret", "fwthinking", "10years"],
   title: "Regret minimisation",
   description: "Which choice would you regret least at the horizon you pick?",
   purpose: "Clarify values by comparing how you'd feel years later about each path.",

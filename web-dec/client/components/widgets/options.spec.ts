@@ -32,7 +32,7 @@ export function blankOptionsData(question: string): OptionsData {
 
 export const optionsSpec: WidgetSpec<OptionsData> = {
   type: "options",
-  commands: ["options", "opt", "ab", "vs"],
+  commands: ["ab", "opt", "options", "vs"],
   title: "Options A/B",
   description:
     "Compare two options point by point — tick which option each decision point favours.",

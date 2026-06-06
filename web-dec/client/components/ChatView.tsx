@@ -6,7 +6,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { trpc } from "../lib/trpc";
-import { getWidget, matchWidgetCommand } from "./widgets/registry";
+import { getWidget, isHelpCommand, matchWidgetCommand, widgetHelpText } from "./widgets/registry";
 import type { WidgetInit, WidgetOutput } from "./widgets/types";
 
 type ChatItem =
@@ -73,6 +73,13 @@ export function ChatView() {
     const content = draft.trim();
     if (!content || send.isPending) return;
 
+    // `/help` → list all widget shortcuts locally (no server round-trip).
+    if (isHelpCommand(content)) {
+      append({ kind: "message", id: uid(), role: "assistant", content: widgetHelpText() });
+      setDraft("");
+      return;
+    }
+
     // Explicit slash command → drop the matching widget into the stream.
     const match = matchWidgetCommand(content);
     if (match) {
@@ -106,10 +113,11 @@ export function ChatView() {
               Describe a decision (e.g. "should I rent or buy?") and I'll surface
               a tool to help — or use a slash widget directly:{" "}
               <code>/pc</code> pros &amp; cons, <code>/eis</code> Eisenhower,{" "}
-              <code>/swot</code>, <code>/scenario</code>, <code>/dmatrix</code>,{" "}
-              <code>/22</code>, <code>/costbenefit</code>, <code>/premortem</code>,{" "}
-              <code>/dtree</code>, <code>/evtable</code>, <code>/ooda</code>,{" "}
-              <code>/regret</code>…
+              <code>/swot</code>, <code>/sc</code> scenarios, <code>/dm</code>{" "}
+              decision matrix, <code>/22</code>, <code>/cb</code> cost–benefit,{" "}
+              <code>/pm</code> pre-mortem, <code>/dt</code> decision tree,{" "}
+              <code>/ev</code> expected value, <code>/ooda</code>, <code>/rg</code>{" "}
+              regret. Type <code>/help</code> for the full list.
             </p>
           )}
 
@@ -147,7 +155,7 @@ export function ChatView() {
                 submit();
               }
             }}
-            placeholder="Message or /pc /swot /eisenhower /scenario /dmatrix /22 /costbenefit /premortem /dtree /evtable /ooda /regret"
+            placeholder="Message, /help, or /pc /eis /swot /sc /dm /22 /cb /pm /dt /ev /ooda /rg"
             rows={1}
             style={{
               flex: 1,
