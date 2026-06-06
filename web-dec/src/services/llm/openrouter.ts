@@ -16,12 +16,14 @@
  */
 import type { z } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
+import { LLM_MODEL } from "../../config";
 
 const OPENROUTER_CHAT_URL = "https://openrouter.ai/api/v1/chat/completions";
 
-// Current fast+capable Anthropic default on OpenRouter. List options with:
-//   curl https://openrouter.ai/api/v1/models -H "authorization: Bearer $KEY"
-export const DEFAULT_MODEL = "anthropic/claude-sonnet-4.6";
+// Default model lives in the server config (src/config.ts), not here, so the
+// model choice is configurable in one obvious place. Re-exported for callers
+// that want to reference it. Override per-call via the `model` option.
+export const DEFAULT_MODEL = LLM_MODEL;
 
 const DEFAULT_TIMEOUT_MS = 30_000;
 
@@ -42,6 +44,12 @@ export interface StructuredChatInput<S extends z.ZodTypeAny> {
   /** One-line tag surfaced in OpenRouter's activity feed (X-Title). */
   title?: string;
   timeoutMs?: number;
+  /**
+   * Enable OpenRouter's web-search plugin: the model's context is augmented with
+   * live web results before it answers (works with any model, citations land in
+   * the prose). Used by the /research feature. Default off.
+   */
+  web?: boolean;
 }
 
 /**
@@ -78,6 +86,9 @@ export async function structuredChat<S extends z.ZodTypeAny>(
     },
     ...(opts.temperature != null ? { temperature: opts.temperature } : {}),
     ...(opts.maxTokens != null ? { max_tokens: opts.maxTokens } : {}),
+    // OpenRouter-side web search: runs the search and injects results into the
+    // model's context. Independent of the model, so it composes with json_schema.
+    ...(opts.web ? { plugins: [{ id: "web" }] } : {}),
   };
 
   const headers: Record<string, string> = {
