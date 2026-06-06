@@ -23,6 +23,8 @@ import { expectedValueSpec } from "./expectedvalue.spec";
 import { ExpectedValueWidget } from "./ExpectedValueWidget";
 import { oodaSpec } from "./ooda.spec";
 import { OodaWidget } from "./OodaWidget";
+import { optionsSpec } from "./options.spec";
+import { OptionsWidget } from "./OptionsWidget";
 import { premortemSpec } from "./premortem.spec";
 import { PremortemWidget } from "./PremortemWidget";
 import { proConSpec } from "./procon.spec";
@@ -48,6 +50,7 @@ export interface WidgetEntry {
  */
 export const WIDGETS: WidgetEntry[] = [
   { spec: proConSpec as WidgetSpec, component: ProConWidget },
+  { spec: optionsSpec as WidgetSpec, component: OptionsWidget },
   { spec: twoByTwoSpec as WidgetSpec, component: TwoByTwoWidget },
   { spec: eisenhowerSpec as WidgetSpec, component: EisenhowerWidget },
   { spec: swotSpec as WidgetSpec, component: SwotWidget },
@@ -77,4 +80,27 @@ export function matchWidgetCommand(
 
 export function getWidget(type: string): WidgetEntry | null {
   return WIDGETS.find((w) => w.spec.type === type) ?? null;
+}
+
+// `/help` (and aliases) — list every widget's shortcut. Handled in the composer.
+const HELP_COMMANDS = ["help", "h", "?", "commands"];
+
+export function isHelpCommand(input: string): boolean {
+  if (!input.startsWith("/")) return false;
+  const word = input.slice(1).trim().split(/\s+/)[0]?.toLowerCase();
+  return HELP_COMMANDS.includes(word ?? "");
+}
+
+// Render the shortcut list straight from WIDGETS, so it can never drift from the
+// registered widgets. Canonical (first) command per spec, plus its title.
+export function widgetHelpText(): string {
+  const rows = WIDGETS.map(
+    (w) => `  /${w.spec.commands[0]} — ${w.spec.title}: ${w.spec.description}`,
+  );
+  return [
+    "Widget shortcuts:",
+    ...rows,
+    "",
+    "Or just describe a decision and I'll pick a tool. Type /help anytime.",
+  ].join("\n");
 }

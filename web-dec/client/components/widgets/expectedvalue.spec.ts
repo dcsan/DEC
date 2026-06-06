@@ -31,7 +31,7 @@ function parseNum(s: string): number | null {
 
 export const expectedValueSpec: WidgetSpec<ExpectedValueData> = {
   type: "expectedvalue",
-  commands: ["evtable", "expvalue", "expectedvalue"],
+  commands: ["ev", "evtable", "expvalue", "expectedvalue"],
   title: "Expected value",
   description: "Rows of outcome, probability, and value; EV sum when numbers parse.",
   purpose: "Weight uncertain outcomes by probability for risk-return style comparisons.",

@@ -24,7 +24,7 @@ export function blankPremortemData(title: string): PremortemData {
 
 export const premortemSpec: WidgetSpec<PremortemData> = {
   type: "premortem",
-  commands: ["premortem", "premort", "failureprep"],
+  commands: ["pm", "premortem", "premort", "failureprep"],
   title: "Pre-mortem",
   description: "Assume the decision failed; describe how and trace causes backwards.",
   purpose: "Surface failure modes before you commit—especially for hard-to-reverse choices.",
