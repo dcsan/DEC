@@ -33,17 +33,15 @@ interface Task {
   zone: Zone;
 }
 
-// Seed a couple of example tasks in the pool so there's something to drag.
-function seedTasks(): Task[] {
-  return [
-    { id: crypto.randomUUID(), text: "Pay taxes", zone: "pool" },
-    { id: crypto.randomUUID(), text: "Respond to Slack messages", zone: "pool" },
-  ];
+// Seed the pool: the router's prefilled tasks if any, else a couple of examples.
+function seedTasks(items?: string[]): Task[] {
+  const texts = items?.length ? items : ["Pay taxes", "Respond to Slack messages"];
+  return texts.map((text) => ({ id: crypto.randomUUID(), text, zone: "pool" as const }));
 }
 
-export function EisenhowerWidget({ onSend, onRemove }: WidgetProps) {
-  const [title, setTitle] = useState("Eisenhower Matrix");
-  const [tasks, setTasks] = useState<Task[]>(seedTasks);
+export function EisenhowerWidget({ initial, onSend, onRemove }: WidgetProps) {
+  const [title, setTitle] = useState(initial?.title || "Eisenhower Matrix");
+  const [tasks, setTasks] = useState<Task[]>(() => seedTasks(initial?.items));
   const [draft, setDraft] = useState("");
   const [dragId, setDragId] = useState<string | null>(null);
   const [sent, setSent] = useState(false);

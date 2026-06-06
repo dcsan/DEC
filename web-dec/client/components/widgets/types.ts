@@ -43,8 +43,18 @@ export interface WidgetOutput<TData = unknown> {
   text: string;
 }
 
+// Generic seed data the router can use to prefill a freshly-surfaced widget.
+// Each widget interprets `items` in its own terms (pros/cons rows, matrix
+// tasks, …).
+export interface WidgetInit {
+  title?: string;
+  items?: string[];
+}
+
 // Props every widget component receives from the chat view.
 export interface WidgetProps {
+  /** Optional prefill from the router (extracted choices/tasks + title). */
+  initial?: WidgetInit;
   /** Send the widget's output (structured + text) back into the chat. */
   onSend: (output: WidgetOutput) => void;
   /** Remove this widget instance from the chat. */

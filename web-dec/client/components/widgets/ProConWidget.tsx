@@ -8,9 +8,14 @@ import { blankProConData, proConSpec, type ProConItem } from "./procon.spec";
 
 const ACCENT = "var(--dec-framework)";
 
-export function ProConWidget({ onSend, onRemove }: WidgetProps) {
-  const [title, setTitle] = useState("Pros & Cons");
-  const [items, setItems] = useState<ProConItem[]>(() => blankProConData(title).items);
+export function ProConWidget({ initial, onSend, onRemove }: WidgetProps) {
+  const [title, setTitle] = useState(initial?.title || "Pros & Cons");
+  const [items, setItems] = useState<ProConItem[]>(() =>
+    // Prefill each choice from the router as its own row; otherwise blank rows.
+    initial?.items?.length
+      ? initial.items.map((text) => ({ text, pro: false, con: false }))
+      : blankProConData(title).items,
+  );
   // Whether the current rows have already been posted, so we can show a "Sent"
   // confirmation. Any edit clears it, keeping the widget live and re-sendable.
   const [sent, setSent] = useState(false);
