@@ -48,6 +48,16 @@ dev-server:
   pnpm run dev:server
 
 
+########## test / eval ##########
+
+# Eval the convo router's widget choice against the fixed question set in
+# test/routerCases.ts. Uses OPENROUTER_API_KEY from .dev.vars (LLM path) or
+# falls back to the keyless heuristic. Pass extra flags through, e.g.
+#   just eval-router --quiet --concurrency=10
+eval-router *FLAGS:
+  pnpm tsx test/routerEval.ts {{FLAGS}}
+
+
 ########## cloudflare ##########
 
 secrets-put-all:

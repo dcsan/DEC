@@ -12,6 +12,7 @@
     "build:client": "vite build",
     "deploy": "pnpm run build:client && wrangler deploy",
     "typecheck": "tsc --noEmit",
+    "eval:router": "tsx test/routerEval.ts",
     "cf-typegen": "wrangler types",
     "db:generate": "drizzle-kit generate",
     "db:migrate:local": "wrangler d1 migrations apply dec-db --local",

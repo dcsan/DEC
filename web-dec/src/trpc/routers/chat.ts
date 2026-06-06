@@ -97,7 +97,9 @@ export const chatRouter = router({
     }),
 });
 
-async function route(
+// Exported so the router eval harness (test/routerEval.ts) can exercise the
+// real widget-choosing logic, not a copy.
+export async function route(
   apiKey: string | undefined,
   history: { role: "user" | "assistant"; content: string }[],
   text: string,
