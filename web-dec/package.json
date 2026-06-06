@@ -1,0 +1,59 @@
+{
+  "name": "dec",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.33.2",
+  "scripts": {
+    "dev": "concurrently \"pnpm run dev:server\" \"pnpm run dev:client\" --names \"API,CLIENT\" --prefix-colors \"blue,magenta\"",
+    "dev:server": "pnpm run build:client && wrangler dev --port ${PORT_SERVER:-6390}",
+    "dev:client": "vite",
+    "build": "pnpm run build:client && wrangler deploy --dry-run --outdir=dist/worker",
+    "build:client": "vite build",
+    "deploy": "pnpm run build:client && wrangler deploy",
+    "typecheck": "tsc --noEmit",
+    "cf-typegen": "wrangler types",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate:local": "wrangler d1 migrations apply dec-db --local",
+    "db:migrate:remote": "wrangler d1 migrations apply dec-db --remote"
+  },
+  "dependencies": {
+    "@hono/trpc-server": "^0.4.0",
+    "@tanstack/react-query": "^5.100.5",
+    "@tanstack/react-router": "^1.168.25",
+    "@trpc/client": "^11.0.0",
+    "@trpc/react-query": "^11.0.0",
+    "@trpc/server": "^11.0.0",
+    "@xyflow/react": "^12.3.5",
+    "drizzle-orm": "^0.45.2",
+    "hono": "^4.12.15",
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5",
+    "superjson": "^2.2.6",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260426.1",
+    "@tailwindcss/postcss": "^4.2.4",
+    "@tanstack/router-plugin": "^1.167.28",
+    "@types/node": "^25.6.0",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^4.7.0",
+    "better-sqlite3": "^12.9.0",
+    "concurrently": "^9.2.1",
+    "drizzle-kit": "^0.31.10",
+    "tailwindcss": "^4.2.4",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
+    "vite": "^6.4.2",
+    "wrangler": "^4.85.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "better-sqlite3",
+      "esbuild",
+      "workerd"
+    ]
+  }
+}

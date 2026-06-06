@@ -1,0 +1,53 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: dark;
+  font-family: "Inter", system-ui, -apple-system, sans-serif;
+
+  /* Surfaces — dark, calm, canvas-friendly */
+  --dec-bg: #0f1115;
+  --dec-surface: #171a21;
+  --dec-surface-2: #1e222b;
+  --dec-border: #2a2f3a;
+  --dec-border-soft: #21262f;
+
+  /* Ink */
+  --dec-text: #e8eaed;
+  --dec-text-muted: #a7adba;
+  --dec-text-subtle: #6b7280;
+
+  /* Accent */
+  --dec-accent: #6ea8fe;
+  --dec-accent-soft: #2b3a55;
+
+  /* Node kind tints */
+  --dec-option: #f0b86e;
+  --dec-concept: #6ea8fe;
+  --dec-framework: #9b8cff;
+  --dec-merged: #5fd6a6;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--dec-bg);
+  color: var(--dec-text);
+}
+
+.dec-display {
+  font-family: "Newsreader", Georgia, serif;
+}
+
+/* react-flow dark tweaks */
+.react-flow__attribution {
+  display: none;
+}

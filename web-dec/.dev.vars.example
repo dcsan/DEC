@@ -1,0 +1,12 @@
+# Copy to .dev.vars and fill in. .dev.vars is git-ignored.
+
+# LLM for concept search / expand / merge. Without it the app still runs —
+# those features fall back to deterministic stubs. Get a key at
+# https://openrouter.ai/keys
+OPENROUTER_API_KEY=
+
+# Needed only for the remote D1 just-recipes (migrations-remote, db-studio-remote).
+# Token scope: D1:Edit — create at https://dash.cloudflare.com/profile/api-tokens
+CLOUDFLARE_ACCOUNT_ID=
+CLOUDFLARE_DATABASE_ID=
+CLOUDFLARE_D1_TOKEN=
