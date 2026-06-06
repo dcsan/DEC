@@ -2,7 +2,8 @@ import { z } from "zod";
 import { eq, inArray } from "drizzle-orm";
 import { router, publicProcedure } from "../trpc";
 import { boards, nodes, edges, type NodeKind } from "../../db/schema";
-import { llmJSON } from "../../lib/llm";
+import { structuredChat } from "../../services/llm/openrouter";
+import { ConceptListSchema, MergeResultSchema } from "../../services/llm/schemas";
 
 const NODE_KINDS: NodeKind[] = ["option", "concept", "framework", "merged", "note"];
 
@@ -189,15 +190,26 @@ async function relatedConcepts(
   topic: string,
   count: number,
 ): Promise<Concept[]> {
-  const out = await llmJSON<{ concepts: Concept[] }>(
-    apiKey,
-    `List ${count} concepts closely related to "${topic}" that would help someone think it through. ` +
-      `Return JSON {"concepts":[{"title":"one to three words","description":"one sentence"}]}.`,
-    { system: "You are a decision-coaching assistant. Be concise and concrete." },
-  );
-  if (out?.concepts?.length) return out.concepts.slice(0, count);
+  if (apiKey) {
+    try {
+      const out = await structuredChat({
+        apiKey,
+        schema: ConceptListSchema,
+        schemaName: "concept_list",
+        system: "You are a decision-coaching assistant. Be concise and concrete.",
+        prompt:
+          `List ${count} concepts closely related to "${topic}" that would help ` +
+          `someone think it through.`,
+        temperature: 0.5,
+        title: `expand/${topic}`,
+      });
+      if (out.concepts.length) return out.concepts.slice(0, count);
+    } catch (err) {
+      console.error("[expand] LLM failed, using fallback", err);
+    }
+  }
 
-  // Fallback stub — no key or parse failed.
+  // Fallback stub — no key or the call failed.
   return Array.from({ length: count }, (_, i) => ({
     title: `${topic} · aspect ${i + 1}`,
     description: `A related angle on "${topic}" to explore (LLM unavailable — add OPENROUTER_API_KEY).`,
@@ -209,13 +221,22 @@ async function fuseConcepts(
   a: string,
   b: string,
 ): Promise<{ title: string; description: string }> {
-  const out = await llmJSON<{ title: string; description: string }>(
-    apiKey,
-    `Combine the ideas "${a}" and "${b}" into one new idea. ` +
-      `Return JSON {"title":"one to three words","description":"one short paragraph"}.`,
-    { system: "You synthesize two concepts into a sharper combined idea." },
-  );
-  if (out?.title) return { title: out.title, description: out.description ?? "" };
+  if (apiKey) {
+    try {
+      const out = await structuredChat({
+        apiKey,
+        schema: MergeResultSchema,
+        schemaName: "merge_result",
+        system: "You synthesize two concepts into a sharper combined idea.",
+        prompt: `Combine the ideas "${a}" and "${b}" into one new idea.`,
+        temperature: 0.6,
+        title: `merge/${a}+${b}`,
+      });
+      return out;
+    } catch (err) {
+      console.error("[merge] LLM failed, using fallback", err);
+    }
+  }
 
   return {
     title: `${a} × ${b}`,
