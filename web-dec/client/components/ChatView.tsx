@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from "react";
 import { trpc } from "../lib/trpc";
 import { getWidget, matchWidgetCommand } from "./widgets/registry";
 import type { WidgetOutput } from "./widgets/types";
+import { Dictation } from "./Dictation";
 
 type ChatItem =
   // A text message — from the user, a widget, or the assistant (server reply).
@@ -100,7 +101,14 @@ export function ChatView() {
 
       {/* Composer pinned to the bottom */}
       <div style={{ borderTop: "1px solid var(--dec-border-soft)", background: "var(--dec-surface)" }}>
-        <div style={{ maxWidth: 720, margin: "0 auto", padding: 12, display: "flex", gap: 8 }}>
+        <div style={{ maxWidth: 720, margin: "0 auto", padding: 12, display: "flex", gap: 8, alignItems: "center" }}>
+          <Dictation
+            onComplete={(text) => {
+              append({ kind: "message", id: uid(), role: "user", content: text });
+              void post(text);
+            }}
+            disabled={send.isPending}
+          />
           <textarea
             value={draft}
             onChange={(e) => setDraft(e.target.value)}

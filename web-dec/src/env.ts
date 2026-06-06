@@ -5,4 +5,5 @@ export interface Bindings {
   // Optional: enables the LLM-backed concept search / expand / merge.
   // Without it those endpoints fall back to deterministic stubs.
   OPENROUTER_API_KEY?: string;
+  GOOGLE_GEMINI_KEY?: string;
 }

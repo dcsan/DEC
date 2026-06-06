@@ -5,6 +5,10 @@
 # https://openrouter.ai/keys
 OPENROUTER_API_KEY=
 
+# Voice dictation via Gemini. Without it the mic button will error.
+# Get a key at https://aistudio.google.com/apikey
+GOOGLE_GEMINI_KEY=
+
 # Needed only for the remote D1 just-recipes (migrations-remote, db-studio-remote).
 # Token scope: D1:Edit — create at https://dash.cloudflare.com/profile/api-tokens
 CLOUDFLARE_ACCOUNT_ID=
