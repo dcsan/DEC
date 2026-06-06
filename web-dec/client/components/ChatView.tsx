@@ -10,6 +10,8 @@ import {
   getWidget,
   isHelpCommand,
   matchExampleCommand,
+  matchResearchCommand,
+  matchUseCommand,
   matchWidgetCommand,
   widgetExampleText,
   widgetHelpText,
@@ -29,6 +31,7 @@ export function ChatView() {
   const [draft, setDraft] = useState("");
   const endRef = useRef<HTMLDivElement>(null);
   const send = trpc.chat.send.useMutation();
+  const research = trpc.research.run.useMutation();
 
   // Keep the latest item in view as the stream grows.
   useEffect(() => {
@@ -80,9 +83,61 @@ export function ChatView() {
     }
   };
 
+  // The decision the user is currently working on: the most recent widget's
+  // carried question, else the last user message. Used to seed /research when
+  // the command is given without explicit args.
+  const lastDecision = (): string | undefined => {
+    for (let i = items.length - 1; i >= 0; i--) {
+      const it = items[i];
+      if (it.kind === "widget" && it.init?.question?.trim()) return it.init.question.trim();
+      if (it.kind === "message" && it.role === "user") return it.content;
+    }
+    return undefined;
+  };
+
+  // `/research [decision]` → run web-augmented deep research on the decision
+  // (explicit args win, else the current decision) using the full chat history,
+  // and append the sourced advice as an assistant message.
+  const runResearch = async (args: string) => {
+    const question = args.trim() || lastDecision();
+    if (!question) {
+      append({
+        kind: "message",
+        id: uid(),
+        role: "assistant",
+        content:
+          "Tell me what to research — describe a decision first, or run `/research <your decision>`.",
+      });
+      return;
+    }
+    append({ kind: "message", id: uid(), role: "user", content: `/research ${question}` });
+    try {
+      const res = await research.mutateAsync({ question, history: toHistory() });
+      const sources = res.sources.length
+        ? "\n\nSources:\n" + res.sources.map((s) => `• ${s.title} — ${s.url}`).join("\n")
+        : "";
+      append({ kind: "message", id: uid(), role: "assistant", content: res.advice + sources });
+    } catch (err) {
+      append({
+        kind: "message",
+        id: uid(),
+        role: "assistant",
+        content: err instanceof Error ? err.message : "Research failed. Please try again.",
+      });
+    }
+  };
+
   const submit = () => {
     const content = draft.trim();
-    if (!content || send.isPending) return;
+    if (!content || send.isPending || research.isPending) return;
+
+    // `/research [decision]` → web-augmented deeper advice (not a widget).
+    const res = matchResearchCommand(content);
+    if (res) {
+      setDraft("");
+      void runResearch(res.args);
+      return;
+    }
 
     // `/help` → list all widget shortcuts locally (no server round-trip).
     if (isHelpCommand(content)) {
@@ -122,6 +177,22 @@ export function ChatView() {
       return;
     }
 
+    // "use <widget> …" → force that widget, bypassing the router (e.g. "use sc
+    // to plan what to do next"). Echo the message (it's natural language), then
+    // drop the widget prefilled with the rest as the question.
+    const use = matchUseCommand(content);
+    if (use) {
+      append({ kind: "message", id: uid(), role: "user", content });
+      append({
+        kind: "widget",
+        id: uid(),
+        type: use.entry.spec.type,
+        init: use.args ? { question: use.args } : undefined,
+      });
+      setDraft("");
+      return;
+    }
+
     // Free text → echo it, then let the server's convo router decide.
     append({ kind: "message", id: uid(), role: "user", content });
     setDraft("");
@@ -154,7 +225,8 @@ export function ChatView() {
               decision matrix, <code>/22</code>, <code>/cb</code> cost–benefit,{" "}
               <code>/pm</code> pre-mortem, <code>/dt</code> decision tree,{" "}
               <code>/ev</code> expected value, <code>/ooda</code>, <code>/rg</code>{" "}
-              regret. Type <code>/help</code> for the full list.
+              regret. Or <code>/research</code> for web-sourced deeper advice on
+              your decision. Type <code>/help</code> for the full list.
             </p>
           )}
 
@@ -175,7 +247,9 @@ export function ChatView() {
               </div>
             );
           })}
-          {send.isPending && <MessageBubble role="assistant" content="…" />}
+          {(send.isPending || research.isPending) && (
+            <MessageBubble role="assistant" content={research.isPending ? "Researching…" : "…"} />
+          )}
           <div ref={endRef} />
         </div>
       </div>
@@ -192,7 +266,7 @@ export function ChatView() {
                 submit();
               }
             }}
-            placeholder="Message, /help, or /rc /eis /swot /sc /dm /22 /cb /pm /dt /ev /ooda /rg"
+            placeholder="Message, /help, /research, or /rc /eis /swot /sc /dm /22 /cb /pm /dt /ev /ooda /rg"
             rows={1}
             style={{
               flex: 1,
