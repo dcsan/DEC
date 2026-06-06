@@ -18,20 +18,15 @@
 		"enabled": true
 	},
 	// D1 — stores decision boards, canvas nodes/edges and chat messages.
-	// Create with: pnpm wrangler d1 create dec-db
-	// Paste the returned database_id below, then run: pnpm db:migrate:local
+	// `wrangler dev` uses a local SQLite instance for this binding by default
+	// (no "remote": true), so dev runs against the local DB. Apply migrations
+	// with: pnpm db:migrate:local
 	"d1_databases": [
 		{
 			"binding": "DB",
 			"database_name": "dec-db",
-			"database_id": "REPLACE_WITH_DATABASE_ID",
-			"migrations_dir": "migrations"
-		},
-		{
-			"binding": "dec_db",
-			"database_name": "dec-db",
 			"database_id": "9281afae-1b2f-4d8b-9e38-d4162fa35806",
-			"remote": true
+			"migrations_dir": "migrations"
 		}
 	]
 }
