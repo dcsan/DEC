@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "honcho": {
+      "type": "http",
+      "url": "https://mcp.honcho.dev",
+      "headers": {
+        "Authorization": "Bearer ${HONCHO_API_KEY}",
+        "X-Honcho-User-Name": "YourName"
+      }
+    }
+  }
+}

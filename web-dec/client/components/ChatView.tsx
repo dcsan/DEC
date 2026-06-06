@@ -30,6 +30,7 @@ export function ChatView() {
   const [items, setItems] = useState<ChatItem[]>([]);
   const [draft, setDraft] = useState("");
   const endRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const send = trpc.chat.send.useMutation();
   const research = trpc.research.run.useMutation();
 
@@ -37,6 +38,11 @@ export function ChatView() {
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [items]);
+
+  // Focus the composer when the chat page opens, so you can type right away.
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
 
   const append = (item: ChatItem) => setItems((cur) => [...cur, item]);
 
@@ -258,6 +264,7 @@ export function ChatView() {
       <div style={{ borderTop: "1px solid var(--dec-border-soft)", background: "var(--dec-surface)" }}>
         <div style={{ maxWidth: 720, margin: "0 auto", padding: 12, display: "flex", gap: 8 }}>
           <textarea
+            ref={inputRef}
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={(e) => {
