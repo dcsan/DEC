@@ -1,0 +1,6 @@
+{
+  "name": "OpenRouter Gemini React Chat",
+  "description": "Interactive real-time web chat powered by Google Gemini, supporting live-render interactive React UI components and data visualizations.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
