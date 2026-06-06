@@ -15,9 +15,15 @@ import {
 } from "@xyflow/react";
 import { trpc } from "../lib/trpc";
 import { ConceptNode, type ConceptNodeData } from "./nodes/ConceptNode";
-import type { Node as DbNode, Edge as DbEdge } from "../../src/db/schema";
+import { ProConNode, type ProConNodeData } from "./nodes/ProConNode";
+import type {
+  Node as DbNode,
+  Edge as DbEdge,
+  ProConData,
+  ProConItem,
+} from "../../src/db/schema";
 
-const nodeTypes = { concept: ConceptNode };
+const nodeTypes = { concept: ConceptNode, procon: ProConNode };
 
 interface Props {
   boardId: string;
@@ -43,6 +49,9 @@ function Flow({ boardId, nodes: dbNodes, edges: dbEdges, onChanged }: Props) {
   const remove = trpc.node.remove.useMutation({ onSuccess: onChanged });
   const merge = trpc.node.merge.useMutation({ onSuccess: onChanged });
   const move = trpc.node.updatePosition.useMutation();
+  // Fire-and-forget save for widget edits — no refetch, so typing/toggling in
+  // a pros/cons widget isn't interrupted by a canvas re-render.
+  const saveData = trpc.node.update.useMutation();
   const createEdge = trpc.edge.create.useMutation({ onSuccess: onChanged });
 
   const [rfNodes, setRfNodes, onNodesChange] = useNodesState<RFNode>([]);
@@ -79,19 +88,40 @@ function Flow({ boardId, nodes: dbNodes, edges: dbEdges, onChanged }: Props) {
   // the focus set changes.
   useEffect(() => {
     setRfNodes(
-      dbNodes.map((n) => ({
-        id: n.id,
-        type: "concept",
-        position: { x: n.x, y: n.y },
-        data: {
-          title: n.title,
-          description: n.description,
-          kind: n.kind,
-          dimmed: focusSet ? !focusSet.has(n.id) : false,
-          onExpand: (id: string) => expand.mutate({ id }),
-          onRemove: (id: string) => remove.mutate({ id }),
-        } satisfies ConceptNodeData,
-      })),
+      dbNodes.map((n) => {
+        const dimmed = focusSet ? !focusSet.has(n.id) : false;
+
+        if (n.kind === "procon") {
+          const items = ((n.data as ProConData | null)?.items ?? []) as ProConItem[];
+          return {
+            id: n.id,
+            type: "procon",
+            position: { x: n.x, y: n.y },
+            data: {
+              title: n.title,
+              items,
+              dimmed,
+              onSaveData: (id: string, data: ProConData) =>
+                saveData.mutate({ id, data: data as unknown as Record<string, unknown> }),
+              onRemove: (id: string) => remove.mutate({ id }),
+            } satisfies ProConNodeData,
+          };
+        }
+
+        return {
+          id: n.id,
+          type: "concept",
+          position: { x: n.x, y: n.y },
+          data: {
+            title: n.title,
+            description: n.description,
+            kind: n.kind,
+            dimmed,
+            onExpand: (id: string) => expand.mutate({ id }),
+            onRemove: (id: string) => remove.mutate({ id }),
+          } satisfies ConceptNodeData,
+        };
+      }),
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dbNodes, focusSet]);

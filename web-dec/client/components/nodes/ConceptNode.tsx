@@ -1,24 +1,27 @@
 import { memo, useState } from "react";
 import { Handle, Position, type NodeProps } from "@xyflow/react";
+import type { NodeKind } from "../../../src/db/schema";
 
 // Data carried on every canvas node. Callbacks are injected by Canvas.tsx so
 // the node can drive expand/remove/details without prop-drilling refs.
 export interface ConceptNodeData {
   title: string;
   description?: string | null;
-  kind: "option" | "concept" | "framework" | "merged" | "note";
+  kind: NodeKind;
   dimmed?: boolean;
   onExpand: (id: string) => void;
   onRemove: (id: string) => void;
   [key: string]: unknown;
 }
 
-const KIND_COLOR: Record<ConceptNodeData["kind"], string> = {
+const KIND_COLOR: Record<NodeKind, string> = {
   option: "var(--dec-option)",
   concept: "var(--dec-concept)",
   framework: "var(--dec-framework)",
   merged: "var(--dec-merged)",
   note: "var(--dec-text-subtle)",
+  // procon renders via ProConNode, but keep the map total for type-safety.
+  procon: "var(--dec-framework)",
 };
 
 function ConceptNodeImpl({ id, data, selected }: NodeProps) {

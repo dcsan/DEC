@@ -1,7 +1,17 @@
 import { useState } from "react";
 import { trpc } from "../lib/trpc";
 import { ConceptSearch } from "./ConceptSearch";
-import type { Message } from "../../src/db/schema";
+import { matchSlashCommand } from "../lib/slashCommands";
+import type { Message, ProConData } from "../../src/db/schema";
+
+// A fresh pros/cons widget seeds 4 blank rows (per the spec).
+function blankProCon(): ProConData {
+  return { items: Array.from({ length: 4 }, () => ({ text: "", pro: false, con: false })) };
+}
+
+// Natural-language fallback so "pros and cons" in plain chat also drops the
+// widget, in addition to the /pc slash command.
+const PROS_CONS_PHRASE = /\bpros?\s*(?:and|&|\/|,)?\s*cons\b/i;
 
 export function ChatSidebar({
   boardId,
@@ -19,10 +29,39 @@ export function ChatSidebar({
       onChanged();
     },
   });
+  const createNode = trpc.node.create.useMutation({ onSuccess: onChanged });
+
+  // Drop a pros/cons matrix widget onto the canvas.
+  const addProCon = (title: string) => {
+    createNode.mutate({
+      boardId,
+      kind: "procon",
+      title: title || "Pros & Cons",
+      x: 120,
+      y: 120,
+      data: blankProCon() as unknown as Record<string, unknown>,
+    });
+    setDraft("");
+  };
 
   const submit = () => {
     const content = draft.trim();
     if (!content || send.isPending) return;
+
+    // 1. Slash command? Handle locally, don't send to the server.
+    const slash = matchSlashCommand(content);
+    if (slash) {
+      slash.command.run({ args: slash.args, addProCon });
+      return;
+    }
+
+    // 2. Natural-language "pros and cons" → drop the widget too.
+    if (PROS_CONS_PHRASE.test(content)) {
+      addProCon("Pros & Cons");
+      return;
+    }
+
+    // 3. Otherwise it's a normal chat turn.
     send.mutate({ boardId, content });
   };
 
@@ -59,7 +98,7 @@ export function ChatSidebar({
               submit();
             }
           }}
-          placeholder="Type a message…  (Enter to send)"
+          placeholder="Type a message…  (/pc for pros & cons)"
           rows={2}
           style={{
             width: "100%",

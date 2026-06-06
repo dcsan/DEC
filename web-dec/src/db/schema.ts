@@ -35,8 +35,26 @@ export const boards = sqliteTable("boards", {
 
 // Canvas node kinds. `option` = a choice; `concept` = an idea pulled in via
 // search/expand; `framework` = a thinking-framework label; `merged` = the
-// product of dragging two nodes together; `note` = freeform.
-export type NodeKind = "option" | "concept" | "framework" | "merged" | "note";
+// product of dragging two nodes together; `note` = freeform; `procon` = the
+// pros/cons matrix widget (its rows live in `data`).
+export type NodeKind =
+  | "option"
+  | "concept"
+  | "framework"
+  | "merged"
+  | "note"
+  | "procon";
+
+// Shape stored in nodes.data for a `procon` widget. One row = one item the
+// user can mark as a pro and/or a con.
+export interface ProConItem {
+  text: string;
+  pro: boolean;
+  con: boolean;
+}
+export interface ProConData {
+  items: ProConItem[];
+}
 
 export const nodes = sqliteTable(
   "nodes",

@@ -5,7 +5,14 @@ import { boards, nodes, edges, type NodeKind } from "../../db/schema";
 import { structuredChat } from "../../services/llm/openrouter";
 import { ConceptListSchema, MergeResultSchema } from "../../services/llm/schemas";
 
-const NODE_KINDS: NodeKind[] = ["option", "concept", "framework", "merged", "note"];
+const NODE_KINDS: NodeKind[] = [
+  "option",
+  "concept",
+  "framework",
+  "merged",
+  "note",
+  "procon",
+];
 
 // Bump a board's updatedAt whenever its canvas changes, so the board list
 // stays sorted by recency.
@@ -23,6 +30,7 @@ export const nodeRouter = router({
         description: z.string().optional(),
         x: z.number().default(0),
         y: z.number().default(0),
+        data: z.record(z.unknown()).optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -35,6 +43,7 @@ export const nodeRouter = router({
           description: input.description?.trim() || null,
           x: input.x,
           y: input.y,
+          data: input.data ?? null,
         })
         .returning();
       await touchBoard(ctx.db, input.boardId);
@@ -59,6 +68,7 @@ export const nodeRouter = router({
         id: z.string(),
         title: z.string().min(1).max(120).optional(),
         description: z.string().optional(),
+        data: z.record(z.unknown()).optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -69,6 +79,7 @@ export const nodeRouter = router({
           ...(input.description !== undefined
             ? { description: input.description.trim() || null }
             : {}),
+          ...(input.data !== undefined ? { data: input.data } : {}),
         })
         .where(eq(nodes.id, input.id))
         .returning();
