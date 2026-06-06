@@ -4,6 +4,7 @@ import { nodeRouter } from "./routers/node";
 import { edgeRouter } from "./routers/edge";
 import { messageRouter } from "./routers/message";
 import { conceptRouter } from "./routers/concept";
+import { chatRouter } from "./routers/chat";
 
 export const appRouter = router({
   board: boardRouter,
@@ -11,6 +12,7 @@ export const appRouter = router({
   edge: edgeRouter,
   message: messageRouter,
   concept: conceptRouter,
+  chat: chatRouter,
 });
 
 export type AppRouter = typeof appRouter;

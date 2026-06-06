@@ -34,6 +34,17 @@ function RootComponent() {
         <span style={{ color: "var(--dec-text-subtle)", fontSize: 13 }}>
           decide with AI
         </span>
+        <Link
+          to="/chat"
+          style={{
+            marginLeft: "auto",
+            fontSize: 13,
+            color: "var(--dec-text-muted)",
+            textDecoration: "none",
+          }}
+        >
+          Chat
+        </Link>
       </header>
 
       <div style={{ flex: 1, minHeight: 0 }}>
