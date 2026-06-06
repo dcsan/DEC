@@ -3,7 +3,7 @@ import { TRPCError } from "@trpc/server";
 import { router, publicProcedure } from "../trpc";
 import { structuredChat } from "../../services/llm/openrouter";
 
-// LLM endpoint for the Decision Factors widget. Given a yes/no decision question
+// LLM endpoint for the Factor Weighting widget. Given a yes/no decision question
 // (e.g. "should I join a startup?"), it returns the factors that bear on it —
 // both those that pull toward yes and those that pull toward no. The user ranks
 // how much each matters, so the model only names them (it does not weight them).
@@ -24,14 +24,14 @@ const SuggestSchema = z.object({
     ),
 });
 
-export interface ReadinessSuggestion {
+export interface FactorsSuggestion {
   factors: string[];
 }
 
-export const readinessRouter = router({
+export const factorsRouter = router({
   suggest: publicProcedure
     .input(z.object({ question: z.string().min(1).max(2000) }))
-    .mutation(async ({ ctx, input }): Promise<ReadinessSuggestion> => {
+    .mutation(async ({ ctx, input }): Promise<FactorsSuggestion> => {
       const apiKey = ctx.env.OPENROUTER_API_KEY;
       if (!apiKey) {
         throw new TRPCError({
@@ -45,7 +45,7 @@ export const readinessRouter = router({
         const out = await structuredChat({
           apiKey,
           schema: SuggestSchema,
-          schemaName: "readiness_suggestion",
+          schemaName: "factors_suggestion",
           system:
             "You help people make a single yes/no, go/no-go decision by surfacing " +
             "the factors that genuinely bear on it. Name the factors neutrally — " +
@@ -61,7 +61,7 @@ export const readinessRouter = router({
             `and growth"). Name each factor in 2-6 words, neutrally — not as a pro ` +
             `or con.`,
           temperature: 0.5,
-          title: "readiness-suggest",
+          title: "factors-suggest",
         });
 
         return {
@@ -69,7 +69,7 @@ export const readinessRouter = router({
         };
       } catch (err) {
         if (err instanceof TRPCError) throw err;
-        console.error("[readiness.suggest] failed", err);
+        console.error("[factors.suggest] failed", err);
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: "Could not generate factors. Please try again.",

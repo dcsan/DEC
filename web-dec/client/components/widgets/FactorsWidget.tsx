@@ -1,7 +1,7 @@
-// Standalone Decision Factors widget for the chat view. A yes/no decision is
+// Standalone Factor Weighting widget for the chat view. A yes/no decision is
 // broken into the factors that pull on it; the user ranks how much each one
 // matters to them on a single 1-5 slider. A "Suggest" button asks the server
-// LLM (trpc.readiness.suggest) to draft the factors for the question. No option
+// LLM (trpc.factors.suggest) to draft the factors for the question. No option
 // columns, no auto verdict — on "Send" it formats via the spec and posts the
 // ranked factors back to chat, where the assistant weighs them.
 
@@ -9,24 +9,24 @@ import { useEffect, useRef, useState } from "react";
 import { trpc } from "../../lib/trpc";
 import type { WidgetProps } from "./types";
 import {
-  blankReadinessData,
-  readinessSpec,
-  type ReadinessFactor,
-} from "./readiness.spec";
+  blankFactorsData,
+  factorsSpec,
+  type Factor,
+} from "./factors.spec";
 
 const ACCENT = "var(--dec-merged)";
 
-export function ReadinessWidget({ initial, onSend, onRemove }: WidgetProps) {
-  const seed = blankReadinessData(initial?.title || "");
+export function FactorsWidget({ initial, onSend, onRemove }: WidgetProps) {
+  const seed = blankFactorsData(initial?.title || "");
   const [question, setQuestion] = useState(seed.question);
   // Start blank; the real factors are generated from the decision on mount.
   // The router's `items` are the *choices* (e.g. "Join the startup" / "Stay at
   // my corporate job") — NOT factors — so we deliberately ignore them here.
-  const [factors, setFactors] = useState<ReadinessFactor[]>(seed.factors);
+  const [factors, setFactors] = useState<Factor[]>(seed.factors);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const suggest = trpc.readiness.suggest.useMutation();
+  const suggest = trpc.factors.suggest.useMutation();
   const more = trpc.suggest.more.useMutation();
 
   // Any edit re-arms the Send button and clears a stale error.
@@ -35,7 +35,7 @@ export function ReadinessWidget({ initial, onSend, onRemove }: WidgetProps) {
     setError(null);
   };
 
-  const patch = (i: number, p: Partial<ReadinessFactor>) => {
+  const patch = (i: number, p: Partial<Factor>) => {
     setFactors((cur) => cur.map((f, idx) => (idx === i ? { ...f, ...p } : f)));
     dirty();
   };
@@ -98,7 +98,7 @@ export function ReadinessWidget({ initial, onSend, onRemove }: WidgetProps) {
   const send = () => {
     if (!hasContent) return;
     const data = { question, factors };
-    onSend({ type: readinessSpec.type, data, text: readinessSpec.format(data) });
+    onSend({ type: factorsSpec.type, data, text: factorsSpec.format(data) });
     setSent(true);
   };
 

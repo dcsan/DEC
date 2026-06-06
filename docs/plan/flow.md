@@ -1,22 +1,19 @@
-Decision questions
+Decision question / Factor ranking
 
-help me think through the flow
-
-create a new widget called Choices
-
-so a user has to make a decision between two choices
+When a user has to make a decision between two choices
 
 eg Should I buy or rent a house?
 
-to decide we need to evaluate the differences between those options as a bunch of factors
+to decide we need to evaluate the differences between those options as a bunch of FACTORS
 and ask the user to rank the importance to THEM of each factor
 
 eg rank these
 
-make a long-term investment = buy
-lower short term costs = rent
-flexibilty = rent
-live in a good area now
+make a long-term investment?
+lower short term costs?
+flexibilty?
+
+the user should apply a scale for those
 
 eg "should i get a dog or a cat"
 questions might be:
