@@ -82,6 +82,8 @@ export const twoByTwoSpec: WidgetSpec<AxesGridData> = {
     "both. Use when the user wants to visualise or plot options against dimensions; " +
     "for weighing how much factors matter to them prefer Factor Weighting.",
   example: "Compare a car and a motorbike on cost and safety.",
+  help:
+    "Compare options on two axes the AI derives from your decision (e.g. cost vs safety). Drag each option from the tray onto the grid — anywhere, not just the corners — and its position becomes a 0–100 score on each axis. Once you have a couple of options, ‘⚙ redo axes’ offers five other ways to compare them (pick up to two, or type your own) and re-scores everything on the new axes; ‘✨ generate’ suggests more options in the same category, scored and pre-placed. Edit axis labels/poles inline; double-click a placed item to send it back to the tray. On send, the scored positions go to chat.",
 
   format: (data) => {
     const x = data.xAxis;
