@@ -23,6 +23,14 @@ const ACCENT = "var(--dec-framework)";
 
 const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n));
 
+// Chips are positioned by their centre (translate(-50%,-50%)), so a score at the
+// 0/100 pole would spill half a chip past the plane edge. We map the 0-100 score
+// range into an inset band (INSET…100-INSET %) so options always sit inside the
+// grid. The pointer→score inverse uses the same band so dragging stays accurate.
+const INSET = 9;
+const scoreToPct = (s: number) => INSET + (s / 100) * (100 - 2 * INSET);
+const pctToScore = (p: number) => clamp(((p - INSET) / (100 - 2 * INSET)) * 100, 0, 100);
+
 export function TwoByTwoWidget({ initial, onSend, onRemove }: WidgetProps) {
   const seed = blankAxesGridData(initial?.title || "", initial?.question || "", initial?.items);
   const [title, setTitle] = useState(seed.title);
@@ -59,8 +67,8 @@ export function TwoByTwoWidget({ initial, onSend, onRemove }: WidgetProps) {
   // the top of the plane is the axis HIGH end.
   const pointerToScore = (clientX: number, clientY: number) => {
     const rect = planeRef.current!.getBoundingClientRect();
-    const x = clamp(((clientX - rect.left) / rect.width) * 100, 0, 100);
-    const y = clamp((1 - (clientY - rect.top) / rect.height) * 100, 0, 100);
+    const x = pctToScore(((clientX - rect.left) / rect.width) * 100);
+    const y = pctToScore((1 - (clientY - rect.top) / rect.height) * 100);
     return { x, y };
   };
 
@@ -379,8 +387,8 @@ export function TwoByTwoWidget({ initial, onSend, onRemove }: WidgetProps) {
               style={{
                 ...chip,
                 position: "absolute",
-                left: `${it.x}%`,
-                top: `${100 - (it.y as number)}%`,
+                left: `${scoreToPct(it.x as number)}%`,
+                top: `${100 - scoreToPct(it.y as number)}%`,
                 transform: "translate(-50%, -50%)",
                 cursor: drag === i ? "grabbing" : "grab",
                 borderColor: ACCENT,
