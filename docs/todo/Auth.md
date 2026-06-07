@@ -498,10 +498,12 @@ As someone building an MCP server, don't put anything malicious in your tool def
 > pass on the Workers runtime.
 >
 > **To connect in ChatGPT dev mode:** `cd web-dec && pnpm run dev` (Worker on
-> :6390), expose it — `cloudflared tunnel --url http://localhost:6390` (or
-> `ngrok http 6390`) — then in ChatGPT: Settings → Apps & Connectors → Advanced
-> → developer mode, Create connector → `https://<tunnel>/mcp`. No sign-in yet
-> (that's §8.5c). Next: §8.5c wires Better Auth + the Connect/OAuth flow.
+> :6390), expose it over HTTPS, then in ChatGPT: Settings → Apps & Connectors →
+> Advanced → developer mode, Create connector → `https://<host>/mcp`. No sign-in
+> yet (that's §8.5c). Next: §8.5c wires Better Auth + the Connect/OAuth flow.
+> For the tunnel use either a throwaway URL
+> (`cloudflared tunnel --url http://localhost:6390`) or, better, a **permanent
+> fixed address** — see §11.
 
 > **2026-06-07 revision — Connect-first.** The user's priority is the ChatGPT
 > **"Connect"** flow (deploying DEC as a ChatGPT app) *over* our own web login.
@@ -731,3 +733,47 @@ Resolved:
    (`mcp` + `oidcProvider` plugins), backed by the existing Neon DB. Run the
    Phase 0 spikes first; fall back to Option B (dedicated provider) only if a
    spike fails.
+
+## 11. Hosting the dev MCP app: permanent Cloudflare Tunnel (fixed address)
+
+ChatGPT needs an HTTPS URL for the connector. A throwaway
+`cloudflared tunnel --url http://localhost:6390` works but gives a **new random
+`*.trycloudflare.com` URL every run** — you'd re-create the connector each time.
+A **named tunnel** maps a stable hostname (e.g. `dec.<yourdomain>.com`) to the
+local Worker, so the URL never changes. This matters even more for §8.5c: the
+OAuth issuer / `.well-known` discovery / token `aud` must stay constant.
+
+Prereq: a domain in your Cloudflare account, and `cloudflared` logged in
+(`cloudflared tunnel login` → writes `~/.cloudflared/cert.pem`). On this machine
+both are already done (existing named tunnels confirm the login).
+
+```bash
+# 1. Create the named tunnel (writes a <UUID>.json credentials file in ~/.cloudflared/)
+cloudflared tunnel create dec
+
+# 2. Point a DNS record at it (creates CNAME dec.<yourdomain>.com → <UUID>.cfargotunnel.com)
+cloudflared tunnel route dns dec dec.<yourdomain>.com
+
+# 3. Dedicated config ~/.cloudflared/dec.yml (don't reuse the shared config.yml):
+#    tunnel: dec
+#    credentials-file: /Users/<you>/.cloudflared/<UUID>.json
+#    ingress:
+#      - hostname: dec.<yourdomain>.com
+#        service: http://localhost:6390   # DEC dev Worker port
+#      - service: http_status:404
+
+# 4. Run it (stable URL → connector = https://dec.<yourdomain>.com/mcp)
+cloudflared tunnel --config ~/.cloudflared/dec.yml run dec
+```
+
+Notes:
+- Use a **dedicated `dec.yml`** config; the existing `~/.cloudflared/config.yml`
+  belongs to another tunnel (`quintace-dev`) — don't overwrite it.
+- `tunnel route dns` writes a DNS record in your Cloudflare zone (an outward
+  change) — confirm the exact hostname before running.
+- **Always-on (optional):** install as a launchd service via the tunnel's token
+  (Zero Trust dashboard → Networks → Tunnels → `dec` → Configure):
+  `sudo cloudflared service install <TOKEN>`. Token mode stores ingress remotely,
+  so there's no clash with the local `config.yml`. Otherwise just keep the `run`
+  command alive in `tmux`/a background process.
+- ChatGPT connector URL: `https://dec.<yourdomain>.com/mcp`.
