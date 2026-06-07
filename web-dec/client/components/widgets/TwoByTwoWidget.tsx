@@ -83,19 +83,35 @@ export function TwoByTwoWidget({ initial, onSend, onRemove }: WidgetProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [drag]);
 
-  // Ask the LLM for the two axes that best compare these options.
+  // Ask the LLM for the two axes that best compare these options, then — if we
+  // already have options (e.g. the router seeded a choice grid for an open-ended
+  // question) — score them on those axes so they land placed on the grid rather
+  // than piled in the tray.
   const runSuggest = async () => {
     const q = seedQuestion();
     if (!q || suggest.isPending) return;
     setError(null);
     try {
-      const out = await suggest.mutateAsync({
-        question: q,
-        items: items.map((it) => it.name.trim()).filter(Boolean),
-      });
+      const names = items.map((it) => it.name.trim()).filter(Boolean);
+      const out = await suggest.mutateAsync({ question: q, items: names });
       setXAxis(out.xAxis);
       setYAxis(out.yAxis);
       setSent(false);
+      if (names.length > 0) {
+        // Use the freshly-returned axes (state hasn't updated yet). Best-effort:
+        // if scoring fails the options just stay in the tray to drag manually.
+        try {
+          const scored = await score.mutateAsync({
+            question: q,
+            items: names,
+            xAxis: out.xAxis,
+            yAxis: out.yAxis,
+          });
+          placeScores(scored.scores);
+        } catch {
+          /* leave unplaced — user can drag */
+        }
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not generate axes.");
     }
@@ -103,15 +119,30 @@ export function TwoByTwoWidget({ initial, onSend, onRemove }: WidgetProps) {
 
   const itemNames = () => items.map((it) => it.name.trim()).filter(Boolean);
 
-  // Position the named options from a scoring result, matching on name. Options
-  // the LLM didn't return keep their current position.
+  // Position the named options from a scoring result. The model is asked to copy
+  // names exactly, but it often rewords them (drops a "(Cash Back)" suffix, etc.),
+  // so we match leniently: exact (case-insensitive) first, then with parentheticals
+  // and extra whitespace stripped. Each score is consumed once so two similar
+  // names can't both grab it. Options with no match keep their current position.
   const placeScores = (scores: { name: string; x: number; y: number }[]) => {
-    setItems((cur) =>
-      cur.map((it) => {
-        const s = scores.find((sc) => sc.name.trim().toLowerCase() === it.name.trim().toLowerCase());
+    const norm = (s: string) =>
+      s.toLowerCase().trim().replace(/\s*\([^)]*\)\s*/g, " ").replace(/\s+/g, " ").trim();
+    setItems((cur) => {
+      const used = new Set<number>();
+      const pick = (it: PlacedItem) => {
+        let i = scores.findIndex(
+          (sc, idx) => !used.has(idx) && sc.name.trim().toLowerCase() === it.name.trim().toLowerCase(),
+        );
+        if (i === -1) i = scores.findIndex((sc, idx) => !used.has(idx) && norm(sc.name) === norm(it.name));
+        if (i === -1) return null;
+        used.add(i);
+        return scores[i];
+      };
+      return cur.map((it) => {
+        const s = pick(it);
         return s ? { ...it, x: clamp(s.x, 0, 100), y: clamp(s.y, 0, 100) } : it;
-      }),
-    );
+      });
+    });
     setSent(false);
   };
 
@@ -172,12 +203,23 @@ export function TwoByTwoWidget({ initial, onSend, onRemove }: WidgetProps) {
 
   // "Generate" — suggest more options in the same category as the current ones,
   // already scored on the active axes, and drop them onto the grid pre-placed.
+  // If the axes aren't derived yet, derive them first so the button always works.
   const runGenerate = async () => {
     const names = itemNames();
-    if (names.length === 0 || !hasAxes || generate.isPending) return;
+    if (names.length === 0 || generate.isPending) return;
     setError(null);
     try {
-      const out = await generate.mutateAsync({ question: seedQuestion(), items: names, xAxis, yAxis });
+      let gx = xAxis;
+      let gy = yAxis;
+      if (!hasAxes) {
+        const q = seedQuestion() || names.join(" vs ");
+        const ax = await suggest.mutateAsync({ question: q, items: names });
+        gx = ax.xAxis;
+        gy = ax.yAxis;
+        setXAxis(ax.xAxis);
+        setYAxis(ax.yAxis);
+      }
+      const out = await generate.mutateAsync({ question: seedQuestion(), items: names, xAxis: gx, yAxis: gy });
       setItems((cur) => {
         const seen = new Set(cur.map((it) => it.name.trim().toLowerCase()));
         const fresh = out.items
@@ -246,9 +288,6 @@ export function TwoByTwoWidget({ initial, onSend, onRemove }: WidgetProps) {
   const hasContent = placed.some(({ it }) => it.name.trim() !== "");
   // Both axes named → scoring/generating on them is meaningful.
   const hasAxes = xAxis.label.trim() !== "" && yAxis.label.trim() !== "";
-  // Once a few options exist, the axis controls move below the chart (the
-  // "redo axes" panel) and "generate more" becomes available.
-  const hasFewItems = items.filter((it) => it.name.trim()).length >= 2;
 
   const send = () => {
     if (!hasContent) return;
@@ -292,7 +331,7 @@ export function TwoByTwoWidget({ initial, onSend, onRemove }: WidgetProps) {
                     ? error
                     : "Drag each option onto the grid."}
         </span>
-        {!hasFewItems && (
+        {!hasAxes && (
           <button
             type="button"
             onClick={runSuggest}
@@ -360,66 +399,6 @@ export function TwoByTwoWidget({ initial, onSend, onRemove }: WidgetProps) {
         <AxisField value={xAxis.high} onChange={(v) => patchX({ high: v })} placeholder="high" style={{ flex: 1, textAlign: "right" }} />
       </div>
 
-      {/* "Redo axes" — once a few options exist, let the user re-plot them on
-          different, LLM-suggested (or hand-typed) axes and re-score in place. */}
-      {hasFewItems && (
-        <div style={{ padding: "8px 10px 0" }}>
-          <button type="button" onClick={toggleSettings} disabled={busy && !showSettings} style={redoBtn}>
-            ⚙ redo axes {showSettings ? "▲" : "▾"}
-          </button>
-
-          {showSettings && (
-            <div style={settingsPanel}>
-              <div style={{ fontSize: 11, color: "var(--dec-text-subtle)", marginBottom: 2 }}>
-                Pick up to two ways to compare these options, then re-score them.
-              </div>
-
-              {options.isPending && optionAxes.length === 0 ? (
-                <div style={{ fontSize: 11, color: "var(--dec-text-subtle)" }}>Finding ways to compare…</div>
-              ) : (
-                optionAxes.map((ax, i) => {
-                  const checked = picks.includes(i);
-                  const full = !checked && picks.length >= 2;
-                  return (
-                    <label key={i} style={{ ...optionRow, opacity: full ? 0.45 : 1, cursor: full ? "not-allowed" : "pointer" }}>
-                      <input type="checkbox" checked={checked} disabled={full} onChange={() => togglePick(i)} />
-                      <span style={{ fontSize: 12, fontWeight: 600 }}>{ax.label}</span>
-                      {(ax.low || ax.high) && (
-                        <span style={{ fontSize: 11, color: "var(--dec-text-subtle)" }}>
-                          {ax.low || "low"} → {ax.high || "high"}
-                        </span>
-                      )}
-                    </label>
-                  );
-                })
-              )}
-
-              {/* User's own axis */}
-              <input
-                value={customAxis}
-                onChange={(e) => setCustomAxis(e.target.value)}
-                placeholder="…or type your own axis"
-                style={{ ...addInput, marginTop: 2 }}
-              />
-
-              <div style={{ display: "flex", gap: 6, marginTop: 2 }}>
-                <button
-                  type="button"
-                  onClick={() => void applyAxes()}
-                  disabled={(picks.length === 0 && !customAxis.trim()) || busy}
-                  style={sendBtn(!((picks.length === 0 && !customAxis.trim()) || busy))}
-                >
-                  {score.isPending ? "Re-scoring…" : "set axes"}
-                </button>
-                <button type="button" onClick={() => void loadOptions()} disabled={options.isPending} style={addBtn}>
-                  ↻ other options
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
       {/* Tray of unplaced options + add */}
       <div style={{ padding: "8px 10px 4px" }}>
         {tray.length > 0 && (
@@ -455,18 +434,14 @@ export function TwoByTwoWidget({ initial, onSend, onRemove }: WidgetProps) {
             placeholder="Add an option to compare…"
             style={addInput}
           />
-          <button type="button" onClick={() => void addItem()} disabled={!newItem.trim() || busy} style={addBtn}>
+          <button type="button" onClick={() => void addItem()} disabled={!newItem.trim() || score.isPending} style={addBtn}>
             + add
           </button>
           <button
             type="button"
             onClick={() => void runGenerate()}
-            disabled={itemNames().length === 0 || !hasAxes || busy}
-            title={
-              !hasAxes
-                ? "Set the axes first, then generate similar options"
-                : "Suggest more options like these, scored and placed on the grid"
-            }
+            disabled={itemNames().length === 0 || generate.isPending}
+            title="Suggest more options like these, scored and placed on the grid"
             style={addBtn}
           >
             {generate.isPending ? "✨ generating…" : "✨ generate"}
@@ -474,13 +449,77 @@ export function TwoByTwoWidget({ initial, onSend, onRemove }: WidgetProps) {
         </div>
       </div>
 
-      {/* Footer */}
-      <div style={footerRow}>
-        {sent && <span style={{ marginRight: 10, fontSize: 12, color: "var(--dec-merged)" }}>Sent ✓</span>}
-        <button type="button" onClick={send} disabled={!hasContent} style={sendBtn(hasContent)}>
-          {sent ? "Send again ↩" : "Send to chat ↩"}
+      {/* Footer: settings gear (bottom-left) + send (right) */}
+      <div style={{ ...footerRow, justifyContent: "space-between" }}>
+        <button
+          type="button"
+          onClick={toggleSettings}
+          disabled={busy && !showSettings}
+          title="Settings — change the axes these options are compared on"
+          style={redoBtn}
+        >
+          ⚙ change axes {showSettings ? "▲" : "▾"}
         </button>
+        <div style={{ display: "flex", alignItems: "center" }}>
+          {sent && <span style={{ marginRight: 10, fontSize: 12, color: "var(--dec-merged)" }}>Sent ✓</span>}
+          <button type="button" onClick={send} disabled={!hasContent} style={sendBtn(hasContent)}>
+            {sent ? "Send again ↩" : "Send to chat ↩"}
+          </button>
+        </div>
       </div>
+
+      {/* Settings area — expands under the widget from the gear. Pick up to two
+          LLM-suggested ways to compare the options (or type your own), then
+          re-score every option in place on the new axes. */}
+      {showSettings && (
+        <div style={{ ...settingsPanel, margin: "0 10px 10px", borderRadius: 8 }}>
+          <div style={{ fontSize: 11, color: "var(--dec-text-subtle)", marginBottom: 2 }}>
+            Pick up to two ways to compare these options, then re-score them.
+          </div>
+
+          {options.isPending && optionAxes.length === 0 ? (
+            <div style={{ fontSize: 11, color: "var(--dec-text-subtle)" }}>Finding ways to compare…</div>
+          ) : (
+            optionAxes.map((ax, i) => {
+              const checked = picks.includes(i);
+              const full = !checked && picks.length >= 2;
+              return (
+                <label key={i} style={{ ...optionRow, opacity: full ? 0.45 : 1, cursor: full ? "not-allowed" : "pointer" }}>
+                  <input type="checkbox" checked={checked} disabled={full} onChange={() => togglePick(i)} />
+                  <span style={{ fontSize: 12, fontWeight: 600 }}>{ax.label}</span>
+                  {(ax.low || ax.high) && (
+                    <span style={{ fontSize: 11, color: "var(--dec-text-subtle)" }}>
+                      {ax.low || "low"} → {ax.high || "high"}
+                    </span>
+                  )}
+                </label>
+              );
+            })
+          )}
+
+          {/* User's own axis */}
+          <input
+            value={customAxis}
+            onChange={(e) => setCustomAxis(e.target.value)}
+            placeholder="…or type your own axis"
+            style={{ ...addInput, marginTop: 2 }}
+          />
+
+          <div style={{ display: "flex", gap: 6, marginTop: 2 }}>
+            <button
+              type="button"
+              onClick={() => void applyAxes()}
+              disabled={(picks.length === 0 && !customAxis.trim()) || score.isPending}
+              style={sendBtn(!((picks.length === 0 && !customAxis.trim()) || score.isPending))}
+            >
+              {score.isPending ? "Re-scoring…" : "change axes"}
+            </button>
+            <button type="button" onClick={() => void loadOptions()} disabled={options.isPending} style={addBtn}>
+              ↻ other options
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -520,7 +559,7 @@ function AxisField({
 
 const shell: CSSProperties = {
   width: "100%",
-  maxWidth: 460,
+  maxWidth: 840,
   borderRadius: 12,
   background: "var(--dec-surface-2)",
   border: `1.5px solid ${ACCENT}`,

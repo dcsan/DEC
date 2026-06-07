@@ -495,6 +495,12 @@ As someone building an MCP server, don't put anything malicious in your tool def
 > design and **rules out managed Neon Auth** as that server (see §2). The plan
 > below was rewritten accordingly. The earlier "provision managed Neon Auth"
 > phases are superseded.
+>
+> **Recommended build order (not the phase numbering):** start with the
+> **no-auth app + widget** (§8.5a–5b) behind a tunnel to prove the app renders in
+> ChatGPT dev mode → then Phase 0 spike + Phase 1–2 (self-host Better Auth) →
+> then wire **Connect** (§8.5c) → then web login + ownership (Phases 3–4).
+> Auth is conditional, so 5a/5b need no auth and no public deploy.
 
 ## 0. The two surfaces, and which one leads
 
@@ -641,37 +647,54 @@ variant of Phases 1–5.
 
 Goal: a working **Apps SDK app** whose **connection** links a ChatGPT user to a
 DEC account. Served by the same Worker; AS + resource server + `/mcp` co-located.
-Build the *minimum* app that proves the connection, then add widgets.
 
-**5a. Minimal app skeleton (proves the connection — do this first).**
+**Build order matters: ship the app *without auth first*, add Connect after.**
+Auth in the Apps SDK is conditional — ChatGPT only shows the Connect/sign-in UI
+if the server publishes resource metadata + tool `securitySchemes` **and**
+returns `401` + `_meta["mcp/www_authenticate"]`. If we don't challenge, ChatGPT
+connects with **no OAuth at all**. So 5a/5b need *zero* auth and don't depend on
+Phases 1–4; only 5c does. This de-risks "does our widget render?" separately from
+"does our OAuth round-trip?".
+
+**No public deploy needed:** run the Worker locally and expose it with Cloudflare
+Tunnel/ngrok (ChatGPT needs HTTPS, not raw localhost). The OAuth redirect target
+is **ChatGPT's** URL (`https://chatgpt.com/connector/oauth/{callback_id}`), not a
+DEC page — so there's no redirect site to deploy. The connect flow is interactive
+**authorization-code + PKCE** (user logs in via browser), *not* server-to-server.
+
+**5a. No-auth app skeleton (do this first — fastest feedback loop).**
 1. Add `/mcp` (Streamable HTTP) using `@modelcontextprotocol/sdk` +
-   `@modelcontextprotocol/ext-apps`. Public HTTPS; for local dev tunnel via
-   Cloudflare Tunnel/ngrok.
-2. Register **one** simple tool (e.g. `list_my_decisions`) with an `outputSchema`
-   and accurate annotations (`readOnlyHint: true`).
-3. **Wire the connection (the point of this phase).** Protect the tool with
-   `withMcpAuth` (Phases 1–2); serve `/.well-known/oauth-protected-resource` and
-   `/.well-known/oauth-authorization-server`; on missing/invalid token return
-   `401` + `_meta["mcp/www_authenticate"]` so ChatGPT shows **Connect**. Resolve
-   the audience-bound token to the same DEC `userId` as the web app, so a decision
-   made in the browser is visible to ChatGPT (and vice-versa).
-4. **Connect + verify the round-trip.** Developer mode → Settings → Connectors →
-   your `/mcp` URL. Confirm: discovery → CIMD/DCR → PKCE login on *our* AS →
-   audience-bound token → authorized tool call. Also testable via the Responses
-   API (`type:"mcp"`, `require_approval:"never"`).
+   `@modelcontextprotocol/ext-apps`. Tunnel it; no auth, no challenge.
+2. Register **one** read-only tool (e.g. `list_demo_decisions`) with an
+   `outputSchema` and `readOnlyHint: true`. Return static/sample data for now.
+3. Connect in **developer mode** → Settings → Connectors → tunnel `/mcp` URL;
+   confirm the tool is listed and callable. (Also works via the Responses API,
+   `type:"mcp"`, `require_approval:"never"`.)
 
-**5b. Widgets (what makes it an app, not a connector).**
-5. Add UI component resources (MIME `text/html;profile=mcp-app`, versioned
-   `ui://widget/*` URIs, `_meta.ui` with `domain` + `csp` allowlists). Reuse
-   DEC's existing widget data shapes (`client/components/widgets/*`).
-6. Tool responses carry the three siblings: `structuredContent` (model + widget
-   visible — keep minimal), `content` (narration), `_meta` (widget-only rich
-   data, never reaches the model). **No secrets in any of them.**
-7. Widget ↔ ChatGPT via the MCP Apps bridge / `window.openai` (e.g. invoke tools,
-   `requestModal`). Enforce auth server-side only — never trust `_meta` hints.
+**5b. Basic widget (what makes it an app, not a connector) — still no auth.**
+4. Add a UI component resource (MIME `text/html;profile=mcp-app`, versioned
+   `ui://widget/*` URI, `_meta.ui` with `domain` + `csp` allowlists); point the
+   tool at it via `_meta.ui.resourceUri`. Reuse a DEC widget data shape
+   (`client/components/widgets/*`).
+5. Tool responses carry three siblings: `structuredContent` (model + widget
+   visible — minimal), `content` (narration), `_meta` (widget-only, never reaches
+   the model). **No secrets in any of them.** Confirm the widget *renders in
+   ChatGPT*. Widget ↔ host via the MCP Apps bridge / `window.openai`.
 
-**5c. Scope + safety.** Tools return only the caller's data; start **read-only**
+**5c. Wire Connect (depends on Phases 1–2 — add after 5a/5b work).**
+6. Serve `/.well-known/oauth-protected-resource` + `/.well-known/oauth-authorization-server`;
+   add tool `securitySchemes` (`oauth2` + scopes); protect handlers with
+   `withMcpAuth`; on missing/invalid token return `401` +
+   `_meta["mcp/www_authenticate"]` so ChatGPT shows **Connect**.
+7. Resolve the audience-bound token to the same DEC `userId` as the web app, so a
+   decision made in the browser is visible to ChatGPT (and vice-versa). Swap the
+   sample data in 5a for the **caller's** real decisions.
+8. Verify the full round-trip: discovery → CIMD/DCR → PKCE login on *our* AS →
+   audience-bound token → authorized tool call.
+
+**5d. Scope + safety.** Tools return only the caller's data; start **read-only**
 (see the prompt-injection / write-action risk table above); idempotent handlers.
+Enforce auth server-side only — never trust `_meta` hints.
 
 ## 9. Verification (no test suite in this repo)
 

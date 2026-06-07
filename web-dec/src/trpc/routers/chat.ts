@@ -34,7 +34,14 @@ const RouteReplySchema = z.object({
     .describe("a short title for the surfaced tool, derived from the decision, or empty string"),
   items: z
     .array(z.string())
-    .describe("the choices/options/tasks from the conversation to prefill the tool, or an empty array"),
+    .describe(
+      "the choices/options/tasks to prefill the tool. Either the concrete options the user named, OR — for an open-ended decision where they named none — 3-5 representative options you generate so they get a starting choice grid. Empty array only when no tool applies.",
+    ),
+  generated: z
+    .boolean()
+    .describe(
+      "true if you invented the items because the user gave no concrete options (open-ended question); false if the items came from what the user actually said",
+    ),
 });
 
 // What the LLM returns when recommending a decision from a submitted widget.
@@ -52,6 +59,9 @@ export interface RouteResult {
   widget: string | null;
   title: string | null;
   items: string[];
+  // True when `items` were generated for an open-ended question (the user named
+  // no options), so the UI can present them as editable suggestions.
+  generated: boolean;
 }
 
 export const chatRouter = router({
@@ -142,7 +152,7 @@ export const chatRouter = router({
           );
         }
         logDb(reply, { type: input.widget.type, data: input.widget.data, text: input.text });
-        return { reply, widget: null, title: null, items: [] };
+        return { reply, widget: null, title: null, items: [], generated: false };
       }
 
       const result = await route(
@@ -154,7 +164,9 @@ export const chatRouter = router({
       );
       console.log(
         `[chat] router → ${result.widget ?? "(chat)"}`,
-        result.items.length ? `items: ${JSON.stringify(result.items)}` : "",
+        result.items.length
+          ? `items${result.generated ? " (generated)" : ""}: ${JSON.stringify(result.items)}`
+          : "",
       );
       mirror(result.reply);
       logDb(result.reply);
@@ -188,7 +200,11 @@ export async function route(
         schemaName: "route_reply",
         system:
           "You are DEC, a concise decision assistant that routes the user to the " +
-          "right thinking tool. Match the user's intent to a tool's purpose.",
+          "right thinking tool. Match the user's intent to a tool's purpose. When a " +
+          "user asks an open-ended question (e.g. \"what mattress should I buy?\"), " +
+          "don't just ask them what matters — do the initial thinking for them: pick " +
+          "the best tool for the kind of decision it is, and seed it with sensible, " +
+          "well-known options so they get a ready-made choice grid to react to.",
         prompt:
           (attachedContext
             ? `Context the user attached (weigh this when interpreting them):\n${attachedContext}\n\n`
@@ -197,13 +213,22 @@ export async function route(
           `Conversation so far:\n${transcript || "(none)"}\n\n` +
           `Latest user message: ${text}\n\n` +
           `If this is a decision, prioritisation, or choice that one of the tools ` +
-          `would help with, set "widget" to that tool's exact type, set "title" to a ` +
-          `short title for the decision, and set "items" to the concrete choices, ` +
-          `options, or tasks mentioned (e.g. "buy a house or buy a car" → ` +
-          `["Buy a house", "Buy a car"]). If the user only states an intent with no ` +
-          `concrete items yet, return an empty items array. Otherwise set "widget" ` +
-          `and "title" to "" and reply helpfully in context.`,
-        temperature: 0.3,
+          `would help with, set "widget" to that tool's exact type and "title" to a ` +
+          `short title for the decision, then fill "items":\n` +
+          `• If the user named concrete options, use those and set "generated" false ` +
+          `(e.g. "buy a house or buy a car" → ["Buy a house", "Buy a car"]).\n` +
+          `• If the decision is OPEN-ENDED and the user named no concrete options ` +
+          `(e.g. "what mattress should I buy?", "where should I travel?"), GENERATE ` +
+          `3-5 representative, well-known options yourself so they get a starting ` +
+          `choice grid, and set "generated" true. Keep each option a SHORT, plain ` +
+          `label (the option's name only, no parenthetical descriptions) so it fits ` +
+          `on a grid. When you generate options, prefer a tool that compares options ` +
+          `(e.g. the 2×2 comparison) so the options become a visible grid; in your ` +
+          `"reply", say you've sketched a few common options to start from and they ` +
+          `can edit or add freely.\n` +
+          `Otherwise (not a decision) set "widget" and "title" to "", "items" to [], ` +
+          `"generated" false, and reply helpfully in context.`,
+        temperature: 0.4,
         title: "convo-router",
       });
 
@@ -213,6 +238,7 @@ export async function route(
         widget,
         title: widget ? out.title || null : null,
         items: widget ? out.items : [],
+        generated: widget ? out.generated : false,
       };
     } catch (err) {
       console.error("[chat] route failed, using fallback", err);
@@ -227,15 +253,17 @@ export async function route(
       widget: h.widget,
       title: h.title,
       items: h.items,
+      generated: false,
     };
   }
   return {
     reply:
-      `Got it — "${text.slice(0, 80)}". Tell me more, or try /rc (decision factors) ` +
+      `Got it — "${text.slice(0, 80)}". Tell me more, or try /factors (decision factors) ` +
       `or /eis (Eisenhower matrix). (Add OPENROUTER_API_KEY for smarter routing.)`,
     widget: null,
     title: null,
     items: [],
+    generated: false,
   };
 }
 

@@ -132,7 +132,7 @@ export function ExpectedValueWidget({ onSend, onRemove }: WidgetProps) {
 function shell(accent: string): CSSProperties {
   return {
     width: "100%",
-    maxWidth: 460,
+    maxWidth: 840,
     borderRadius: 12,
     background: "var(--dec-surface-2)",
     border: `1.5px solid ${accent}`,

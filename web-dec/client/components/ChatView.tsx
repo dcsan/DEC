@@ -528,7 +528,7 @@ export function ChatView() {
     <div style={{ display: "flex", flexDirection: "column", height: "100%", minHeight: 0 }}>
       {/* Message stream */}
       <div style={{ flex: 1, overflowY: "auto", padding: "16px 0" }}>
-        <div style={{ maxWidth: 720, margin: "0 auto", padding: "0 16px" }}>
+        <div style={{ maxWidth: 880, margin: "0 auto", padding: "0 16px" }}>
           {items.length === 0 && (
             <p style={{ color: "var(--dec-text-subtle)", fontSize: 14, marginTop: 24, lineHeight: 1.6 }}>
               Describe a decision (e.g. "should I join a startup?") and I'll
@@ -843,7 +843,7 @@ function ResearchBubble({
     <div style={{ display: "flex", justifyContent: "flex-start", marginBottom: 12 }}>
       <div
         style={{
-          maxWidth: "85%",
+          maxWidth: "min(85%, 680px)",
           padding: "9px 12px",
           borderRadius: 12,
           fontSize: 14,
@@ -905,7 +905,7 @@ function VizBubble({ title, svg }: { title: string; svg: string }) {
     <div style={{ display: "flex", justifyContent: "flex-start", marginBottom: 12 }}>
       <div
         style={{
-          maxWidth: "85%",
+          maxWidth: "min(85%, 680px)",
           width: "100%",
           padding: "10px 12px",
           borderRadius: 12,
@@ -1065,7 +1065,7 @@ function MessageBubble({
     >
       <div
         style={{
-          maxWidth: "85%",
+          maxWidth: "min(85%, 680px)",
           padding: "9px 12px",
           borderRadius: 12,
           fontSize: 14,
