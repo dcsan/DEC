@@ -1,8 +1,10 @@
 context
 
-add a new button 'Add context'
+add a new command /context
 
-this should allow you to drop a document into the chat
+this should show a new button 'Upload Documents (markdown)'
+
+This should allow you to drop a document into the chat
 
 review how we could add this to honcho as context for the session
 this is like a 'batch upload'
@@ -53,12 +55,12 @@ Scope for v1: **text only** (`.txt`/`.md`/`text/*`), read in the browser with
 
 ### Honcho data model mapping
 
-| Honcho concept | DEC mapping |
-|---|---|
-| **workspace** | one constant, e.g. `"dec"` (add `HONCHO_WORKSPACE` to `src/config.ts`) |
-| **session** | one per chat. `ChatView` mints a `sessionId` (`crypto.randomUUID()`) on mount and sends it with every request. |
-| **peer** | a stable `"user"` peer for the human. The uploaded doc is authored by the user peer (or a dedicated `"document"` peer) and tagged via metadata. |
-| **message** | the document content, tagged `metadata: { kind: "context", filename }` so it's distinguishable from chat turns. |
+| Honcho concept | DEC mapping                                                                                                                                     |
+| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| **workspace**  | one constant, e.g. `"dec"` (add `HONCHO_WORKSPACE` to `src/config.ts`)                                                                          |
+| **session**    | one per chat. `ChatView` mints a `sessionId` (`crypto.randomUUID()`) on mount and sends it with every request.                                  |
+| **peer**       | a stable `"user"` peer for the human. The uploaded doc is authored by the user peer (or a dedicated `"document"` peer) and tagged via metadata. |
+| **message**    | the document content, tagged `metadata: { kind: "context", filename }` so it's distinguishable from chat turns.                                 |
 
 Single-user local app → a fixed peer id (`"user"`) is fine for v1; revisit if we
 add real auth.

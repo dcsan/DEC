@@ -23,9 +23,9 @@ The package manager is **pnpm**, and common workflows are wrapped in a
 | `pnpm run build:client` | Vite build. Also **regenerates `client/routeTree.gen.ts`** — run after adding/renaming a route. |
 | `pnpm run build` (`just build`) | client build + `wrangler deploy --dry-run`; verifies the Worker bundles. |
 | `pnpm run dev` (`just dev`) | client + Worker together. Client on **:6391**, Worker on **:6390** (uncommon ports on purpose; override with `PORT_CLIENT`/`PORT_SERVER`). |
-| `just migrations-generate` | new D1 migration from `src/db/schema.ts` diffs → `migrations/`. |
-| `just migrations-local` / `migrations-remote` | apply migrations (local miniflare SQLite / production). |
-| `just db-studio-local` / `db-sql-local "SELECT …"` | inspect the local D1. |
+| `just migrations-generate` | new Postgres migration from `src/db/schema.ts` diffs → `drizzle/`. |
+| `just migrations-apply` | apply pending migrations to the Neon DB at `DATABASE_URL`. |
+| `just db-studio` / `db-sql "SELECT …"` | inspect the Neon database. |
 | `just logs-tail [--status error]` | stream production Worker logs. |
 
 There is **no test suite**. Verify changes with `pnpm run typecheck` and, for
@@ -40,7 +40,8 @@ LLM features need `OPENROUTER_API_KEY` in `web-dec/.dev.vars`
 
 Single **Cloudflare Worker** (`src/index.ts`, Hono) serves two things: the tRPC
 API under `/trpc/*` and the built SPA (everything else falls back to
-`index.html`). One D1 (SQLite) database, `env.DB`.
+`index.html`). One **Neon Postgres** database, reached over the `DATABASE_URL`
+secret via Drizzle + `@neondatabase/serverless` (`src/db/client.ts`).
 
 **End-to-end typed tRPC is the backbone.** `client/lib/trpc.ts` imports the
 `AppRouter` *type* from `src/trpc/router.ts` across the client/server boundary —
@@ -49,9 +50,11 @@ superjson is the transformer on both ends (keeps `Date` intact over the wire).
 Add a feature = add a sub-router in `src/trpc/routers/`, mount it in
 `router.ts`, call it via the typed `trpc.*` hooks on the client.
 
-**Database:** Drizzle ORM, `src/db/schema.ts` is the single source of truth for
-tables *and* TS types (`$inferSelect`). Never hand-write a migration — edit the
-schema, then `just migrations-generate`.
+**Database:** Drizzle ORM over **Neon Postgres**, `src/db/schema.ts` is the
+single source of truth for tables *and* TS types (`$inferSelect`). Never
+hand-write a migration — edit the schema, then `just migrations-generate`
+(SQL → `drizzle/`) and `just migrations-apply`. `ctx.db` is created lazily from
+`DATABASE_URL`, so chat-only requests don't need the DB.
 
 **LLM access:** `src/services/llm/openrouter.ts` (`structuredChat`) is the only
 LLM client. Every call is **schema-driven** — the caller passes a zod schema
