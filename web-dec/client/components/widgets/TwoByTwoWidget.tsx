@@ -154,7 +154,7 @@ export function TwoByTwoWidget({ initial, onSend, onRemove }: WidgetProps) {
   };
 
   const loadOptions = async () => {
-    const q = seedQuestion();
+    const q = seedQuestion() || itemNames().join(" vs ");
     if (!q) return;
     setError(null);
     try {
@@ -454,7 +454,6 @@ export function TwoByTwoWidget({ initial, onSend, onRemove }: WidgetProps) {
         <button
           type="button"
           onClick={toggleSettings}
-          disabled={busy && !showSettings}
           title="Settings — change the axes these options are compared on"
           style={redoBtn}
         >
