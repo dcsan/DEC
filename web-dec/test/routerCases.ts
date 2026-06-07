@@ -21,12 +21,8 @@ export const ROUTER_CASES: RouterCase[] = [
   // Factor Weighting (factors) — either/or & yes/no personal decisions.
   { question: "Should I get a dog or a cat?", expect: "factors" },
   { question: "Should I rent or buy a house?", expect: "factors", accept: ["costbenefit"] },
-  { question: "Should I take the new job offer or stay where I am?", expect: "factors", accept: ["decisionmatrix"] },
+  { question: "Should I take the new job offer or stay where I am?", expect: "factors" },
   { question: "Should I move to Berlin or stay in London?", expect: "factors" },
-
-  // Decision matrix — 3+ options scored on explicit criteria.
-  { question: "Compare three apartments on rent, commute time, and size.", expect: "decisionmatrix" },
-  { question: "Score these four laptops on price, weight, and battery life.", expect: "decisionmatrix" },
 
   // Eisenhower — prioritise a list of tasks by urgency/importance.
   { question: "Help me prioritise my to-do list for this week.", expect: "eisenhower" },
@@ -62,5 +58,5 @@ export const ROUTER_CASES: RouterCase[] = [
 
   // 2×2 axes scatter — plot/compare options against two dimensions.
   { question: "Help me sort my product ideas by impact and effort.", expect: "twobytwo" },
-  { question: "Compare a car and a motorbike on cost and safety.", expect: "twobytwo", accept: ["decisionmatrix"] },
+  { question: "Compare a car and a motorbike on cost and safety.", expect: "twobytwo" },
 ];

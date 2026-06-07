@@ -498,15 +498,31 @@ As someone building an MCP server, don't put anything malicious in your tool def
 
 ## 0. The two surfaces, and which one leads
 
-1. **ChatGPT "Connect" (the priority)** — DEC runs as a remote **MCP server**
-   that a ChatGPT user connects via an OAuth 2.1 flow. ChatGPT is the OAuth
-   *client*; our server is the *resource server*; we must also provide the
-   *authorization server* it talks to.
-2. **Our own web-app login** (secondary) — Google + email/password sign-in for
-   the React SPA. Same user identities; reuses whatever AS we stand up in (1).
+1. **The DEC ChatGPT App + its "Connect" (the priority).** We ship DEC as an
+   **Apps SDK app**, and the thing that matters most is the **connection** — the
+   OAuth flow that links a ChatGPT user to a DEC account. In the Apps SDK an
+   "app" is *not* separate from an MCP server: an app **=** a (minimal) MCP
+   server backend **+** UI widget(s) rendered inside ChatGPT **+** the
+   connect/auth flow. So we still build an MCP server, but only as much as the
+   app needs — the effort goes into the connection and one or two widgets, **not**
+   a rich data connector.
+2. **Our own web-app login** (secondary) — Google + email/password for the React
+   SPA. Same user identities; reuses the same auth server as (1).
 
-The Replit/FastMCP Python example above is reference only (user said ignore).
-Our stack is a Cloudflare Worker (Hono + tRPC) + React SPA + Neon Postgres.
+**Two things this is NOT:**
+- The `search`/`fetch`-over-a-vector-store guide pasted at the top of this doc is
+  the **data-only deep-research connector** pattern. An Apps SDK *app* is the
+  interactive kind (widgets), so that schema is **not** our path. (Replit/FastMCP
+  Python example: also ignore — our stack is Cloudflare Worker + React + Neon.)
+- "App connection" is not a separate API. The app's connection **is** the MCP
+  OAuth in [`build/auth`](https://developers.openai.com/apps-sdk/build/auth) —
+  i.e. exactly the authorization-server work below. The app triggers it by
+  returning `401` + `_meta["mcp/www_authenticate"]`; ChatGPT then shows the
+  Connect / sign-in UI.
+
+**Reuse opportunity:** DEC already has a widget system (`client/components/widgets/*`
+— structured data + renderer per tool). Apps SDK UI components map onto it almost
+directly, so the app's widgets can reuse DEC's existing two-file convention.
 
 ## 1. Current state (verified)
 
@@ -621,28 +637,41 @@ variant of Phases 1–5.
 4. Scope router reads/writes to `ctx.user.id`; switch relevant procedures to
    `protectedProcedure`.
 
-## 8. Phase 5 — The MCP server + Connect (the priority feature)
+## 8. Phase 5 — The DEC ChatGPT App + Connect (the priority feature)
 
-Served by the same Worker; AS + resource server + MCP endpoint co-located.
+Goal: a working **Apps SDK app** whose **connection** links a ChatGPT user to a
+DEC account. Served by the same Worker; AS + resource server + `/mcp` co-located.
+Build the *minimum* app that proves the connection, then add widgets.
 
-1. **Endpoint + transport.** Add `/mcp` (TypeScript MCP SDK, Streamable HTTP).
-   Must be HTTPS; for local dev expose via Cloudflare Tunnel/ngrok.
-2. **Tools.** Implement `search` + `fetch` per the compatibility schema in this
-   doc (return both `structuredContent` and the JSON-encoded `content[]`), plus
-   DEC-specific tools exposing the **authenticated user's** decisions/boards.
-   Declare an `output_schema` and per-tool `securitySchemes` (`oauth2` + scopes).
-3. **Wire OAuth (from Phases 1–2).** Protect tool handlers with `withMcpAuth`;
-   serve the two well-known docs; on missing/invalid token return `401` +
-   `_meta["mcp/www_authenticate"]` so ChatGPT shows the connect UI. Resolve the
-   token to the same DEC `userId` so a decision made in the browser shows up when
-   ChatGPT calls `fetch`.
-4. **Scoping + safety.** Tools return only the caller's data; keep them
-   **read-only** initially (see the prompt-injection / write-action risk table
-   above); no sensitive data in tool definitions.
-5. **Connect + test.** Test via the Responses API (`type:"mcp"`,
-   `require_approval:"never"`) and by adding the connector in ChatGPT
-   (developer mode → Settings → Connectors → your `/mcp` URL). Confirm the OAuth
-   round-trip (CIMD or DCR), audience-bound tokens, and tool response shapes.
+**5a. Minimal app skeleton (proves the connection — do this first).**
+1. Add `/mcp` (Streamable HTTP) using `@modelcontextprotocol/sdk` +
+   `@modelcontextprotocol/ext-apps`. Public HTTPS; for local dev tunnel via
+   Cloudflare Tunnel/ngrok.
+2. Register **one** simple tool (e.g. `list_my_decisions`) with an `outputSchema`
+   and accurate annotations (`readOnlyHint: true`).
+3. **Wire the connection (the point of this phase).** Protect the tool with
+   `withMcpAuth` (Phases 1–2); serve `/.well-known/oauth-protected-resource` and
+   `/.well-known/oauth-authorization-server`; on missing/invalid token return
+   `401` + `_meta["mcp/www_authenticate"]` so ChatGPT shows **Connect**. Resolve
+   the audience-bound token to the same DEC `userId` as the web app, so a decision
+   made in the browser is visible to ChatGPT (and vice-versa).
+4. **Connect + verify the round-trip.** Developer mode → Settings → Connectors →
+   your `/mcp` URL. Confirm: discovery → CIMD/DCR → PKCE login on *our* AS →
+   audience-bound token → authorized tool call. Also testable via the Responses
+   API (`type:"mcp"`, `require_approval:"never"`).
+
+**5b. Widgets (what makes it an app, not a connector).**
+5. Add UI component resources (MIME `text/html;profile=mcp-app`, versioned
+   `ui://widget/*` URIs, `_meta.ui` with `domain` + `csp` allowlists). Reuse
+   DEC's existing widget data shapes (`client/components/widgets/*`).
+6. Tool responses carry the three siblings: `structuredContent` (model + widget
+   visible — keep minimal), `content` (narration), `_meta` (widget-only rich
+   data, never reaches the model). **No secrets in any of them.**
+7. Widget ↔ ChatGPT via the MCP Apps bridge / `window.openai` (e.g. invoke tools,
+   `requestModal`). Enforce auth server-side only — never trust `_meta` hints.
+
+**5c. Scope + safety.** Tools return only the caller's data; start **read-only**
+(see the prompt-injection / write-action risk table above); idempotent handlers.
 
 ## 9. Verification (no test suite in this repo)
 
@@ -650,8 +679,9 @@ Served by the same Worker; AS + resource server + MCP endpoint co-located.
 - `pnpm run build:client` after route changes; `pnpm run build` for the Worker.
 - Web login: `pnpm run dev` → sign-up, Google sign-in, sign-out, a protected
   call (200 with token / 401 without); confirm key-less chat still works.
-- Connect: MCP Inspector + ChatGPT connector → full OAuth round-trip; verify
-  `search`/`fetch` shapes and per-user data scoping.
+- Connect (the priority): MCP Inspector + ChatGPT connector → full OAuth
+  round-trip (discovery → CIMD/DCR → PKCE login → audience-bound token →
+  authorized tool call); verify per-user data scoping and that a widget renders.
 
 ## 10. Decisions
 

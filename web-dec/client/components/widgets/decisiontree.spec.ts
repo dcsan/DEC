@@ -31,6 +31,7 @@ export function blankDecisionTreeData(title: string): DecisionTreeData {
 export const decisionTreeSpec: WidgetSpec<DecisionTreeData> = {
   type: "decisiontree",
   commands: ["dt", "dtree", "dectree", "decisiontree"],
+  draft: true,
   title: "Decision tree",
   description: "Root decision plus branches (condition → outcome, optional probability).",
   purpose: "Lay out conditional paths so downstream outcomes and forks stay visible.",

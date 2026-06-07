@@ -1,8 +1,8 @@
 // Decision matrix widget — see decisionmatrix.spec.ts.
 
 import { useState, type CSSProperties } from "react";
-import { trpc } from "../../lib/trpc";
-import type { WidgetProps } from "./types";
+import { trpc } from "../../../lib/trpc";
+import type { WidgetProps } from "../types";
 import {
   blankDecisionMatrixData,
   decisionMatrixSpec,

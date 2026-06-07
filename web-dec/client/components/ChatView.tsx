@@ -11,6 +11,7 @@ import {
   getWidget,
   matchContextCommand,
   matchDiffCommand,
+  matchDraftsCommand,
   matchExampleCommand,
   matchFactsCommand,
   matchHelpCommand,
@@ -21,6 +22,7 @@ import {
   matchUseCommand,
   matchVizCommand,
   matchWidgetCommand,
+  widgetDraftText,
   widgetExampleText,
   widgetHelpDetail,
   widgetHelpText,
@@ -375,6 +377,18 @@ export function ChatView() {
     // session (stored in Honcho, retrievable by later turns).
     if (matchContextCommand(content)) {
       append({ kind: "context", id: uid() });
+      return;
+    }
+
+    // `/drafts` → list the experimental widgets hidden from the main menus.
+    if (matchDraftsCommand(content)) {
+      append({
+        kind: "message",
+        id: uid(),
+        role: "assistant",
+        content: widgetDraftText(),
+        markdown: true,
+      });
       return;
     }
 

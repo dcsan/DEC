@@ -42,46 +42,10 @@ export const WIDGET_REGISTRY: WidgetInfo[] = [
     purpose:
       "Stress-test decisions by naming futures and spelling out what each would imply.",
   },
-  {
-    type: "decisionmatrix",
-    title: "Decision matrix",
-    purpose:
-      "Score three or more options numerically against several explicit criteria you can weight, producing weighted totals. Use only when the user wants to rate options on criteria; for a simple either/or choice prefer Factor Weighting.",
-  },
-  {
-    type: "costbenefit",
-    title: "Cost–benefit",
-    purpose:
-      "Make tradeoffs explicit—especially when you can attach rough numbers to each side.",
-  },
-  {
-    type: "premortem",
-    title: "Pre-mortem",
-    purpose:
-      "Surface failure modes before you commit—especially for hard-to-reverse choices.",
-  },
-  {
-    type: "decisiontree",
-    title: "Decision tree",
-    purpose:
-      "Lay out conditional paths so downstream outcomes and forks stay visible.",
-  },
-  {
-    type: "expectedvalue",
-    title: "Expected value",
-    purpose:
-      "Weight uncertain outcomes by probability for risk-return style comparisons.",
-  },
-  {
-    type: "ooda",
-    title: "OODA / first principles",
-    purpose:
-      "Break a stuck decision by cycling facts, models, commitment, and action—and by reframing from basics.",
-  },
-  {
-    type: "regret",
-    title: "Regret minimisation",
-    purpose:
-      "Clarify values by comparing how you'd feel years later about each path.",
-  },
+  // NOTE: draft widgets (costbenefit, premortem, decisiontree, expectedvalue,
+  // ooda, regret) are intentionally omitted here so the router never
+  // auto-surfaces them. They stay marked `draft: true` in their client specs
+  // and remain reachable via their slash command and `/drafts`. Promote one by
+  // dropping its `draft` flag and adding its `{ type, title, purpose }` back
+  // here.
 ];

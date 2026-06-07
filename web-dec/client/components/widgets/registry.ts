@@ -13,8 +13,6 @@ import type { ComponentType } from "react";
 import type { WidgetProps, WidgetSpec } from "./types";
 import { costBenefitSpec } from "./costbenefit.spec";
 import { CostBenefitWidget } from "./CostBenefitWidget";
-import { decisionMatrixSpec } from "./decisionmatrix.spec";
-import { DecisionMatrixWidget } from "./DecisionMatrixWidget";
 import { decisionTreeSpec } from "./decisiontree.spec";
 import { DecisionTreeWidget } from "./DecisionTreeWidget";
 import { eisenhowerSpec } from "./eisenhower.spec";
@@ -52,7 +50,6 @@ export const WIDGETS: WidgetEntry[] = [
   { spec: eisenhowerSpec as WidgetSpec, component: EisenhowerWidget },
   { spec: swotSpec as WidgetSpec, component: SwotWidget },
   { spec: scenarioSpec as WidgetSpec, component: ScenarioWidget },
-  { spec: decisionMatrixSpec as WidgetSpec, component: DecisionMatrixWidget },
   { spec: costBenefitSpec as WidgetSpec, component: CostBenefitWidget },
   { spec: premortemSpec as WidgetSpec, component: PremortemWidget },
   { spec: decisionTreeSpec as WidgetSpec, component: DecisionTreeWidget },
@@ -129,14 +126,16 @@ const ACTION_SLASH_COMMANDS: SlashCommandInfo[] = [
   { command: "facts", title: "Facts", description: "what I've learned about you" },
   { command: "diff", title: "Perspective diff", description: "my view of you vs. your self-view" },
   { command: "context", title: "Add context", description: "attach a document" },
+  { command: "drafts", title: "Drafts", description: "experimental tools not in the main set" },
   { command: "session", title: "Session", description: "show the current session id" },
   { command: "new", title: "New chat", description: "start a fresh conversation" },
 ];
 
-// Every slash command for the composer autocomplete: each widget's canonical
-// command plus the chat actions. Built from WIDGETS so it can't drift.
+// Every slash command for the composer autocomplete: each *core* widget's
+// canonical command plus the chat actions. Drafts are excluded (reach them via
+// `/drafts` or their own slash command). Built from WIDGETS so it can't drift.
 export function allSlashCommands(): SlashCommandInfo[] {
-  const widgets = WIDGETS.map((w) => ({
+  const widgets = WIDGETS.filter((w) => !w.spec.draft).map((w) => ({
     command: w.spec.commands[0],
     title: w.spec.title,
     description: w.spec.description,
@@ -256,7 +255,7 @@ export function matchHelpCommand(input: string): HelpMatch | null {
 // registered widgets. Markdown: each canonical command as inline `code`, its
 // title in bold, no dash bullets — just a plain list of items.
 export function widgetHelpText(): string {
-  const rows = WIDGETS.map(
+  const rows = WIDGETS.filter((w) => !w.spec.draft).map(
     (w) => `\`/${w.spec.commands[0]}\` — **${w.spec.title}**: ${w.spec.description}`,
   );
   return [
@@ -269,12 +268,42 @@ export function widgetHelpText(): string {
     "`/summary` — recap what you're deciding so far",
     "`/context` — attach a text document as context for this chat",
     "`/facts` — what I've learned about you this session",
+    "`/drafts` — experimental tools not yet in the main set",
     "`/new` — start a fresh conversation",
     "",
     "Or just describe a decision and I'll pick a tool. Force one with " +
       "`use <name>` (e.g. `use sc to plan what to do next`). Type " +
       "`/help <name>` (e.g. `/help sc`) for a specific tool.",
   ].join("\n");
+}
+
+// Render the *draft* widget list — experimental tools hidden from the main
+// `/help` and `/ex` menus and from the LLM router, but still openable by their
+// slash command. Shown by `/drafts`.
+export function widgetDraftText(): string {
+  const drafts = WIDGETS.filter((w) => w.spec.draft);
+  if (drafts.length === 0) return "No draft widgets right now.";
+  const rows = drafts.map(
+    (w) => `\`/${w.spec.commands[0]}\` — **${w.spec.title}**: ${w.spec.description}`,
+  );
+  return [
+    "**Draft widgets** (experimental — not auto-suggested; open by command)",
+    "",
+    ...rows,
+    "",
+    "Type `/help <name>` for how one works, or `/<name>` to open it.",
+  ].join("\n");
+}
+
+// `/drafts` (and aliases) — not a widget but a chat action: list the
+// experimental widgets that are hidden from the main menus. Returns {} on a
+// match, else null.
+const DRAFTS_COMMANDS = ["drafts", "draft", "experimental", "wip"];
+
+export function matchDraftsCommand(input: string): Record<string, never> | null {
+  if (!input.startsWith("/")) return null;
+  const word = input.slice(1).trim().split(/\s+/)[0]?.toLowerCase();
+  return DRAFTS_COMMANDS.includes(word ?? "") ? {} : null;
 }
 
 // Detailed how-to for one widget — its title, the spec's `help` guide, all the
@@ -321,7 +350,7 @@ export function matchExampleCommand(input: string): ExampleMatch | null {
 // Render the example list from WIDGETS so it can't drift. Canonical command per
 // spec, its title, and the example decision it's the obvious tool for.
 export function widgetExampleText(): string {
-  const rows = WIDGETS.map(
+  const rows = WIDGETS.filter((w) => !w.spec.draft).map(
     (w) => `  /${w.spec.commands[0]} — ${w.spec.title}: "${w.spec.example}"`,
   );
   return [

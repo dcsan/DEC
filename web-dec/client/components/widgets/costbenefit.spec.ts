@@ -39,6 +39,7 @@ function parseMoney(s: string): number | null {
 export const costBenefitSpec: WidgetSpec<CostBenefitData> = {
   type: "costbenefit",
   commands: ["cb", "cba", "costbenefit", "cost-benefit"],
+  draft: true,
   title: "Cost–benefit",
   description: "List costs and benefits; amounts are summed when they parse as numbers.",
   purpose: "Make tradeoffs explicit—especially when you can attach rough numbers to each side.",

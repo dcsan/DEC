@@ -21,6 +21,13 @@ export interface WidgetSpec<TData = unknown> {
   type: string;
   /** Slash-command triggers, without the leading slash. First is canonical. */
   commands: string[];
+  /**
+   * Marks a not-yet-promoted widget. Drafts still open via their slash command
+   * and `/drafts`, but are hidden from `/help`, `/ex`, and the slash
+   * autocomplete, and are omitted from the server router (never auto-surfaced
+   * from free text). Default (undefined) = a core, fully-promoted widget.
+   */
+  draft?: boolean;
   /** Human-facing label. */
   title: string;
   /** One-line description, shown in hints/menus. */

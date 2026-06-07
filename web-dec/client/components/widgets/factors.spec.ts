@@ -33,7 +33,7 @@ export function blankFactorsData(question: string): FactorsData {
 
 export const factorsSpec: WidgetSpec<FactorsData> = {
   type: "factors",
-  commands: ["rc", "factors", "ready", "fit"],
+  commands: ["factors", "fa"],
   title: "Factor Weighting",
   description: "Weight how much each factor matters to you (1–5) for an either/or or yes/no decision.",
   purpose:

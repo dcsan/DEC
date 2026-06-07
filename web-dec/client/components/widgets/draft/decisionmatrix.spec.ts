@@ -1,6 +1,6 @@
 // Decision matrix / weighted scoring — options × criteria (docs/plan/overview.md).
 
-import type { WidgetSpec } from "./types";
+import type { WidgetSpec } from "../types";
 
 export interface Criterion {
   name: string;
