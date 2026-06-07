@@ -1,7 +1,9 @@
 import { Hono } from "hono";
 import { trpcServer } from "@hono/trpc-server";
+import { StreamableHTTPTransport } from "@hono/mcp";
 import { appRouter } from "./trpc/router";
 import { createContext } from "./trpc/context";
+import { createMcpServer } from "./mcp/server";
 import type { Bindings } from "./env";
 
 const app = new Hono<{ Bindings: Bindings }>();
@@ -24,6 +26,16 @@ app.use(
       createContext(c as never) as unknown as Record<string, unknown>,
   }),
 );
+
+// MCP server for the DEC ChatGPT App (Apps SDK), Streamable HTTP at /mcp.
+// Stateless: a fresh server + transport per request. No auth yet (Phase 5a/5b) —
+// without an OAuth challenge ChatGPT connects without sign-in. See src/mcp/server.ts.
+app.all("/mcp", async (c) => {
+  const server = createMcpServer();
+  const transport = new StreamableHTTPTransport();
+  await server.connect(transport);
+  return transport.handleRequest(c);
+});
 
 // SPA fallback — let the client router handle every other path.
 app.get("*", async (c) => {

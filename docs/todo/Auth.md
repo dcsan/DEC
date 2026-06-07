@@ -487,7 +487,21 @@ As someone building an MCP server, don't put anything malicious in your tool def
 
 # PLAN
 
-> Status: not started. This is a design plan only — nothing below is implemented yet.
+> Status: design plan. **§8.5a–5b (no-auth app + widget) is implemented** —
+> everything else is still a plan.
+>
+> **Implemented (2026-06-07):** `web-dec/src/mcp/server.ts` (one read-only tool
+> `list_decision_frameworks` + an HTML widget resource) mounted at `/mcp` in
+> `web-dec/src/index.ts` via `@hono/mcp` (Streamable HTTP, stateless, no auth).
+> Verified locally: `initialize`, `tools/list`, `tools/call`, `resources/list`,
+> `resources/read` all return correctly; `pnpm run typecheck` + `pnpm run build`
+> pass on the Workers runtime.
+>
+> **To connect in ChatGPT dev mode:** `cd web-dec && pnpm run dev` (Worker on
+> :6390), expose it — `cloudflared tunnel --url http://localhost:6390` (or
+> `ngrok http 6390`) — then in ChatGPT: Settings → Apps & Connectors → Advanced
+> → developer mode, Create connector → `https://<tunnel>/mcp`. No sign-in yet
+> (that's §8.5c). Next: §8.5c wires Better Auth + the Connect/OAuth flow.
 
 > **2026-06-07 revision — Connect-first.** The user's priority is the ChatGPT
 > **"Connect"** flow (deploying DEC as a ChatGPT app) *over* our own web login.
