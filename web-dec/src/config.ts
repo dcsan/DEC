@@ -12,3 +12,10 @@
  *   curl https://openrouter.ai/api/v1/models -H "authorization: Bearer $KEY"
  */
 export const LLM_MODEL = "google/gemini-3.1-flash-lite";
+
+/**
+ * Honcho workspace the app stores chat sessions + uploaded context under
+ * (src/services/honcho.ts). Isolated from the `default` workspace used by any
+ * MCP/dev experiments.
+ */
+export const HONCHO_WORKSPACE = "dec";

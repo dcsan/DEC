@@ -6,6 +6,10 @@ import { messageRouter } from "./routers/message";
 import { conceptRouter } from "./routers/concept";
 import { chatRouter } from "./routers/chat";
 import { researchRouter } from "./routers/research";
+import { vizRouter } from "./routers/viz";
+import { factsRouter } from "./routers/facts";
+import { summaryRouter } from "./routers/summary";
+import { contextRouter } from "./routers/context";
 import { factorsRouter } from "./routers/factors";
 import { axesRouter } from "./routers/axes";
 import { suggestRouter } from "./routers/suggest";
@@ -21,6 +25,10 @@ export const appRouter = router({
   concept: conceptRouter,
   chat: chatRouter,
   research: researchRouter,
+  viz: vizRouter,
+  facts: factsRouter,
+  summary: summaryRouter,
+  context: contextRouter,
   factors: factorsRouter,
   axes: axesRouter,
   suggest: suggestRouter,

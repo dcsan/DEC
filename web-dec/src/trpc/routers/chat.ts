@@ -3,6 +3,8 @@ import { router, publicProcedure } from "../trpc";
 import { structuredChat } from "../../services/llm/openrouter";
 import { routeHeuristic, type WidgetInfo } from "../../services/convoRouter";
 import { WIDGET_REGISTRY } from "../../services/widgetRegistry";
+import { getAttachedContext, recordTurns } from "../../services/honcho";
+import { logChatTurns } from "../../services/chatlog";
 
 // Standalone chat endpoint + conversation router for the /chat view.
 //
@@ -60,6 +62,9 @@ export const chatRouter = router({
         widget: z.object({ type: z.string(), data: z.unknown() }).optional(),
         question: z.string().max(2000).optional(),
         history: z.array(HistoryMessage).optional(),
+        // The chat session id — enables Honcho: attached /context documents are
+        // folded into routing/recommendations, and each turn is mirrored back.
+        sessionId: z.string().min(1).max(200).optional(),
       }),
     )
     .mutation(async ({ ctx, input }): Promise<RouteResult> => {
@@ -71,6 +76,42 @@ export const chatRouter = router({
       }
       console.log("[chat] received text:", input.text);
 
+      // Best-effort: pull any documents the user attached via /context so both
+      // routing and the recommendation are grounded in them.
+      const honchoKey = ctx.env.HONCHO_API_KEY;
+      const useHoncho = !!(input.sessionId && honchoKey);
+      const attached = useHoncho
+        ? await getAttachedContext(honchoKey!, input.sessionId!)
+        : "";
+
+      // Mirror this turn (user message + assistant reply) into the Honcho
+      // session after we have the reply. Best-effort, never blocks the response.
+      const mirror = (reply: string) => {
+        if (!useHoncho) return;
+        ctx.waitUntil(
+          recordTurns(honchoKey!, input.sessionId!, [
+            { role: "user", content: input.text },
+            { role: "assistant", content: reply },
+          ]),
+        );
+      };
+
+      // Append this turn to the Postgres chat_logs table when a DB is configured.
+      // Widget submissions carry their structured payload + plain-text rendering
+      // in the JSONB `widget` column. Best-effort, after the reply.
+      const logDb = (
+        reply: string,
+        widget?: { type: string; data: unknown; text: string },
+      ) => {
+        if (!(input.sessionId && ctx.env.DATABASE_URL)) return;
+        ctx.waitUntil(
+          logChatTurns(ctx.db, input.sessionId, [
+            { role: "user", content: input.text, widget: widget ?? null },
+            { role: "assistant", content: reply },
+          ]),
+        );
+      };
+
       // A widget result → recommend a decision from the original question +
       // the widget's formatted output. No routing.
       if (input.widget) {
@@ -79,7 +120,28 @@ export const chatRouter = router({
           input.question,
           input.widget.type,
           input.text,
+          attached,
         );
+        // A submitted widget is the richest signal we get about the user's
+        // values for this decision (e.g. the factors they weighted, the options
+        // they scored). Persist it to Honcho as an explicit decision record —
+        // the decision in play plus their structured input — so Honcho can build
+        // a representation of their preferences to recall in later sessions.
+        if (useHoncho) {
+          const lead = input.question?.trim()
+            ? `Decision being weighed: ${input.question.trim()}\n\n`
+            : "";
+          ctx.waitUntil(
+            recordTurns(honchoKey!, input.sessionId!, [
+              {
+                role: "user",
+                content: `${lead}I worked through a "${input.widget.type}" tool and recorded:\n${input.text}`,
+              },
+              { role: "assistant", content: reply },
+            ]),
+          );
+        }
+        logDb(reply, { type: input.widget.type, data: input.widget.data, text: input.text });
         return { reply, widget: null, title: null, items: [] };
       }
 
@@ -88,11 +150,14 @@ export const chatRouter = router({
         input.history ?? [],
         input.text,
         WIDGET_REGISTRY,
+        attached,
       );
       console.log(
         `[chat] router → ${result.widget ?? "(chat)"}`,
         result.items.length ? `items: ${JSON.stringify(result.items)}` : "",
       );
+      mirror(result.reply);
+      logDb(result.reply);
       return result;
     }),
 });
@@ -104,6 +169,7 @@ export async function route(
   history: { role: "user" | "assistant"; content: string }[],
   text: string,
   catalog: WidgetInfo[],
+  attachedContext = "",
 ): Promise<RouteResult> {
   const validTypes = new Set(catalog.map((w) => w.type));
 
@@ -124,6 +190,9 @@ export async function route(
           "You are DEC, a concise decision assistant that routes the user to the " +
           "right thinking tool. Match the user's intent to a tool's purpose.",
         prompt:
+          (attachedContext
+            ? `Context the user attached (weigh this when interpreting them):\n${attachedContext}\n\n`
+            : "") +
           `Available tools (widgets):\n${tools || "(none)"}\n\n` +
           `Conversation so far:\n${transcript || "(none)"}\n\n` +
           `Latest user message: ${text}\n\n` +
@@ -178,6 +247,7 @@ async function recommend(
   question: string | undefined,
   widgetType: string,
   widgetText: string,
+  attachedContext = "",
 ): Promise<string> {
   if (apiKey) {
     try {
@@ -191,6 +261,9 @@ async function recommend(
           "filled-in tool, give a clear recommendation: say what you'd do and the " +
           "one or two reasons why. Be concise and don't hedge.",
         prompt:
+          (attachedContext
+            ? `Context the user attached (weigh this heavily):\n${attachedContext}\n\n`
+            : "") +
           `Original decision: ${question?.trim() || "(not stated — infer from the tool)"}\n\n` +
           `The user worked through it with the "${widgetType}" tool and submitted:\n` +
           `${widgetText}\n\n` +
