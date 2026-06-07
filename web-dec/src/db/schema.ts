@@ -135,9 +135,20 @@ export const chatLogs = pgTable(
   (t) => ({ sessionIdx: index("chat_logs_session_idx").on(t.sessionId) }),
 );
 
+// Landing-page waitlist signups. Email is unique so a repeat submission is an
+// idempotent no-op rather than a duplicate row.
+export const waitlist = pgTable("waitlist", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  email: text("email").notNull().unique(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export type Board = typeof boards.$inferSelect;
 export type Node = typeof nodes.$inferSelect;
 export type Edge = typeof edges.$inferSelect;
 export type Message = typeof messages.$inferSelect;
 export type ChatLog = typeof chatLogs.$inferSelect;
 export type NewChatLog = typeof chatLogs.$inferInsert;
+export type WaitlistEntry = typeof waitlist.$inferSelect;

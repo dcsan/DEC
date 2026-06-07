@@ -16,6 +16,7 @@ import { suggestRouter } from "./routers/suggest";
 import { treeRouter } from "./routers/tree";
 import { premortemRouter } from "./routers/premortem";
 import { scenarioRouter } from "./routers/scenario";
+import { waitlistRouter } from "./routers/waitlist";
 
 export const appRouter = router({
   board: boardRouter,
@@ -35,6 +36,7 @@ export const appRouter = router({
   tree: treeRouter,
   premortem: premortemRouter,
   scenario: scenarioRouter,
+  waitlist: waitlistRouter,
 });
 
 export type AppRouter = typeof appRouter;

@@ -18,3 +18,7 @@ DEC helps you get to the point quickly.
 
 
 
+
+---
+done: Built landing page at / (hero, manifesto, framework gallery, testimonials, email + Join Waitlist form). Added waitlist DB table + tRPC waitlist.join router and generated migration drizzle/0001_sweet_wallow.sql. NOTE: migration not yet applied to prod Neon (needs `just migrations-apply`).
+at: 2026-06-07T12:15:49Z
