@@ -1,5 +1,9 @@
-import { sqliteTable, text, integer, real, index } from "drizzle-orm/sqlite-core";
-import { sql } from "drizzle-orm";
+import { pgTable, text, doublePrecision, timestamp, jsonb, index } from "drizzle-orm/pg-core";
+
+// Drizzle is the single source of truth: these table definitions generate both
+// the Postgres (Neon) DDL and the TypeScript types shared across server + client
+// (the `$inferSelect` exports at the bottom). Backend is Neon Postgres, reached
+// over DATABASE_URL — see src/db/client.ts.
 
 // The decision types from docs/plan/overview.md. `unknown` until the AI (or
 // the user) classifies the decision.
@@ -16,7 +20,7 @@ export type DecisionType =
   | "unknown";
 
 // A single decision session — one chat + one canvas.
-export const boards = sqliteTable("boards", {
+export const boards = pgTable("boards", {
   id: text("id")
     .primaryKey()
     .$defaultFn(() => crypto.randomUUID()),
@@ -25,12 +29,8 @@ export const boards = sqliteTable("boards", {
     .$type<DecisionType>()
     .notNull()
     .default("unknown"),
-  createdAt: integer("created_at", { mode: "timestamp_ms" })
-    .notNull()
-    .default(sql`(unixepoch() * 1000)`),
-  updatedAt: integer("updated_at", { mode: "timestamp_ms" })
-    .notNull()
-    .default(sql`(unixepoch() * 1000)`),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
 // Canvas node kinds. `option` = a choice; `concept` = an idea pulled in via
@@ -56,7 +56,7 @@ export interface ProConData {
   items: ProConItem[];
 }
 
-export const nodes = sqliteTable(
+export const nodes = pgTable(
   "nodes",
   {
     id: text("id")
@@ -67,18 +67,16 @@ export const nodes = sqliteTable(
     title: text("title").notNull(),
     // Longer one-paragraph description — hidden in the UI until expanded.
     description: text("description"),
-    x: real("x").notNull().default(0),
-    y: real("y").notNull().default(0),
+    x: doublePrecision("x").notNull().default(0),
+    y: doublePrecision("y").notNull().default(0),
     // Escape hatch for kind-specific extras (e.g. framework template, colour).
-    data: text("data", { mode: "json" }).$type<Record<string, unknown>>(),
-    createdAt: integer("created_at", { mode: "timestamp_ms" })
-      .notNull()
-      .default(sql`(unixepoch() * 1000)`),
+    data: jsonb("data").$type<Record<string, unknown>>(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => ({ boardIdx: index("nodes_board_idx").on(t.boardId) }),
 );
 
-export const edges = sqliteTable(
+export const edges = pgTable(
   "edges",
   {
     id: text("id")
@@ -88,16 +86,14 @@ export const edges = sqliteTable(
     source: text("source").notNull(),
     target: text("target").notNull(),
     label: text("label"),
-    createdAt: integer("created_at", { mode: "timestamp_ms" })
-      .notNull()
-      .default(sql`(unixepoch() * 1000)`),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => ({ boardIdx: index("edges_board_idx").on(t.boardId) }),
 );
 
 export type MessageRole = "user" | "assistant" | "system";
 
-export const messages = sqliteTable(
+export const messages = pgTable(
   "messages",
   {
     id: text("id")
@@ -106,14 +102,42 @@ export const messages = sqliteTable(
     boardId: text("board_id").notNull(),
     role: text("role").$type<MessageRole>().notNull(),
     content: text("content").notNull(),
-    createdAt: integer("created_at", { mode: "timestamp_ms" })
-      .notNull()
-      .default(sql`(unixepoch() * 1000)`),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => ({ boardIdx: index("messages_board_idx").on(t.boardId) }),
+);
+
+// A widget result captured in a chat log row: which widget it was, the
+// structured payload it produced, and the plain-text rendering sent to chat.
+export interface ChatLogWidget {
+  type: string;
+  data: unknown;
+  text: string;
+}
+
+// Append-only log of every chat-view message (the /chat surface, keyed by the
+// client session id — distinct from `messages`, which belongs to the board
+// canvas). Widget submissions carry their structured + plain-text payload in
+// the `widget` JSONB column.
+export const chatLogs = pgTable(
+  "chat_logs",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    sessionId: text("session_id").notNull(),
+    role: text("role").$type<MessageRole>().notNull(),
+    content: text("content").notNull(),
+    // Null for plain-text turns; set when the message is a widget result.
+    widget: jsonb("widget").$type<ChatLogWidget>(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({ sessionIdx: index("chat_logs_session_idx").on(t.sessionId) }),
 );
 
 export type Board = typeof boards.$inferSelect;
 export type Node = typeof nodes.$inferSelect;
 export type Edge = typeof edges.$inferSelect;
 export type Message = typeof messages.$inferSelect;
+export type ChatLog = typeof chatLogs.$inferSelect;
+export type NewChatLog = typeof chatLogs.$inferInsert;

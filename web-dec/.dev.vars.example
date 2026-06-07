@@ -1,12 +1,15 @@
 # Copy to .dev.vars and fill in. .dev.vars is git-ignored.
 
-# LLM for concept search / expand / merge. Without it the app still runs —
-# those features fall back to deterministic stubs. Get a key at
-# https://openrouter.ai/keys
+# Postgres (Neon) connection string — the database backend. Used by the Worker
+# (Drizzle/neon-http) and by drizzle-kit migrations (db:generate/migrate/push).
+# Create a project at https://neon.tech and copy its pooled connection string.
+DATABASE_URL=
+
+# LLM for the convo router, recommendations, /research, /viz, /summary, etc.
+# Without it the app still runs — those features fall back to deterministic
+# stubs. Get a key at https://openrouter.ai/keys
 OPENROUTER_API_KEY=
 
-# Needed only for the remote D1 just-recipes (migrations-remote, db-studio-remote).
-# Token scope: D1:Edit — create at https://dash.cloudflare.com/profile/api-tokens
-CLOUDFLARE_ACCOUNT_ID=
-CLOUDFLARE_DATABASE_ID=
-CLOUDFLARE_D1_TOKEN=
+# Conversational memory store for /context, /facts, /research session recall.
+# Optional — those features report Honcho isn't configured without it.
+HONCHO_API_KEY=

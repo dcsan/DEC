@@ -81,80 +81,31 @@ logs-errors:
   npx wrangler tail dec --format pretty --status error
 
 
-########## database (D1 + Drizzle) ##########
+########## database (Neon Postgres + Drizzle) ##########
 
-# One-time: create the D1 database, then paste the returned id into
-# wrangler.jsonc d1_databases[0].database_id.
-db-create:
-  npx wrangler d1 create dec-db
-
-# Generate a new migration SQL file from src/db/schema.ts diffs.
-# Output goes to migrations/. Commit the new file.
+# Generate a new migration SQL file from src/db/schema.ts diffs (→ drizzle/).
+# Offline — no DB connection needed. Commit the new file.
 migrations-generate:
   pnpm run db:generate
 
-# Manually create an empty timestamped migration file (rare — usually you
-# want migrations-generate). Useful for ad-hoc data backfills.
-# Usage: just migrations-create "add_node_color"
-migrations-create name:
-  pnpm wrangler d1 migrations create dec-db "{{name}}"
-
-# Show pending vs applied migrations on the LOCAL D1.
-migrations-list-local:
-  pnpm wrangler d1 migrations list dec-db --local
-
-# Show pending vs applied migrations on the PRODUCTION D1.
-migrations-list-remote:
-  set -a && source .dev.vars && set +a && \
-    CLOUDFLARE_API_TOKEN="$CLOUDFLARE_D1_TOKEN" \
-    pnpm wrangler d1 migrations list dec-db --remote
-
-# Apply pending migrations to the local D1 (the .wrangler/state SQLite).
-migrations-local:
-  pnpm run db:migrate:local
-
-# Apply pending migrations to the PRODUCTION D1.
+# Apply pending migrations to the Neon database at DATABASE_URL (from .dev.vars).
 # Run this before `just deploy` whenever the schema changed.
-migrations-remote:
-  set -a && source .dev.vars && set +a && \
-    CLOUDFLARE_API_TOKEN="$CLOUDFLARE_D1_TOKEN" \
-    pnpm run db:migrate:remote
+migrations-apply:
+  set -a && source .dev.vars && set +a && pnpm run db:migrate
 
-# Open Drizzle Studio in the browser, pointed at the LOCAL D1.
-# Auto-resolves the active miniflare sqlite file (newest mtime in
-# .wrangler/state/v3/d1/miniflare-D1DatabaseObject/, ignoring metadata.sqlite).
-# Run `pnpm dev:server` at least once first so the file exists.
-db-studio-local:
-  #!/usr/bin/env bash
-  set -euo pipefail
-  dir=".wrangler/state/v3/d1/miniflare-D1DatabaseObject"
-  if [ ! -d "$dir" ]; then
-    echo "no local D1 found at $dir — run 'pnpm dev:server' or 'just migrations-local' first" >&2
-    exit 1
-  fi
-  db=$(ls -t "$dir"/*.sqlite 2>/dev/null | grep -v '/metadata.sqlite$' | head -n1)
-  if [ -z "$db" ]; then
-    echo "no local D1 sqlite file in $dir — run 'just migrations-local' to create it" >&2
-    exit 1
-  fi
-  echo "→ $db"
-  LOCAL_D1_PATH="$db" pnpm drizzle-kit studio --config=drizzle.local.config.ts
+# Push the schema straight to the database without a migration file — handy in
+# dev. Prefer migrations-generate + migrations-apply for anything shared.
+db-push:
+  set -a && source .dev.vars && set +a && pnpm run db:push
 
-# Open Drizzle Studio in the browser, pointed at the REMOTE D1.
-# Requires CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_DATABASE_ID, and
-# CLOUDFLARE_D1_TOKEN in .dev.vars (token scope: D1:Edit).
-db-studio-remote:
-  set -a && source .dev.vars && set +a && pnpm drizzle-kit studio --config=drizzle.remote.config.ts
+# Open Drizzle Studio in the browser, pointed at the Neon database.
+db-studio:
+  set -a && source .dev.vars && set +a && pnpm run db:studio
 
-# Run an arbitrary SQL command against the LOCAL D1.
-# Usage: just db-sql-local "SELECT count(*) FROM boards"
-db-sql-local cmd:
-  pnpm wrangler d1 execute dec-db --local --command="{{cmd}}"
-
-# Run an arbitrary SQL command against the REMOTE D1.
-# Usage: just db-sql-remote "SELECT count(*) FROM boards"
-db-sql-remote cmd:
-  pnpm wrangler d1 execute dec-db --remote --command="{{cmd}}"
+# Run an arbitrary SQL command against the Neon database via psql.
+# Usage: just db-sql "SELECT count(*) FROM boards"
+db-sql cmd:
+  set -a && source .dev.vars && set +a && psql "$DATABASE_URL" -c "{{cmd}}"
 
 
 switch-env env='dev': cls

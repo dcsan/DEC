@@ -16,17 +16,9 @@
 	},
 	"observability": {
 		"enabled": true
-	},
-	// D1 — stores decision boards, canvas nodes/edges and chat messages.
-	// `wrangler dev` uses a local SQLite instance for this binding by default
-	// (no "remote": true), so dev runs against the local DB. Apply migrations
-	// with: pnpm db:migrate:local
-	"d1_databases": [
-		{
-			"binding": "DB",
-			"database_name": "dec-db",
-			"database_id": "9281afae-1b2f-4d8b-9e38-d4162fa35806",
-			"migrations_dir": "migrations"
-		}
-	]
+	}
+	// Database backend is Neon Postgres, reached over the DATABASE_URL secret
+	// (Drizzle + @neondatabase/serverless) — not a Worker binding. Set it locally
+	// in .dev.vars and in prod with `wrangler secret put DATABASE_URL`. Apply the
+	// schema with `pnpm db:migrate` (see drizzle.config.ts).
 }

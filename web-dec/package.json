@@ -15,12 +15,14 @@
     "eval:router": "tsx test/routerEval.ts",
     "cf-typegen": "wrangler types",
     "db:generate": "drizzle-kit generate",
-    "db:migrate:local": "wrangler d1 migrations apply dec-db --local",
-    "db:migrate:remote": "wrangler d1 migrations apply dec-db --remote"
+    "db:migrate": "drizzle-kit migrate",
+    "db:push": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
     "@honcho-ai/sdk": "^2.1.2",
     "@hono/trpc-server": "^0.4.0",
+    "@neondatabase/serverless": "^1.1.0",
     "@tanstack/react-query": "^5.100.5",
     "@tanstack/react-router": "^1.168.25",
     "@trpc/client": "^11.0.0",

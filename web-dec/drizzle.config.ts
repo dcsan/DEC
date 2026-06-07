@@ -1,10 +1,13 @@
 import { defineConfig } from "drizzle-kit";
 
-// drizzle-kit only generates SQL files from schema diffs here. The actual
-// migrations are applied via `wrangler d1 migrations apply`, which reads
-// from migrations/ — see package.json db:migrate:* scripts.
+// Drizzle is the single source of truth (src/db/schema.ts). `pnpm db:generate`
+// diffs the schema into SQL under ./drizzle; `pnpm db:migrate` applies those to
+// the Neon Postgres database at DATABASE_URL.
 export default defineConfig({
   schema: "./src/db/schema.ts",
-  out: "./migrations",
-  dialect: "sqlite",
+  out: "./drizzle",
+  dialect: "postgresql",
+  dbCredentials: {
+    url: process.env.DATABASE_URL ?? "",
+  },
 });
