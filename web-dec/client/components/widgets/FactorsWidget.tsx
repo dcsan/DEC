@@ -149,6 +149,19 @@ export function FactorsWidget({ initial, onSend, onRemove }: WidgetProps) {
         </button>
       </div>
 
+      {/* Instruction */}
+      <p
+        style={{
+          margin: 0,
+          padding: "8px 10px",
+          fontSize: 12,
+          color: "var(--dec-text-muted)",
+          borderBottom: "1px solid var(--dec-border-soft)",
+        }}
+      >
+        Rate the factors below by how important they are to you.
+      </p>
+
       {/* Suggest bar */}
       <div
         style={{

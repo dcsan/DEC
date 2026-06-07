@@ -45,7 +45,7 @@ function ingest(s: ScenarioNodeSuggestion): ScenarioNode {
   });
 }
 
-export function ScenarioWidget({ initial, onSend, onRemove }: WidgetProps) {
+export function ScenarioWidget({ initial, onSend, onRemove, onCommand }: WidgetProps) {
   const blank = blankScenarioData(initial?.title || "");
   const [title, setTitle] = useState(blank.title);
   const [tree, setTree] = useState<ScenarioNode[]>(blank.tree);
@@ -127,7 +127,14 @@ export function ScenarioWidget({ initial, onSend, onRemove }: WidgetProps) {
 
   return (
     <div style={shell(ACCENT)}>
-      <HeaderRow emoji="🔭" title={title} setTitle={setTitle} setSent={setSent} onRemove={onRemove} />
+      <HeaderRow
+        emoji="🔭"
+        title={title}
+        setTitle={setTitle}
+        setSent={setSent}
+        onRemove={onRemove}
+        onHelp={onCommand ? () => onCommand("/help sc") : undefined}
+      />
       <div style={{ padding: "8px 10px 8px" }}>
         {tree.map((n) => (
           <NodeEditor
@@ -387,8 +394,9 @@ function HeaderRow(props: {
   setTitle: (t: string) => void;
   setSent: (v: boolean) => void;
   onRemove: () => void;
+  onHelp?: () => void;
 }) {
-  const { emoji, title, setTitle, setSent, onRemove } = props;
+  const { emoji, title, setTitle, setSent, onRemove, onHelp } = props;
   return (
     <div
       style={{
@@ -418,6 +426,11 @@ function HeaderRow(props: {
           outline: "none",
         }}
       />
+      {onHelp && (
+        <button type="button" title="How to use this widget" onClick={onHelp} style={helpBtn}>
+          ?
+        </button>
+      )}
       <button type="button" title="Remove widget" onClick={onRemove} style={iconBtn}>
         ⨯
       </button>
@@ -516,6 +529,19 @@ const iconBtn: CSSProperties = {
   border: "1px solid var(--dec-border)",
   background: "var(--dec-surface-2)",
   color: "#ff8b8b",
+  cursor: "pointer",
+  flexShrink: 0,
+};
+
+const helpBtn: CSSProperties = {
+  fontSize: 12,
+  fontWeight: 700,
+  width: 20,
+  height: 20,
+  borderRadius: 6,
+  border: "1px solid var(--dec-border)",
+  background: "var(--dec-surface-2)",
+  color: "var(--dec-text-subtle)",
   cursor: "pointer",
   flexShrink: 0,
 };

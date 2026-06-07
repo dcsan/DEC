@@ -29,6 +29,8 @@ export const premortemSpec: WidgetSpec<PremortemData> = {
   description: "Assume the decision failed; describe how and trace causes backwards.",
   purpose: "Surface failure modes before you commit—especially for hard-to-reverse choices.",
   example: "What could go wrong if we launch the product next month?",
+  help:
+    "Imagine it's months later and the decision failed — then list everything that could have caused it. Surfacing failure modes up front is most useful for hard-to-reverse choices. On send, the risks go to chat.",
 
   format: (data) => {
     const lines: string[] = [`**Pre-mortem — ${data.title}**`, "", "Working assumption: the decision has already failed at the horizon below. Use this to stress-test the plan."];

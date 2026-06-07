@@ -43,6 +43,8 @@ export const costBenefitSpec: WidgetSpec<CostBenefitData> = {
   description: "List costs and benefits; amounts are summed when they parse as numbers.",
   purpose: "Make tradeoffs explicit—especially when you can attach rough numbers to each side.",
   example: "Is doing an MBA worth the cost?",
+  help:
+    "List the benefits on one side and the costs on the other for a single option or course of action. Attach rough numbers where you can — each side is tallied so you can see which outweighs the other. On send, both lists go to chat for a recommendation.",
 
   format: (data) => {
     const lines: string[] = [`**Cost–benefit — ${data.title}**`, "", "Side-by-side costs vs benefits the user listed:"];

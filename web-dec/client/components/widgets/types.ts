@@ -35,6 +35,12 @@ export interface WidgetSpec<TData = unknown> {
    */
   example: string;
   /**
+   * Short "how to use this tool" guide, shown by `/help <command>` (e.g.
+   * `/help sc`) and the widget's `?` button. A few sentences in plain language:
+   * what the widget is for, how to fill it in, and what happens on send.
+   */
+  help: string;
+  /**
    * Turn the widget's current data into the text sent back to the chat.
    * Pure function — the whole point of the spec file is to keep this output
    * formatting in one obvious, React-free place.
@@ -76,4 +82,9 @@ export interface WidgetProps {
   onSend: (output: WidgetOutput) => void;
   /** Remove this widget instance from the chat. */
   onRemove: () => void;
+  /**
+   * Submit a composer line as if the user typed it (e.g. the `?` button sends
+   * `/help sc`). Goes through the chat's normal command/route handling.
+   */
+  onCommand?: (text: string) => void;
 }

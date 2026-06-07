@@ -29,6 +29,8 @@ export const regretSpec: WidgetSpec<RegretData> = {
   description: "Which choice would you regret least at the horizon you pick?",
   purpose: "Clarify values by comparing how you'd feel years later about each path.",
   example: "Would I regret it more in 10 years if I stayed or moved abroad?",
+  help:
+    "Name the paths you're weighing and imagine yourself years down the line on each. Rate how much you'd regret it, so the long-term, values-based view is explicit rather than the in-the-moment one. On send, the comparison goes to chat.",
 
   format: (data) => {
     const y = data.horizonYears.trim() || "10";

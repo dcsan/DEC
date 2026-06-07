@@ -37,6 +37,8 @@ export const oodaSpec: WidgetSpec<OodaData> = {
   description: "Observe–Orient–Decide–Act plus a space to strip the problem to first principles.",
   purpose: "Break a stuck decision by cycling facts, models, commitment, and action—and by reframing from basics.",
   example: "I'm stuck on a big decision — help me think it through from first principles.",
+  help:
+    "Work a stuck decision by cycling through Observe, Orient, Decide, Act — and by reframing it from first principles. Fill each stage with what you know, the models that apply, your commitment, and the next action. On send, the loop goes to chat.",
 
   format: (data) => {
     const lines: string[] = [

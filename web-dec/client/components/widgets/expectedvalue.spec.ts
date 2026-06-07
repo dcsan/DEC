@@ -36,6 +36,8 @@ export const expectedValueSpec: WidgetSpec<ExpectedValueData> = {
   description: "Rows of outcome, probability, and value; EV sum when numbers parse.",
   purpose: "Weight uncertain outcomes by probability for risk-return style comparisons.",
   example: "Should I take a bet with a 60% chance to win $500?",
+  help:
+    "List each option's possible outcomes with a payoff and a probability. The widget multiplies and sums them into an expected value per option, so you can compare risky choices on the numbers. On send, the table goes to chat.",
 
   format: (data) => {
     const lines: string[] = [

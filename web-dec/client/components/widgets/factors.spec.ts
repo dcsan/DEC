@@ -45,6 +45,8 @@ export const factorsSpec: WidgetSpec<FactorsData> = {
     "decision; prefer it over the decision matrix unless the user explicitly " +
     "wants to score several options on numeric criteria.",
   example: "Should I get a dog or a cat?",
+  help:
+    "For an either/or or yes/no decision, the AI lists the factors that pull on it. Rate each by how important it is to YOU on the 1–5 slider — you weight the factors, you don't score the options. Use ✨ generate more to add factors. On send, the ranked factors go to chat for a recommendation.",
 
   // Output contract: name the decision, then list each filled factor sorted by
   // how much it matters, with its 1-5 weight. Written for an LLM reader so it

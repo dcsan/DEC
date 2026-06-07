@@ -23,6 +23,8 @@ export const swotSpec: WidgetSpec<SwotData> = {
   description: "Strengths / weaknesses / opportunities / threats in a 2×2 you can reorder by drag.",
   purpose: "Contrast internal strengths and weaknesses with external opportunities and threats.",
   example: "What's the SWOT of launching my side project as a business?",
+  help:
+    "Fill the four quadrants: internal Strengths and Weaknesses, external Opportunities and Threats. Drag the handle on a tile to swap it with another. On send, the grid goes to chat.",
 
   format: (data) => {
     const lines: string[] = [

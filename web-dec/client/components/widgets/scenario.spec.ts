@@ -72,6 +72,8 @@ export const scenarioSpec: WidgetSpec<ScenarioData> = {
   purpose:
     "Stress-test a decision by mapping how it could unfold — branching chains of events (a → b → c), each ending in a good or bad outcome.",
   example: "What futures should I prepare for if I quit to go freelance?",
+  help:
+    "The decision fans out into possible futures; each can branch again into follow-on events. Give every branch a likelihood (%) and mark it good ✓ or bad ✗. Use ↳ to add a follow-on and ✨ generate more for fresh futures. On send, the scenario tree goes to chat.",
 
   format: (data) => {
     const lines: string[] = [

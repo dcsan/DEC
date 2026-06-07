@@ -56,6 +56,8 @@ export const decisionMatrixSpec: WidgetSpec<DecisionMatrixData> = {
   purpose:
     "Score three or more options numerically against several explicit criteria you can weight, producing weighted totals. Use only when the user wants to rate options on criteria; for a simple either/or choice prefer Factor Weighting.",
   example: "Compare three apartments on rent, commute, and size.",
+  help:
+    "Add the options you're choosing between as rows and the criteria that matter as columns, each with a weight. Score every option on each criterion; weighted totals are computed when the numbers parse. Best for three or more options judged on several factors. Use ✨ generate options to draft rows.",
 
   format: (data) => {
     const lines: string[] = [`**Decision matrix — ${data.title}**`, ""];

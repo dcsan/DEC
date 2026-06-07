@@ -25,6 +25,8 @@ export const eisenhowerSpec: WidgetSpec<EisenhowerData> = {
     "Prioritise tasks by importance and urgency to decide what to do next — " +
     "do now, schedule, delegate, or drop.",
   example: "Help me prioritise my to-do list for this week.",
+  help:
+    "Sort each task into one of four quadrants by how urgent and how important it is: do now, schedule, delegate, or drop. Drag tasks between quadrants to re-prioritise. On send, the sorted list goes to chat.",
 
   // Group by quadrant in plain language; omit empty buckets. Title gives context
   // for the agent without seeing the widget.
