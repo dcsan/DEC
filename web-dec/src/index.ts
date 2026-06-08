@@ -75,7 +75,7 @@ app.get("/.well-known/oauth-protected-resource/mcp", (c) =>
 // Any other .well-known probe: 404 (don't fall through to the SPA HTML).
 app.get("/.well-known/*", (c) => c.notFound());
 
-// MCP server for the DEC ChatGPT App (Apps SDK), Streamable HTTP at /mcp.
+// MCP server for the ViziThink ChatGPT App (Apps SDK), Streamable HTTP at /mcp.
 // Protected by withMcpAuth: unauthenticated requests get a 401 + WWW-Authenticate
 // challenge (pointing at the protected-resource metadata) so ChatGPT shows
 // Connect; authenticated requests run the stateless MCP server. Stateless: a

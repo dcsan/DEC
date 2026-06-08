@@ -15,7 +15,7 @@ import { HONCHO_WORKSPACE } from "../config";
 
 /** The single human participant in a chat session. */
 export const USER_PEER = "user";
-/** The assistant participant — DEC's replies are authored by this peer. */
+/** The assistant participant — ViziThink's replies are authored by this peer. */
 export const ASSISTANT_PEER = "dec";
 
 /** Construct a workspace-scoped Honcho client for the given API key. */

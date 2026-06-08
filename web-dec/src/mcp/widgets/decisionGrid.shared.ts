@@ -6,7 +6,7 @@
 //   2. DecisionGridApp.tsx      — the React widget renders + edits it.
 //   3. scripts/build-widgets.mjs bundles (2), which transitively pulls this in.
 //
-// It mirrors the DEC chat-view 2×2 widget shape
+// It mirrors the ViziThink chat-view 2×2 widget shape
 // (client/components/widgets/twobytwo.spec.ts) so the same decision model is
 // reused across both surfaces. Keep this the single source of truth for the
 // grid's structuredContent.

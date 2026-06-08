@@ -61,7 +61,7 @@ export const vizRouter = router({
           schema: VizSchema,
           schemaName: "viz",
           system:
-            "You are DEC's diagram designer. Turn a decision and its considerations into ONE " +
+            "You are ViziThink's diagram designer. Turn a decision and its considerations into ONE " +
             "clean, schematic SVG 'system diagram' — clip-art / PowerPoint-style, not a chart of " +
             "real data. Choose the layout that fits the meaning: a funnel or triangle for " +
             "segments/stages, a cycle of arrows for things that depend on each other, a 2x2 grid " +

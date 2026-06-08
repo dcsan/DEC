@@ -54,7 +54,7 @@ function SignInPage() {
   return (
     <div style={styles.wrap}>
       <form style={styles.card} onSubmit={onSubmit}>
-        <h1 style={styles.h1}>{mode === "signup" ? "Create your DEC account" : "Sign in to DEC"}</h1>
+        <h1 style={styles.h1}>{mode === "signup" ? "Create your ViziThink account" : "Sign in to ViziThink"}</h1>
         {isOAuth && (
           <p style={styles.sub}>to connect your account to the app requesting access.</p>
         )}
@@ -111,7 +111,7 @@ const styles: Record<string, CSSProperties> = {
     display: "grid",
     placeItems: "center",
     padding: 16,
-    background: "var(--dec-bg, #0b0c0e)",
+    background: "var(--vizithink-bg, #0b0c0e)",
   },
   card: {
     width: "min(92vw, 380px)",
@@ -120,17 +120,17 @@ const styles: Record<string, CSSProperties> = {
     gap: 10,
     padding: 28,
     borderRadius: 16,
-    background: "var(--dec-surface, #16181c)",
-    border: "1px solid var(--dec-border, #2a2d33)",
+    background: "var(--vizithink-surface, #16181c)",
+    border: "1px solid var(--vizithink-border, #2a2d33)",
   },
-  h1: { fontSize: 18, fontWeight: 650, margin: "0 0 2px", color: "var(--dec-text, #f3f4f6)" },
-  sub: { fontSize: 13, color: "var(--dec-text-muted, #9ca3af)", margin: "0 0 8px" },
+  h1: { fontSize: 18, fontWeight: 650, margin: "0 0 2px", color: "var(--vizithink-text, #f3f4f6)" },
+  sub: { fontSize: 13, color: "var(--vizithink-text-muted, #9ca3af)", margin: "0 0 8px" },
   input: {
     padding: "11px 12px",
     borderRadius: 10,
-    border: "1px solid var(--dec-border, #2a2d33)",
-    background: "var(--dec-bg, #0b0c0e)",
-    color: "var(--dec-text, #f3f4f6)",
+    border: "1px solid var(--vizithink-border, #2a2d33)",
+    background: "var(--vizithink-bg, #0b0c0e)",
+    color: "var(--vizithink-text, #f3f4f6)",
     fontSize: 14,
   },
   button: {
@@ -138,7 +138,7 @@ const styles: Record<string, CSSProperties> = {
     padding: "11px 14px",
     borderRadius: 10,
     border: "none",
-    background: "var(--dec-accent, #4f46e5)",
+    background: "var(--vizithink-accent, #4f46e5)",
     color: "#fff",
     fontSize: 14,
     fontWeight: 600,
@@ -147,7 +147,7 @@ const styles: Record<string, CSSProperties> = {
   toggle: {
     background: "transparent",
     border: "none",
-    color: "var(--dec-text-muted, #9ca3af)",
+    color: "var(--vizithink-text-muted, #9ca3af)",
     fontSize: 13,
     cursor: "pointer",
     padding: 4,

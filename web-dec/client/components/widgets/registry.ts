@@ -177,7 +177,7 @@ export function matchFactsCommand(input: string): Record<string, never> | null {
   return FACTS_COMMANDS.includes(word ?? "") ? {} : null;
 }
 
-// `/diff` (and aliases) — not a widget but a chat action: compare DEC's
+// `/diff` (and aliases) — not a widget but a chat action: compare ViziThink's
 // conclusions about the user against the user's self-conclusions, showing where
 // the two perspectives agree and diverge. Returns {} on a match, else null.
 const DIFF_COMMANDS = ["diff", "perspective", "perspectives"];

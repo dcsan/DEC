@@ -16,7 +16,7 @@ interface Example {
   render: () => ReactElement;
 }
 
-const ACCENT = "var(--dec-accent)";
+const ACCENT = "var(--vizithink-accent)";
 
 const EXAMPLES: Example[] = [
   {
@@ -48,7 +48,7 @@ const EXAMPLES: Example[] = [
 const TESTIMONIALS = [
   {
     quote:
-      "I used to drown in twelve-tab research spirals. DEC got me to a decision in one afternoon.",
+      "I used to drown in twelve-tab research spirals. ViziThink got me to a decision in one afternoon.",
     name: "Maya R.",
     role: "Founder, seed-stage SaaS",
   },
@@ -78,11 +78,11 @@ function LandingPage() {
         style={{
           textAlign: "center",
           padding: "32px 24px 48px",
-          color: "var(--dec-text-subtle)",
+          color: "var(--vizithink-text-subtle)",
           fontSize: 13,
         }}
       >
-        Decider · AI Decision Buddy
+        ViziThink.com · AI Decision Buddy
       </footer>
     </div>
   );
@@ -98,30 +98,37 @@ function Hero() {
         textAlign: "center",
       }}
     >
+      <img
+        src="/logo.svg"
+        alt="ViziThink"
+        width={64}
+        height={64}
+        style={{ display: "block", margin: "0 auto 20px" }}
+      />
       <div
         style={{
           display: "inline-block",
           fontSize: 13,
-          letterSpacing: "0.08em",
-          textTransform: "uppercase",
-          color: "var(--dec-accent)",
-          background: "var(--dec-accent-soft)",
+          fontWeight: 600,
+          letterSpacing: "0.01em",
+          color: "var(--vizithink-accent)",
+          background: "var(--vizithink-accent-soft)",
           padding: "5px 12px",
           borderRadius: 999,
           marginBottom: 20,
         }}
       >
-        Decider
+        ViziThink.com
       </div>
       <h1
-        className="dec-display"
+        className="vizithink-display"
         style={{ fontSize: 52, lineHeight: 1.05, margin: 0, letterSpacing: "-0.02em" }}
       >
         Your AI Decision Buddy
       </h1>
       <p
         style={{
-          color: "var(--dec-text-muted)",
+          color: "var(--vizithink-text-muted)",
           marginTop: 18,
           fontSize: 19,
           lineHeight: 1.5,
@@ -130,7 +137,7 @@ function Hero() {
           marginRight: "auto",
         }}
       >
-        Make complex decisions with visual thinking frameworks. DEC turns the
+        Make complex decisions with visual thinking frameworks. ViziThink turns the
         churn of analysis into a clear picture you can act on.
       </p>
       <div
@@ -143,10 +150,10 @@ function Hero() {
         }}
       >
         <Link to="/chat" style={primaryBtn}>
-          Start a decision →
+          Make a decision →
         </Link>
         <a href="#waitlist" style={secondaryBtn}>
-          Join the waitlist
+          Follow updates
         </a>
       </div>
     </section>
@@ -164,22 +171,22 @@ function Manifesto() {
     >
       <div
         style={{
-          background: "var(--dec-surface)",
-          border: "1px solid var(--dec-border-soft)",
+          background: "var(--vizithink-surface)",
+          border: "1px solid var(--vizithink-border-soft)",
           borderRadius: 16,
           padding: "32px 32px",
         }}
       >
         <p style={{ ...manifestoP, marginTop: 0 }}>
           As we work more with AI, the role of the human is to make{" "}
-          <strong style={{ color: "var(--dec-text)" }}>fewer, better decisions</strong>.
+          <strong style={{ color: "var(--vizithink-text)" }}>fewer, better decisions</strong>.
         </p>
         <p style={manifestoP}>
           AI can help with the analysis and research — but the information has to
           be presented clearly. We’re drowning in pages of “deep research” AI slop.
         </p>
         <p style={{ ...manifestoP, marginBottom: 0 }}>
-          DEC helps you get to the point quickly.
+          ViziThink helps you get to the point quickly.
         </p>
       </div>
     </section>
@@ -192,7 +199,7 @@ function Gallery() {
       <SectionHeading
         kicker="See it work"
         title="A framework for every decision"
-        subtitle="Drop a tool into the chat with a slash command, or just describe your decision and let DEC pick."
+        subtitle="Drop a tool into the chat with a slash command, or just describe your decision and let ViziThink pick."
       />
       <div
         style={{
@@ -215,7 +222,7 @@ function Gallery() {
                   margin: "8px 0 0",
                   fontSize: 13.5,
                   lineHeight: 1.5,
-                  color: "var(--dec-text-muted)",
+                  color: "var(--vizithink-text-muted)",
                 }}
               >
                 {ex.blurb}
@@ -247,14 +254,14 @@ function Testimonials() {
                 margin: 0,
                 fontSize: 15,
                 lineHeight: 1.6,
-                color: "var(--dec-text)",
+                color: "var(--vizithink-text)",
               }}
             >
               “{t.quote}”
             </blockquote>
             <figcaption style={{ marginTop: 16, fontSize: 13 }}>
               <span style={{ fontWeight: 600 }}>{t.name}</span>
-              <span style={{ color: "var(--dec-text-subtle)" }}> · {t.role}</span>
+              <span style={{ color: "var(--vizithink-text-subtle)" }}> · {t.role}</span>
             </figcaption>
           </figure>
         ))}
@@ -280,9 +287,9 @@ function Waitlist() {
       style={{ maxWidth: 560, margin: "0 auto", padding: "16px 24px 64px", textAlign: "center" }}
     >
       <SectionHeading
-        kicker="Early access"
+        kicker="Stay in the loop"
         title="Be first to decide better"
-        subtitle="Join the waitlist and we’ll let you know when your spot opens up."
+        subtitle="Follow updates and we’ll let you know about new features and early access."
       />
 
       {join.isSuccess ? (
@@ -291,13 +298,13 @@ function Waitlist() {
             marginTop: 28,
             padding: "18px 20px",
             borderRadius: 12,
-            background: "var(--dec-accent-soft)",
-            border: "1px solid var(--dec-accent)",
-            color: "var(--dec-text)",
+            background: "var(--vizithink-accent-soft)",
+            border: "1px solid var(--vizithink-accent)",
+            color: "var(--vizithink-text)",
             fontSize: 15,
           }}
         >
-          You’re on the list — thanks! We’ll be in touch. ✦
+          You’re subscribed — thanks! We’ll keep you posted. ✦
         </div>
       ) : (
         <form
@@ -315,9 +322,9 @@ function Waitlist() {
               minWidth: 0,
               padding: "12px 16px",
               fontSize: 15,
-              color: "var(--dec-text)",
-              background: "var(--dec-surface-2)",
-              border: "1px solid var(--dec-border)",
+              color: "var(--vizithink-text)",
+              background: "var(--vizithink-surface-2)",
+              border: "1px solid var(--vizithink-border)",
               borderRadius: 10,
               outline: "none",
             }}
@@ -332,13 +339,13 @@ function Waitlist() {
               border: "none",
             }}
           >
-            {join.isPending ? "Joining…" : "Join Waitlist"}
+            {join.isPending ? "Subscribing…" : "Follow updates"}
           </button>
         </form>
       )}
 
       {join.isError && (
-        <p style={{ marginTop: 12, fontSize: 13, color: "var(--dec-option)" }}>
+        <p style={{ marginTop: 12, fontSize: 13, color: "var(--vizithink-option)" }}>
           {join.error.message}
         </p>
       )}
@@ -362,14 +369,14 @@ function SectionHeading({
           fontSize: 12,
           letterSpacing: "0.1em",
           textTransform: "uppercase",
-          color: "var(--dec-accent)",
+          color: "var(--vizithink-accent)",
           fontWeight: 600,
         }}
       >
         {kicker}
       </div>
       <h2
-        className="dec-display"
+        className="vizithink-display"
         style={{ fontSize: 30, margin: "10px 0 0", letterSpacing: "-0.01em" }}
       >
         {title}
@@ -377,7 +384,7 @@ function SectionHeading({
       {subtitle && (
         <p
           style={{
-            color: "var(--dec-text-muted)",
+            color: "var(--vizithink-text-muted)",
             fontSize: 15,
             lineHeight: 1.5,
             maxWidth: 460,
@@ -406,7 +413,7 @@ function TwoByTwoMock() {
   });
   return (
     <div style={{ position: "relative", width: "100%", height: "100%" }}>
-      <div style={{ position: "absolute", inset: "10%", border: "1px solid var(--dec-border)" }} />
+      <div style={{ position: "absolute", inset: "10%", border: "1px solid var(--vizithink-border)" }} />
       <div
         style={{
           position: "absolute",
@@ -414,7 +421,7 @@ function TwoByTwoMock() {
           top: "10%",
           bottom: "10%",
           width: 1,
-          background: "var(--dec-border)",
+          background: "var(--vizithink-border)",
         }}
       />
       <div
@@ -424,13 +431,13 @@ function TwoByTwoMock() {
           left: "10%",
           right: "10%",
           height: 1,
-          background: "var(--dec-border)",
+          background: "var(--vizithink-border)",
         }}
       />
-      <div style={dot(32, 32, "var(--dec-option)")} />
-      <div style={dot(70, 28, "var(--dec-concept)")} />
-      <div style={dot(40, 68, "var(--dec-framework)")} />
-      <div style={dot(74, 72, "var(--dec-merged)")} />
+      <div style={dot(32, 32, "var(--vizithink-option)")} />
+      <div style={dot(70, 28, "var(--vizithink-concept)")} />
+      <div style={dot(40, 68, "var(--vizithink-framework)")} />
+      <div style={dot(74, 72, "var(--vizithink-merged)")} />
     </div>
   );
 }
@@ -443,7 +450,7 @@ function ProConMock() {
           width: 16,
           height: 16,
           borderRadius: 4,
-          background: pro ? "var(--dec-merged)" : "var(--dec-option)",
+          background: pro ? "var(--vizithink-merged)" : "var(--vizithink-option)",
           flexShrink: 0,
         }}
       />
@@ -452,7 +459,7 @@ function ProConMock() {
           flex: 1,
           height: 8,
           borderRadius: 4,
-          background: "var(--dec-border)",
+          background: "var(--vizithink-border)",
         }}
       />
     </div>
@@ -486,10 +493,10 @@ function EisenhowerMock() {
         padding: 6,
       }}
     >
-      <div style={cell("var(--dec-merged)")} />
-      <div style={cell("var(--dec-concept)")} />
-      <div style={cell("var(--dec-option)")} />
-      <div style={cell("var(--dec-framework)")} />
+      <div style={cell("var(--vizithink-merged)")} />
+      <div style={cell("var(--vizithink-concept)")} />
+      <div style={cell("var(--vizithink-option)")} />
+      <div style={cell("var(--vizithink-framework)")} />
     </div>
   );
 }
@@ -499,11 +506,11 @@ function PremortemMock() {
     height: 8,
     width: w,
     borderRadius: 4,
-    background: "var(--dec-border)",
+    background: "var(--vizithink-border)",
   });
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 9, padding: "10px 6px", width: "100%" }}>
-      <div style={{ ...line("55%"), background: "var(--dec-option)" }} />
+      <div style={{ ...line("55%"), background: "var(--vizithink-option)" }} />
       <div style={line("90%")} />
       <div style={line("78%")} />
       <div style={line("84%")} />
@@ -532,9 +539,9 @@ const secondaryBtn: CSSProperties = {
   padding: "12px 22px",
   fontSize: 15,
   fontWeight: 600,
-  color: "var(--dec-text)",
-  background: "var(--dec-surface-2)",
-  border: "1px solid var(--dec-border)",
+  color: "var(--vizithink-text)",
+  background: "var(--vizithink-surface-2)",
+  border: "1px solid var(--vizithink-border)",
   borderRadius: 10,
   textDecoration: "none",
   cursor: "pointer",
@@ -544,20 +551,20 @@ const manifestoP: CSSProperties = {
   margin: "16px 0 0",
   fontSize: 17,
   lineHeight: 1.6,
-  color: "var(--dec-text-muted)",
+  color: "var(--vizithink-text-muted)",
 };
 
 const galleryCard: CSSProperties = {
-  background: "var(--dec-surface)",
-  border: "1px solid var(--dec-border-soft)",
+  background: "var(--vizithink-surface)",
+  border: "1px solid var(--vizithink-border-soft)",
   borderRadius: 14,
   overflow: "hidden",
 };
 
 const galleryMock: CSSProperties = {
   height: 130,
-  background: "var(--dec-bg)",
-  borderBottom: "1px solid var(--dec-border-soft)",
+  background: "var(--vizithink-bg)",
+  borderBottom: "1px solid var(--vizithink-border-soft)",
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
@@ -567,15 +574,15 @@ const galleryMock: CSSProperties = {
 const tagChip: CSSProperties = {
   fontSize: 11,
   fontFamily: "ui-monospace, monospace",
-  color: "var(--dec-accent)",
-  background: "var(--dec-accent-soft)",
+  color: "var(--vizithink-accent)",
+  background: "var(--vizithink-accent-soft)",
   padding: "2px 6px",
   borderRadius: 5,
 };
 
 const quoteCard: CSSProperties = {
-  background: "var(--dec-surface)",
-  border: "1px solid var(--dec-border-soft)",
+  background: "var(--vizithink-surface)",
+  border: "1px solid var(--vizithink-border-soft)",
   borderRadius: 14,
   padding: "22px 22px",
   margin: 0,

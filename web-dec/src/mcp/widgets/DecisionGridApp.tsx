@@ -1,4 +1,4 @@
-// The DEC "decision grid" widget — a REAL React component rendered inside
+// The ViziThink "decision grid" widget — a REAL React component rendered inside
 // ChatGPT via MCP Apps.
 //
 // How it reaches ChatGPT: this file is bundled (React included) into a single

@@ -13,25 +13,29 @@ function RootComponent() {
           alignItems: "center",
           gap: 12,
           padding: "10px 16px",
-          borderBottom: "1px solid var(--dec-border-soft)",
-          background: "var(--dec-surface)",
+          borderBottom: "1px solid var(--vizithink-border-soft)",
+          background: "var(--vizithink-surface)",
           flexShrink: 0,
         }}
       >
         <Link
           to="/"
-          className="dec-display"
+          className="vizithink-display"
           style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
             fontSize: 20,
             fontWeight: 600,
             letterSpacing: "-0.01em",
-            color: "var(--dec-text)",
+            color: "var(--vizithink-text)",
             textDecoration: "none",
           }}
         >
-          VisiThink.net
+          <img src="/logo.svg" alt="" width={26} height={26} style={{ display: "block" }} />
+          ViziThink.com
         </Link>
-        <span style={{ color: "var(--dec-text-subtle)", fontSize: 13 }}>
+        <span style={{ color: "var(--vizithink-text-subtle)", fontSize: 13 }}>
           Decide with AI
         </span>
         <Link
@@ -39,7 +43,7 @@ function RootComponent() {
           style={{
             marginLeft: "auto",
             fontSize: 13,
-            color: "var(--dec-text-muted)",
+            color: "var(--vizithink-text-muted)",
             textDecoration: "none",
           }}
         >

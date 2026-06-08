@@ -70,7 +70,7 @@ async function coach(
         schema: CoachReplySchema,
         schemaName: "coach_reply",
         system:
-          "You are DEC, an AI decision coach. Be warm, brief and Socratic. One idea per turn.",
+          "You are ViziThink, an AI decision coach. Be warm, brief and Socratic. One idea per turn.",
         prompt:
           `Here is the conversation so far:\n${transcript}\n\n` +
           `Respond as the decision coach. Ask one sharp follow-up question OR, if you ` +

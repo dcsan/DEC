@@ -1,4 +1,4 @@
-// MCP server for the DEC ChatGPT App (Apps SDK).
+// MCP server for the ViziThink ChatGPT App (Apps SDK).
 //
 // Phase 5a/5b of docs/todo/Auth.md: a minimal, **no-auth** Apps SDK app that
 // exposes one read-only tool plus an HTML widget so we can connect it in
@@ -40,7 +40,7 @@ const AXIS_SHAPE = {
 const ZERO_TO_100 = z.number().min(0).max(100);
 
 // Sample/static data for now — real, per-user data arrives in Phase 5c once the
-// token resolves to a DEC userId. Mirrors DEC's own widget catalogue.
+// token resolves to a ViziThink userId. Mirrors ViziThink's own widget catalogue.
 const FRAMEWORKS = [
   { id: "twobytwo", title: "2×2 Matrix", purpose: "Plot options on two axes (e.g. impact vs effort) to see trade-offs at a glance." },
   { id: "eisenhower", title: "Eisenhower Matrix", purpose: "Sort tasks by urgent vs important to decide what to do, schedule, delegate, or drop." },
@@ -69,10 +69,10 @@ export function createMcpServer(): McpServer {
   // allowlists (the secure default).
   registerAppResource(
     server,
-    "DEC decision frameworks",
+    "ViziThink decision frameworks",
     FRAMEWORKS_WIDGET_URI,
     {
-      description: "Card list of DEC's decision-making frameworks.",
+      description: "Card list of ViziThink's decision-making frameworks.",
       _meta: {
         ui: {
           csp: { connectDomains: [], resourceDomains: [] },
@@ -95,11 +95,11 @@ export function createMcpServer(): McpServer {
     server,
     "list_decision_frameworks",
     {
-      title: "List DEC decision frameworks",
+      title: "List ViziThink decision frameworks",
       description:
-        "List the decision-making frameworks available in DEC (2×2 matrix, " +
+        "List the decision-making frameworks available in ViziThink (2×2 matrix, " +
         "Eisenhower, SWOT, cost/benefit, decision matrix, pre-mortem, and more) " +
-        "with what each is best for. Use when the user asks what DEC can do or " +
+        "with what each is best for. Use when the user asks what ViziThink can do or " +
         "which framework fits their decision.",
       inputSchema: {},
       outputSchema: { frameworks: z.array(z.object(FRAMEWORK_SHAPE)) },
@@ -114,7 +114,7 @@ export function createMcpServer(): McpServer {
           {
             type: "text",
             text:
-              `DEC offers ${frameworks.length} decision frameworks:\n` +
+              `ViziThink offers ${frameworks.length} decision frameworks:\n` +
               frameworks.map((f) => `• ${f.title} — ${f.purpose}`).join("\n"),
           },
         ],
@@ -127,7 +127,7 @@ export function createMcpServer(): McpServer {
   // CSP allowlists stay empty. ----
   registerAppResource(
     server,
-    "DEC decision grid",
+    "ViziThink decision grid",
     DECISION_GRID_WIDGET_URI,
     {
       description: "Interactive 2×2 grid for plotting decision options on two axes.",

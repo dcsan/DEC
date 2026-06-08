@@ -1,4 +1,4 @@
-// Better Auth — the OAuth/OIDC authorization server for the DEC ChatGPT App
+// Better Auth — the OAuth/OIDC authorization server for the ViziThink ChatGPT App
 // (Phase 5c of docs/todo/Auth.md). Self-hosted on the Worker, backed by the same
 // Neon Postgres DB. The `mcp` plugin makes this an OAuth provider for MCP clients
 // (ChatGPT): it adds the OIDC provider + dynamic client registration + the

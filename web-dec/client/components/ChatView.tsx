@@ -56,7 +56,7 @@ const menuItemStyle: CSSProperties = {
   borderRadius: 6,
   border: "none",
   background: "transparent",
-  color: "var(--dec-text)",
+  color: "var(--vizithink-text)",
   cursor: "pointer",
 };
 
@@ -262,17 +262,17 @@ export function ChatView() {
     }
   };
 
-  // `/diff` → compare DEC's conclusions about the user with the user's own
-  // self-conclusions, grouped into shared / DEC-only / self-only.
+  // `/diff` → compare ViziThink's conclusions about the user with the user's own
+  // self-conclusions, grouped into shared / ViziThink-only / self-only.
   const runDiff = async () => {
     append({ kind: "message", id: uid(), role: "user", content: "/diff" });
     try {
       const res = await diff.mutateAsync({ sessionId });
       const sections: string[] = [];
       if (res.both.length)
-        sections.push("**Both DEC and you**", ...res.both.map((f) => `• ${f}`), "");
+        sections.push("**Both ViziThink and you**", ...res.both.map((f) => `• ${f}`), "");
       if (res.onlyDec.length)
-        sections.push("**Only DEC infers about you**", ...res.onlyDec.map((f) => `• ${f}`), "");
+        sections.push("**Only ViziThink infers about you**", ...res.onlyDec.map((f) => `• ${f}`), "");
       if (res.onlySelf.length)
         sections.push("**Only your self-view**", ...res.onlySelf.map((f) => `• ${f}`), "");
       const body = sections.length
@@ -347,7 +347,7 @@ export function ChatView() {
       return;
     }
 
-    // `/diff` → compare DEC's view of the user with the user's self-view.
+    // `/diff` → compare ViziThink's view of the user with the user's self-view.
     if (matchDiffCommand(content)) {
       void runDiff();
       return;
@@ -530,9 +530,9 @@ export function ChatView() {
       <div style={{ flex: 1, overflowY: "auto", padding: "16px 0" }}>
         <div style={{ maxWidth: 880, margin: "0 auto", padding: "0 16px" }}>
           {items.length === 0 && (
-            <p style={{ color: "var(--dec-text-subtle)", fontSize: 14, marginTop: 24, lineHeight: 1.6 }}>
-              Describe a decision (e.g. "should I join a startup?") and I'll
-              surface a thinking framework to help.
+            <p style={{ color: "var(--vizithink-text-subtle)", fontSize: 14, marginTop: 24, lineHeight: 1.6 }}>
+              Describe a decision — "should I join a startup?" or "compare apples
+              to oranges" — and I'll surface a thinking framework to help.
               <br />
               Type <code>/help</code> for more.
             </p>
@@ -602,7 +602,7 @@ export function ChatView() {
       </div>
 
       {/* Composer pinned to the bottom */}
-      <div style={{ borderTop: "1px solid var(--dec-border-soft)", background: "var(--dec-surface)" }}>
+      <div style={{ borderTop: "1px solid var(--vizithink-border-soft)", background: "var(--vizithink-surface)" }}>
         <div style={{ maxWidth: 720, margin: "0 auto", padding: 12, position: "relative", display: "flex", alignItems: "flex-end", gap: 8 }}>
           {/* Slash-command autocomplete popup */}
           {showSlash && (
@@ -618,8 +618,8 @@ export function ChatView() {
                 overflowY: "auto",
                 padding: 4,
                 borderRadius: 10,
-                border: "1px solid var(--dec-border)",
-                background: "var(--dec-surface)",
+                border: "1px solid var(--vizithink-border)",
+                background: "var(--vizithink-surface)",
                 boxShadow: "0 4px 16px #0007",
               }}
             >
@@ -645,15 +645,15 @@ export function ChatView() {
                     border: "none",
                     textAlign: "left",
                     cursor: "pointer",
-                    background: i === slashSel ? "var(--dec-accent-soft)" : "transparent",
-                    color: "var(--dec-text)",
+                    background: i === slashSel ? "var(--vizithink-accent-soft)" : "transparent",
+                    color: "var(--vizithink-text)",
                   }}
                 >
-                  <code style={{ fontSize: 12, fontWeight: 700, color: "var(--dec-text)", flexShrink: 0 }}>
+                  <code style={{ fontSize: 12, fontWeight: 700, color: "var(--vizithink-text)", flexShrink: 0 }}>
                     /{c.command}
                   </code>
                   <span style={{ fontSize: 12, fontWeight: 600 }}>{c.title}</span>
-                  <span style={{ fontSize: 11, color: "var(--dec-text-subtle)", marginLeft: "auto" }}>
+                  <span style={{ fontSize: 11, color: "var(--vizithink-text-subtle)", marginLeft: "auto" }}>
                     {c.description}
                   </span>
                 </button>
@@ -674,9 +674,9 @@ export function ChatView() {
                 width: 40,
                 fontSize: 16,
                 borderRadius: 10,
-                border: "1px solid var(--dec-border)",
-                background: "var(--dec-surface-2)",
-                color: "var(--dec-text-muted)",
+                border: "1px solid var(--vizithink-border)",
+                background: "var(--vizithink-surface-2)",
+                color: "var(--vizithink-text-muted)",
                 cursor: "pointer",
               }}
             >
@@ -699,8 +699,8 @@ export function ChatView() {
                     minWidth: 190,
                     padding: 4,
                     borderRadius: 10,
-                    border: "1px solid var(--dec-border)",
-                    background: "var(--dec-surface)",
+                    border: "1px solid var(--vizithink-border)",
+                    background: "var(--vizithink-surface)",
                     boxShadow: "0 4px 16px #0007",
                   }}
                 >
@@ -789,9 +789,9 @@ export function ChatView() {
               fontSize: 14,
               lineHeight: 1.4,
               borderRadius: 10,
-              border: "1px solid var(--dec-border)",
-              background: "var(--dec-surface-2)",
-              color: "var(--dec-text)",
+              border: "1px solid var(--vizithink-border)",
+              background: "var(--vizithink-surface-2)",
+              color: "var(--vizithink-text)",
               outline: "none",
               fontFamily: "inherit",
             }}
@@ -807,9 +807,9 @@ export function ChatView() {
               flexShrink: 0,
               fontSize: 15,
               borderRadius: 10,
-              border: "1px solid var(--dec-border)",
-              background: "var(--dec-surface-2)",
-              color: "var(--dec-text-muted)",
+              border: "1px solid var(--vizithink-border)",
+              background: "var(--vizithink-surface-2)",
+              color: "var(--vizithink-text-muted)",
               cursor: "pointer",
             }}
           >
@@ -826,8 +826,8 @@ export function ChatView() {
               fontWeight: 600,
               borderRadius: 10,
               border: "none",
-              background: draft.trim() ? "var(--dec-accent)" : "var(--dec-border)",
-              color: draft.trim() ? "#0f1115" : "var(--dec-text-subtle)",
+              background: draft.trim() ? "var(--vizithink-accent)" : "var(--vizithink-border)",
+              color: draft.trim() ? "#0f1115" : "var(--vizithink-text-subtle)",
               cursor: draft.trim() ? "pointer" : "not-allowed",
             }}
           >
@@ -857,25 +857,25 @@ function ResearchBubble({
           borderRadius: 12,
           fontSize: 14,
           lineHeight: 1.5,
-          background: "var(--dec-surface-2)",
-          color: "var(--dec-text)",
-          border: "1px solid var(--dec-border-soft)",
+          background: "var(--vizithink-surface-2)",
+          color: "var(--vizithink-text)",
+          border: "1px solid var(--vizithink-border-soft)",
         }}
       >
         <div style={{ whiteSpace: "pre-wrap" }}>{advice}</div>
         {sources.length > 0 && (
-          <div style={{ marginTop: 10, paddingTop: 8, borderTop: "1px solid var(--dec-border-soft)" }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: "var(--dec-text-subtle)", marginBottom: 4 }}>
+          <div style={{ marginTop: 10, paddingTop: 8, borderTop: "1px solid var(--vizithink-border-soft)" }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "var(--vizithink-text-subtle)", marginBottom: 4 }}>
               Sources
             </div>
             {sources.map((s, i) => (
               <div key={i} style={{ fontSize: 12, marginBottom: 2 }}>
-                <span style={{ color: "var(--dec-text-subtle)" }}>• </span>
+                <span style={{ color: "var(--vizithink-text-subtle)" }}>• </span>
                 <a
                   href={s.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  style={{ color: "var(--dec-accent)", textDecoration: "none" }}
+                  style={{ color: "var(--vizithink-accent)", textDecoration: "none" }}
                 >
                   {s.title || s.url}
                 </a>
@@ -918,13 +918,13 @@ function VizBubble({ title, svg }: { title: string; svg: string }) {
           width: "100%",
           padding: "10px 12px",
           borderRadius: 12,
-          background: "var(--dec-surface-2)",
-          color: "var(--dec-text)",
-          border: "1px solid var(--dec-border-soft)",
+          background: "var(--vizithink-surface-2)",
+          color: "var(--vizithink-text)",
+          border: "1px solid var(--vizithink-border-soft)",
         }}
       >
         {title && (
-          <div style={{ fontSize: 12, fontWeight: 700, color: "var(--dec-text-subtle)", marginBottom: 6 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: "var(--vizithink-text-subtle)", marginBottom: 6 }}>
             {title}
           </div>
         )}
@@ -1003,13 +1003,13 @@ function AddContextPanel({ sessionId }: { sessionId: string }) {
           maxWidth: 460,
           padding: 14,
           borderRadius: 12,
-          background: "var(--dec-surface-2)",
-          border: `1.5px dashed ${dragOver ? "var(--dec-accent)" : "var(--dec-border)"}`,
-          color: "var(--dec-text)",
+          background: "var(--vizithink-surface-2)",
+          border: `1.5px dashed ${dragOver ? "var(--vizithink-accent)" : "var(--vizithink-border)"}`,
+          color: "var(--vizithink-text)",
         }}
       >
         <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 4 }}>📄 Add context</div>
-        <p style={{ margin: "0 0 10px", fontSize: 12, color: "var(--dec-text-subtle)" }}>
+        <p style={{ margin: "0 0 10px", fontSize: 12, color: "var(--vizithink-text-subtle)" }}>
           Drop a text file here, or pick one — it's attached to this chat so the
           assistant and <code>/research</code> can use it.
         </p>
@@ -1034,15 +1034,15 @@ function AddContextPanel({ sessionId }: { sessionId: string }) {
             padding: "7px 14px",
             borderRadius: 8,
             border: "none",
-            background: add.isPending ? "var(--dec-border)" : "var(--dec-accent)",
-            color: add.isPending ? "var(--dec-text-subtle)" : "#0f1115",
+            background: add.isPending ? "var(--vizithink-border)" : "var(--vizithink-accent)",
+            color: add.isPending ? "var(--vizithink-text-subtle)" : "#0f1115",
             cursor: add.isPending ? "wait" : "pointer",
           }}
         >
           {add.isPending ? "Uploading…" : "Add context"}
         </button>
         {done && (
-          <div style={{ marginTop: 10, fontSize: 12, color: "var(--dec-merged)" }}>
+          <div style={{ marginTop: 10, fontSize: 12, color: "var(--vizithink-merged)" }}>
             ✓ Added <strong>{done.filename}</strong> ({done.chars.toLocaleString()} chars)
           </div>
         )}
@@ -1080,9 +1080,9 @@ function MessageBubble({
           fontSize: 14,
           lineHeight: 1.5,
           whiteSpace: "pre-wrap",
-          background: isUser ? "var(--dec-accent-soft)" : "var(--dec-surface-2)",
-          color: "var(--dec-text)",
-          border: "1px solid var(--dec-border-soft)",
+          background: isUser ? "var(--vizithink-accent-soft)" : "var(--vizithink-surface-2)",
+          color: "var(--vizithink-text)",
+          border: "1px solid var(--vizithink-border-soft)",
         }}
       >
         {markdown ? renderMarkdown(content) : content}
@@ -1112,8 +1112,8 @@ function renderInline(text: string): ReactNode[] {
             fontSize: "0.9em",
             padding: "1px 5px",
             borderRadius: 5,
-            background: "var(--dec-surface)",
-            border: "1px solid var(--dec-border-soft)",
+            background: "var(--vizithink-surface)",
+            border: "1px solid var(--vizithink-border-soft)",
           }}
         >
           {m[1]}

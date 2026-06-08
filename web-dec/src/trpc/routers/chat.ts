@@ -199,7 +199,7 @@ export async function route(
         schema: RouteReplySchema,
         schemaName: "route_reply",
         system:
-          "You are DEC, a concise decision assistant that routes the user to the " +
+          "You are ViziThink, a concise decision assistant that routes the user to the " +
           "right thinking tool. Match the user's intent to a tool's purpose. When a " +
           "user asks an open-ended question (e.g. \"what mattress should I buy?\"), " +
           "don't just ask them what matters — do the initial thinking for them: pick " +
@@ -284,7 +284,7 @@ async function recommend(
         schema: RecommendationSchema,
         schemaName: "recommendation",
         system:
-          "You are DEC, a decisive decision assistant. The user worked through a " +
+          "You are ViziThink, a decisive decision assistant. The user worked through a " +
           "thinking tool and submitted it. Using their original question and the " +
           "filled-in tool, give a clear recommendation: say what you'd do and the " +
           "one or two reasons why. Be concise and don't hedge.",

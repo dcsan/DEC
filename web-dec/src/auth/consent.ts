@@ -33,7 +33,7 @@ export function consentHTML({ scopes, clientName, code }: ConsentArgs): string {
   return /* html */ `<!doctype html>
 <html lang="en"><head>
 <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Authorize ${app} — DEC</title>
+<title>Authorize ${app} — ViziThink</title>
 <style>
   :root { color-scheme: light dark; }
   body { margin:0; min-height:100vh; display:grid; place-items:center;
@@ -56,7 +56,7 @@ export function consentHTML({ scopes, clientName, code }: ConsentArgs): string {
 <body>
   <div class="card">
     <h1>Authorize ${app}</h1>
-    <p class="sub"><strong>${app}</strong> wants to connect to your DEC account and:</p>
+    <p class="sub"><strong>${app}</strong> wants to connect to your ViziThink account and:</p>
     <ul>${items}</ul>
     <div class="row">
       <button class="deny" id="deny">Deny</button>

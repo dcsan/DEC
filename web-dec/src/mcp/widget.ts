@@ -1,4 +1,4 @@
-// Self-contained HTML for the DEC "decision frameworks" Apps SDK widget.
+// Self-contained HTML for the ViziThink "decision frameworks" Apps SDK widget.
 //
 // Inlined as a string (not read from disk) so it works on the Cloudflare
 // Workers runtime, which has no filesystem. The widget renders inside ChatGPT's
@@ -87,7 +87,7 @@ export const WIDGET_HTML = /* html */ `<!doctype html>
           '</p><p class="purpose">' + esc(f.purpose) + "</p></div>";
       }).join("");
       root.innerHTML =
-        '<div class="head"><h1>DEC decision frameworks</h1>' +
+        '<div class="head"><h1>ViziThink decision frameworks</h1>' +
         '<span class="count">' + fw.length + " available</span></div>" +
         '<div class="grid">' + cards + "</div>";
     }

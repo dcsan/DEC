@@ -9,10 +9,10 @@ import type { ConclusionScope } from "@honcho-ai/sdk";
 //
 // Conclusions are stored per (observer → observed) pair, so there are two views
 // of "facts about the user":
-//   • dec.conclusionsOf(user) — what the assistant (DEC) inferred about the user
+//   • dec.conclusionsOf(user) — what the assistant (ViziThink) inferred about the user
 //     while talking to them. This is where derived facts usually land.
 //   • user.conclusions         — the user peer's self-conclusions.
-// `/facts` merges them; `/diff` keeps them apart so you can see where DEC's model
+// `/facts` merges them; `/diff` keeps them apart so you can see where ViziThink's model
 // of the user and the user's self-model agree or diverge. Note Honcho derives
 // conclusions in a background queue, so facts appear a little after the messages
 // that produced them, not instantly.
@@ -65,7 +65,7 @@ export const factsRouter = router({
         const user = await honcho.peer(USER_PEER);
         const dec = await honcho.peer(ASSISTANT_PEER);
 
-        // DEC's view first (where derived facts usually land), then the user's
+        // ViziThink's view first (where derived facts usually land), then the user's
         // self-view, merged + de-duped across both.
         const decFacts = await collectConclusions(dec.conclusionsOf(user), input.sessionId);
         const selfFacts = await collectConclusions(user.conclusions, input.sessionId);
@@ -89,7 +89,7 @@ export const factsRouter = router({
       }
     }),
 
-  // `/diff` — compare the two perspectives on the user: what DEC concluded about
+  // `/diff` — compare the two perspectives on the user: what ViziThink concluded about
   // them vs. their own self-conclusions. Returns the overlap and each side's
   // exclusive facts (exact-content set difference).
   diff: publicProcedure
