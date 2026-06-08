@@ -8,9 +8,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   commands run from inside `web-dec/`.**
 - `docs/plan/` — product/architecture specs (`overview.md`, `stack.md`,
   `widget-spec.md`, …).
-- `docs/specs/` — feature briefs that get implemented (e.g.
+- `docs/features/` — feature briefs that get implemented (e.g.
   `Eisenhower-matrix.md`, `convo-router.md`). A task is often "do
-  @docs/specs/<x>.md".
+  @docs/features/<x>.md".
 
 The package manager is **pnpm**, and common workflows are wrapped in a
 `justfile` (`just` with no args lists every recipe).

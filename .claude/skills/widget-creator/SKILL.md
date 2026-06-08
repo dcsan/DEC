@@ -6,7 +6,7 @@ description: >-
   posts both a structured payload and a plain-text rendering back to chat. Use
   this whenever the user wants to add, build, or scaffold a new widget, a new
   decision/thinking tool for the chat, a new `/command` mini-tool, or hands you
-  a widget spec like docs/specs/*.md and asks to implement it — even if they
+  a widget spec like docs/features/*.md and asks to implement it — even if they
   just say "make a widget for X" without naming the framework. Lives in
   web-dec/client/components/widgets/.
 ---
@@ -85,7 +85,7 @@ structured summary to the agent. Before coding, get clear on:
 - **The plain-text rendering** — how `format(data)` turns the data into text an
   AI agent reads directly.
 
-If the user handed you a spec doc (e.g. `docs/specs/<thing>.md`), extract these
+If the user handed you a spec doc (e.g. `docs/features/<thing>.md`), extract these
 four from it. If any is unclear, ask — especially the data shape and the
 plain-text format, since those are the contract.
 
