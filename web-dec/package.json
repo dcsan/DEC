@@ -6,18 +6,20 @@
   "packageManager": "pnpm@10.33.2",
   "scripts": {
     "dev": "concurrently \"pnpm run dev:server\" \"pnpm run dev:client\" --names \"API,CLIENT\" --prefix-colors \"blue,magenta\"",
-    "dev:server": "pnpm run build:client && wrangler dev --port ${PORT_SERVER:-6390}",
+    "dev:server": "pnpm run build:widgets && pnpm run build:client && wrangler dev --port ${PORT_SERVER:-6390}",
     "dev:client": "vite",
-    "build": "pnpm run build:client && wrangler deploy --dry-run --outdir=dist/worker",
+    "build": "pnpm run build:widgets && pnpm run build:client && wrangler deploy --dry-run --outdir=dist/worker",
     "build:client": "vite build",
-    "deploy": "pnpm run build:client && wrangler deploy",
+    "build:widgets": "node scripts/build-widgets.mjs",
+    "deploy": "pnpm run build:widgets && pnpm run build:client && wrangler deploy",
     "typecheck": "tsc --noEmit",
     "eval:router": "tsx test/routerEval.ts",
     "cf-typegen": "wrangler types",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "auth:generate": "npx --yes @better-auth/cli@latest generate --config src/auth/cli.ts --output src/db/auth-schema.ts -y"
   },
   "dependencies": {
     "@honcho-ai/sdk": "^2.1.2",
@@ -32,6 +34,7 @@
     "@trpc/react-query": "^11.0.0",
     "@trpc/server": "^11.0.0",
     "@xyflow/react": "^12.3.5",
+    "better-auth": "1.6.13",
     "drizzle-orm": "^0.45.2",
     "hono": "^4.12.15",
     "react": "^19.2.5",
@@ -50,6 +53,7 @@
     "better-sqlite3": "^12.9.0",
     "concurrently": "^9.2.1",
     "drizzle-kit": "^0.31.10",
+    "esbuild": "^0.28.0",
     "tailwindcss": "^4.2.4",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
@@ -61,6 +65,9 @@
       "better-sqlite3",
       "esbuild",
       "workerd"
-    ]
+    ],
+    "overrides": {
+      "kysely": "0.28.17"
+    }
   }
 }
