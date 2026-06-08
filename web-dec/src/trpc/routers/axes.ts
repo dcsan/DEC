@@ -53,6 +53,16 @@ const ScoreSchema = z.object({
   scores: z.array(ScoredItemSchema).describe("one entry per option, scored on both axes"),
 });
 
+// Explain result: a markdown write-up of a single option and how it ranks.
+const ExplainSchema = z.object({
+  explanation: z
+    .string()
+    .describe(
+      "a concise markdown explanation: what the option is, how it ranks on each " +
+        "axis and why it sits where it does, and how it compares to the others",
+    ),
+});
+
 // Generate result: the shared category plus new, similar options already scored.
 const GenerateSchema = z.object({
   category: z.string().describe("what the given options have in common, 1-4 words, e.g. 'fruit', 'transport'"),
@@ -269,6 +279,66 @@ export const axesRouter = router({
         });
       }
     }),
+
+  // Explain ONE option in the context of the comparison: what it is, how it ranks
+  // on each of the two active axes (and why it sits where its score puts it), and
+  // how it stacks up against the other options. Backs the per-item ⓘ button — the
+  // widget renders the returned markdown as a chat message below itself. `x`/`y`
+  // are the option's 0-100 scores, or null if it's still unplaced in the tray.
+  explain: publicProcedure
+    .input(
+      z.object({
+        question: z.string().min(1).max(2000),
+        name: z.string().min(1).max(200),
+        x: z.number().min(0).max(100).nullable().optional(),
+        y: z.number().min(0).max(100).nullable().optional(),
+        xAxis: InputAxisSchema,
+        yAxis: InputAxisSchema,
+        others: z.array(z.string().max(200)).max(30).optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }): Promise<{ explanation: string }> => {
+      const apiKey = requireKey(ctx.env.OPENROUTER_API_KEY);
+      const others = (input.others ?? []).map((s) => s.trim()).filter(Boolean);
+
+      try {
+        const out = await structuredChat({
+          apiKey,
+          schema: ExplainSchema,
+          schemaName: "axes_explain",
+          system:
+            "You explain how a single option sits within a 2×2 comparison. Given " +
+            "the decision, the two axes (with their poles), the option's 0-100 score " +
+            "on each axis, and the other options, write a short, concrete explanation " +
+            "of what the option is, how it ranks on each axis and WHY it sits where " +
+            "its score puts it, and how it compares to the alternatives. Be specific " +
+            "and useful to a decision-maker, and stay concise.\n" +
+            "FORMATTING: the chat renders only **bold** and `inline code`, line by " +
+            "line — no headings, tables, or markdown bullets. Start with the option " +
+            "name in **bold** on its own line, then a couple of short lines or " +
+            "paragraphs separated by a blank line. If you list points, prefix each " +
+            'line with "• " (do NOT use "#", "-", or "*").',
+          prompt:
+            `Decision: ${input.question.trim()}\n` +
+            `Option: ${input.name.trim()}\n` +
+            `${scoreLine("X axis", input.xAxis, input.x)}\n` +
+            `${scoreLine("Y axis", input.yAxis, input.y)}\n` +
+            (others.length ? `Other options on the grid: ${others.join(", ")}\n` : "") +
+            `\nExplain "${input.name.trim()}": what it is, how it ranks on each axis ` +
+            `and why, and how it compares with the other options.`,
+          temperature: 0.4,
+          title: "axes-explain",
+        });
+        return { explanation: out.explanation };
+      } catch (err) {
+        if (err instanceof TRPCError) throw err;
+        console.error("[axes.explain] failed", err);
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Could not load more info on that option. Please try again.",
+        });
+      }
+    }),
 });
 
 // Shared no-key guard — mirrors `suggest`'s behaviour for the sibling endpoints.
@@ -288,4 +358,15 @@ function axisLine(axis: { label: string; low?: string; high?: string }): string 
   const lo = (axis.low ?? "").trim();
   const hi = (axis.high ?? "").trim();
   return lo || hi ? `${label} (low = ${lo || "?"} → high = ${hi || "?"})` : `${label} (you choose the poles)`;
+}
+
+// Render an option's position on one axis for the explain prompt; the score may
+// be null when the option is still in the tray (not yet placed on the plane).
+function scoreLine(
+  which: string,
+  axis: { label: string; low?: string; high?: string },
+  score: number | null | undefined,
+): string {
+  const base = `${which} — ${axisLine(axis)}`;
+  return score == null ? `${base}: not yet placed` : `${base}: ${Math.round(score)}/100`;
 }

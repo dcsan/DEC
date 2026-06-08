@@ -561,6 +561,15 @@ export function ChatView() {
                   onSend={(output) => sendFromWidget(it.id, output)}
                   onRemove={() => removeItem(it.id)}
                   onCommand={handleInput}
+                  onMessage={(content, opts) =>
+                    append({
+                      kind: "message",
+                      id: uid(),
+                      role: opts?.role ?? "assistant",
+                      content,
+                      markdown: opts?.markdown ?? true,
+                    })
+                  }
                 />
               </div>
             );

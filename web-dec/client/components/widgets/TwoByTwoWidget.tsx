@@ -31,7 +31,7 @@ const INSET = 9;
 const scoreToPct = (s: number) => INSET + (s / 100) * (100 - 2 * INSET);
 const pctToScore = (p: number) => clamp(((p - INSET) / (100 - 2 * INSET)) * 100, 0, 100);
 
-export function TwoByTwoWidget({ initial, onSend, onRemove }: WidgetProps) {
+export function TwoByTwoWidget({ initial, onSend, onRemove, onMessage }: WidgetProps) {
   const seed = blankAxesGridData(initial?.title || "", initial?.question || "", initial?.items);
   const [title, setTitle] = useState(seed.title);
   const [xAxis, setXAxis] = useState<Axis>(seed.xAxis);
@@ -54,6 +54,7 @@ export function TwoByTwoWidget({ initial, onSend, onRemove }: WidgetProps) {
   const options = trpc.axes.options.useMutation();
   const score = trpc.axes.score.useMutation();
   const generate = trpc.axes.generate.useMutation();
+  const explain = trpc.axes.explain.useMutation();
   const busy = suggest.isPending || options.isPending || score.isPending || generate.isPending;
 
   const dirty = () => {
@@ -286,6 +287,35 @@ export function TwoByTwoWidget({ initial, onSend, onRemove }: WidgetProps) {
     dirty();
   };
 
+  // ⓘ button: ask the server to explain this option and how it ranks on the
+  // current axes, then post the write-up into the chat below the widget. The
+  // request is announced as a user message so the stream shows what was asked.
+  const explainItem = async (i: number) => {
+    const it = items[i];
+    if (!it || !it.name.trim() || explain.isPending) return;
+    const q = seedQuestion() || itemNames().join(" vs ");
+    const axisPair = `${xAxis.label.trim() || "X"} × ${yAxis.label.trim() || "Y"}`;
+    onMessage?.(`ⓘ Tell me more about **${it.name.trim()}** — how it ranks on ${axisPair}`, {
+      role: "user",
+    });
+    try {
+      const out = await explain.mutateAsync({
+        question: q,
+        name: it.name.trim(),
+        x: it.x,
+        y: it.y,
+        xAxis,
+        yAxis,
+        others: itemNames().filter((n) => n.toLowerCase() !== it.name.trim().toLowerCase()),
+      });
+      onMessage?.(out.explanation);
+    } catch (err) {
+      onMessage?.(err instanceof Error ? err.message : "Could not load more info on that option.", {
+        markdown: false,
+      });
+    }
+  };
+
   const placed = items
     .map((it, i) => ({ it, i }))
     .filter(({ it }) => it.x != null && it.y != null);
@@ -392,9 +422,13 @@ export function TwoByTwoWidget({ initial, onSend, onRemove }: WidgetProps) {
                 transform: "translate(-50%, -50%)",
                 cursor: drag === i ? "grabbing" : "grab",
                 borderColor: ACCENT,
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 4,
               }}
             >
               {it.name}
+              <InfoButton onClick={() => void explainItem(i)} busy={explain.isPending} name={it.name} />
             </div>
           ))}
         </div>
@@ -422,6 +456,7 @@ export function TwoByTwoWidget({ initial, onSend, onRemove }: WidgetProps) {
                 >
                   ⠿ {it.name}
                 </span>
+                <InfoButton onClick={() => void explainItem(i)} busy={explain.isPending} name={it.name} />
                 <button type="button" onClick={() => removeItem(i)} style={chipX} title="Remove option">
                   ×
                 </button>
@@ -564,6 +599,27 @@ function AxisField({
   );
 }
 
+// The per-item ⓘ button. stopPropagation on pointer-down so clicking it on a
+// placed chip doesn't start a drag; the click asks the server to explain the
+// option and posts the result into the chat below the widget.
+function InfoButton({ onClick, busy, name }: { onClick: () => void; busy: boolean; name: string }) {
+  return (
+    <button
+      type="button"
+      onPointerDown={(e) => e.stopPropagation()}
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick();
+      }}
+      disabled={busy}
+      title={`More about ${name} — how it ranks on these axes`}
+      style={chipInfo}
+    >
+      ⓘ
+    </button>
+  );
+}
+
 const shell: CSSProperties = {
   width: "100%",
   maxWidth: 840,
@@ -660,6 +716,17 @@ const chipX: CSSProperties = {
   color: "var(--dec-text-subtle)",
   cursor: "pointer",
   padding: 0,
+};
+
+const chipInfo: CSSProperties = {
+  fontSize: 11,
+  lineHeight: 1,
+  border: "none",
+  background: "transparent",
+  color: ACCENT,
+  cursor: "pointer",
+  padding: 0,
+  opacity: 0.85,
 };
 
 const xAxisRow: CSSProperties = {

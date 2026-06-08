@@ -94,4 +94,10 @@ export interface WidgetProps {
    * `/help sc`). Goes through the chat's normal command/route handling.
    */
   onCommand?: (text: string) => void;
+  /**
+   * Append a standalone message to the chat stream below the widget, without a
+   * server round-trip through the convo router (e.g. the 2×2 widget's per-item
+   * ⓘ lookup posts its result here). Defaults to an assistant, markdown bubble.
+   */
+  onMessage?: (content: string, opts?: { role?: "user" | "assistant"; markdown?: boolean }) => void;
 }
