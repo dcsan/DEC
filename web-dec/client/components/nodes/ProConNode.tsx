@@ -14,7 +14,7 @@ export interface ProConNodeData {
   [key: string]: unknown;
 }
 
-const ACCENT = "var(--dec-framework)";
+const ACCENT = "var(--vizithink-framework)";
 
 function ProConNodeImpl({ id, data, selected }: NodeProps) {
   const d = data as ProConNodeData;
@@ -36,11 +36,11 @@ function ProConNodeImpl({ id, data, selected }: NodeProps) {
       style={{
         width: 300,
         borderRadius: 12,
-        background: "var(--dec-surface-2)",
-        border: `1.5px solid ${selected ? ACCENT : "var(--dec-border)"}`,
+        background: "var(--vizithink-surface-2)",
+        border: `1.5px solid ${selected ? ACCENT : "var(--vizithink-border)"}`,
         boxShadow: selected ? `0 0 0 3px ${ACCENT}33` : "0 1px 2px #0006",
         opacity: d.dimmed ? 0.25 : 1,
-        color: "var(--dec-text)",
+        color: "var(--vizithink-text)",
         overflow: "hidden",
       }}
     >
@@ -53,8 +53,8 @@ function ProConNodeImpl({ id, data, selected }: NodeProps) {
           alignItems: "center",
           justifyContent: "space-between",
           padding: "8px 10px",
-          borderBottom: "1px solid var(--dec-border-soft)",
-          background: "var(--dec-surface)",
+          borderBottom: "1px solid var(--vizithink-border-soft)",
+          background: "var(--vizithink-surface)",
         }}
       >
         <span style={{ fontSize: 13, fontWeight: 600 }}>⚖︎ {d.title}</span>
@@ -75,7 +75,7 @@ function ProConNodeImpl({ id, data, selected }: NodeProps) {
       </div>
 
       {/* Column headers */}
-      <div style={{ display: "flex", padding: "4px 10px", fontSize: 11, color: "var(--dec-text-subtle)" }}>
+      <div style={{ display: "flex", padding: "4px 10px", fontSize: 11, color: "var(--vizithink-text-subtle)" }}>
         <span style={{ flex: 1 }}>Item</span>
         <span style={{ width: 34, textAlign: "center" }}>Pro</span>
         <span style={{ width: 34, textAlign: "center" }}>Con</span>
@@ -98,7 +98,7 @@ function ProConNodeImpl({ id, data, selected }: NodeProps) {
                 type="checkbox"
                 checked={it.pro}
                 onChange={(e) => patch(i, { pro: e.target.checked })}
-                style={{ accentColor: "var(--dec-merged)", cursor: "pointer" }}
+                style={{ accentColor: "var(--vizithink-merged)", cursor: "pointer" }}
               />
             </span>
             <span style={{ width: 34, textAlign: "center" }}>
@@ -107,7 +107,7 @@ function ProConNodeImpl({ id, data, selected }: NodeProps) {
                 type="checkbox"
                 checked={it.con}
                 onChange={(e) => patch(i, { con: e.target.checked })}
-                style={{ accentColor: "var(--dec-option)", cursor: "pointer" }}
+                style={{ accentColor: "var(--vizithink-option)", cursor: "pointer" }}
               />
             </span>
           </div>
@@ -128,9 +128,9 @@ const rowInput: React.CSSProperties = {
   padding: "5px 7px",
   fontSize: 12,
   borderRadius: 6,
-  border: "1px solid var(--dec-border)",
-  background: "var(--dec-surface)",
-  color: "var(--dec-text)",
+  border: "1px solid var(--vizithink-border)",
+  background: "var(--vizithink-surface)",
+  color: "var(--vizithink-text)",
   outline: "none",
 };
 
@@ -139,8 +139,8 @@ const iconBtn: React.CSSProperties = {
   width: 20,
   height: 20,
   borderRadius: 6,
-  border: "1px solid var(--dec-border)",
-  background: "var(--dec-surface-2)",
+  border: "1px solid var(--vizithink-border)",
+  background: "var(--vizithink-surface-2)",
   color: "#ff8b8b",
   cursor: "pointer",
 };
@@ -150,9 +150,9 @@ const addRowBtn: React.CSSProperties = {
   fontSize: 11,
   padding: "3px 8px",
   borderRadius: 6,
-  border: "1px dashed var(--dec-border)",
+  border: "1px dashed var(--vizithink-border)",
   background: "transparent",
-  color: "var(--dec-text-muted)",
+  color: "var(--vizithink-text-muted)",
   cursor: "pointer",
 };
 

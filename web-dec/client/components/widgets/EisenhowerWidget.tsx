@@ -8,7 +8,7 @@ import { trpc } from "../../lib/trpc";
 import type { WidgetProps } from "./types";
 import { eisenhowerSpec, type EisenhowerData } from "./eisenhower.spec";
 
-const ACCENT = "var(--dec-concept)";
+const ACCENT = "var(--vizithink-concept)";
 
 // The four matrix cells + the unsorted pool. Each placed zone maps to the
 // important/urgent flags used in the structured output.
@@ -45,11 +45,11 @@ function zoneDropSurface(active: boolean, dim: boolean, isPool: boolean): CSSPro
     minHeight: isPool ? undefined : 92,
     padding: 8,
     borderRadius: 8,
-    border: active ? "2px solid var(--dec-accent)" : "1px dashed var(--dec-border)",
-    background: active ? "var(--dec-accent-soft)" : "var(--dec-surface)",
+    border: active ? "2px solid var(--vizithink-accent)" : "1px dashed var(--vizithink-border)",
+    background: active ? "var(--vizithink-accent-soft)" : "var(--vizithink-surface)",
     opacity: dim ? 0.72 : 1,
     transition: "border-color 100ms ease, background-color 100ms ease, opacity 100ms ease",
-    boxShadow: active ? "inset 0 0 0 1px var(--dec-accent)" : undefined,
+    boxShadow: active ? "inset 0 0 0 1px var(--vizithink-accent)" : undefined,
   };
 }
 
@@ -186,9 +186,9 @@ export function EisenhowerWidget({ initial, onSend, onRemove }: WidgetProps) {
           marginBottom: 4,
           fontSize: 12,
           borderRadius: 6,
-          border: "1px solid var(--dec-border)",
-          background: dragging ? "var(--dec-surface-2)" : "var(--dec-surface)",
-          color: "var(--dec-text)",
+          border: "1px solid var(--vizithink-border)",
+          background: dragging ? "var(--vizithink-surface-2)" : "var(--vizithink-surface)",
+          color: "var(--vizithink-text)",
           cursor: "grab",
           opacity: dragging ? 0.45 : 1,
           userSelect: "none",
@@ -199,7 +199,7 @@ export function EisenhowerWidget({ initial, onSend, onRemove }: WidgetProps) {
           style={{
             fontSize: 12,
             lineHeight: 1,
-            color: "var(--dec-text-muted)",
+            color: "var(--vizithink-text-muted)",
             cursor: "grab",
             flexShrink: 0,
           }}
@@ -218,7 +218,7 @@ export function EisenhowerWidget({ initial, onSend, onRemove }: WidgetProps) {
           style={{
             border: "none",
             background: "transparent",
-            color: "var(--dec-text-subtle)",
+            color: "var(--vizithink-text-subtle)",
             cursor: "pointer",
             fontSize: 12,
             lineHeight: 1,
@@ -238,10 +238,10 @@ export function EisenhowerWidget({ initial, onSend, onRemove }: WidgetProps) {
         width: "100%",
         maxWidth: 840,
         borderRadius: 12,
-        background: "var(--dec-surface-2)",
+        background: "var(--vizithink-surface-2)",
         border: `1.5px solid ${ACCENT}`,
         boxShadow: "0 1px 2px #0006",
-        color: "var(--dec-text)",
+        color: "var(--vizithink-text)",
         overflow: "hidden",
       }}
     >
@@ -252,8 +252,8 @@ export function EisenhowerWidget({ initial, onSend, onRemove }: WidgetProps) {
           alignItems: "center",
           gap: 8,
           padding: "8px 10px",
-          borderBottom: "1px solid var(--dec-border-soft)",
-          background: "var(--dec-surface)",
+          borderBottom: "1px solid var(--vizithink-border-soft)",
+          background: "var(--vizithink-surface)",
         }}
       >
         <span style={{ fontSize: 13 }}>▥</span>
@@ -270,7 +270,7 @@ export function EisenhowerWidget({ initial, onSend, onRemove }: WidgetProps) {
             fontWeight: 600,
             border: "none",
             background: "transparent",
-            color: "var(--dec-text)",
+            color: "var(--vizithink-text)",
             outline: "none",
           }}
         />
@@ -282,7 +282,7 @@ export function EisenhowerWidget({ initial, onSend, onRemove }: WidgetProps) {
       {/* Hint: keep copy in the label — do not mount new rows mid-drag (breaks HTML5 DnD). */}
       {/* Matrix */}
       <div style={{ padding: "8px 10px" }}>
-        <div style={{ display: "flex", paddingLeft: 56, fontSize: 11, color: "var(--dec-text-subtle)" }}>
+        <div style={{ display: "flex", paddingLeft: 56, fontSize: 11, color: "var(--vizithink-text-subtle)" }}>
           <span style={{ flex: 1, textAlign: "center" }}>Urgent</span>
           <span style={{ flex: 1, textAlign: "center" }}>Not urgent</span>
         </div>
@@ -294,7 +294,7 @@ export function EisenhowerWidget({ initial, onSend, onRemove }: WidgetProps) {
               display: "flex",
               flexDirection: "column",
               fontSize: 11,
-              color: "var(--dec-text-subtle)",
+              color: "var(--vizithink-text-subtle)",
             }}
           >
             <span
@@ -345,7 +345,7 @@ export function EisenhowerWidget({ initial, onSend, onRemove }: WidgetProps) {
                       fontSize: 10,
                       textTransform: "uppercase",
                       letterSpacing: "0.05em",
-                      color: "var(--dec-text-subtle)",
+                      color: "var(--vizithink-text-subtle)",
                       marginBottom: 4,
                     }}
                   >
@@ -356,12 +356,12 @@ export function EisenhowerWidget({ initial, onSend, onRemove }: WidgetProps) {
                       onDragOver={chipDragOver(q.zone)}
                       style={{
                         fontSize: 11,
-                        color: active ? "var(--dec-text)" : "var(--dec-text-muted)",
+                        color: active ? "var(--vizithink-text)" : "var(--vizithink-text-muted)",
                         padding: "10px 6px",
                         textAlign: "center",
                         borderRadius: 6,
-                        border: isDragging ? "1px dashed var(--dec-accent)" : "1px dashed var(--dec-border-soft)",
-                        background: active ? "var(--dec-surface-2)" : "transparent",
+                        border: isDragging ? "1px dashed var(--vizithink-accent)" : "1px dashed var(--vizithink-border-soft)",
+                        background: active ? "var(--vizithink-surface-2)" : "transparent",
                       }}
                     >
                       {isDragging ? "Release to drop here" : "Empty — drag a task here"}
@@ -389,7 +389,7 @@ export function EisenhowerWidget({ initial, onSend, onRemove }: WidgetProps) {
             fontSize: 10,
             textTransform: "uppercase",
             letterSpacing: "0.05em",
-            color: "var(--dec-text-subtle)",
+            color: "var(--vizithink-text-subtle)",
             marginBottom: 4,
           }}
         >
@@ -400,11 +400,11 @@ export function EisenhowerWidget({ initial, onSend, onRemove }: WidgetProps) {
             onDragOver={chipDragOver("pool")}
             style={{
               fontSize: 11,
-              color: dragOverZone === "pool" ? "var(--dec-text)" : "var(--dec-text-muted)",
+              color: dragOverZone === "pool" ? "var(--vizithink-text)" : "var(--vizithink-text-muted)",
               padding: "8px 4px",
               textAlign: "center",
               borderRadius: 6,
-              border: isDragging ? "1px dashed var(--dec-accent)" : "1px dashed var(--dec-border-soft)",
+              border: isDragging ? "1px dashed var(--vizithink-accent)" : "1px dashed var(--vizithink-border-soft)",
               marginBottom: 6,
             }}
           >
@@ -429,9 +429,9 @@ export function EisenhowerWidget({ initial, onSend, onRemove }: WidgetProps) {
               padding: "5px 7px",
               fontSize: 12,
               borderRadius: 6,
-              border: "1px solid var(--dec-border)",
-              background: "var(--dec-surface-2)",
-              color: "var(--dec-text)",
+              border: "1px solid var(--vizithink-border)",
+              background: "var(--vizithink-surface-2)",
+              color: "var(--vizithink-text)",
               outline: "none",
             }}
           />
@@ -448,7 +448,7 @@ export function EisenhowerWidget({ initial, onSend, onRemove }: WidgetProps) {
           </button>
         </div>
         {genError && (
-          <div style={{ marginTop: 4, fontSize: 11, color: "var(--dec-option)" }}>{genError}</div>
+          <div style={{ marginTop: 4, fontSize: 11, color: "var(--vizithink-option)" }}>{genError}</div>
         )}
       </div>
 
@@ -459,12 +459,12 @@ export function EisenhowerWidget({ initial, onSend, onRemove }: WidgetProps) {
           alignItems: "center",
           justifyContent: "flex-end",
           padding: "8px 10px",
-          borderTop: "1px solid var(--dec-border-soft)",
-          background: "var(--dec-surface)",
+          borderTop: "1px solid var(--vizithink-border-soft)",
+          background: "var(--vizithink-surface)",
         }}
       >
         {sent && (
-          <span style={{ marginRight: 10, fontSize: 12, color: "var(--dec-merged)" }}>Sent ✓</span>
+          <span style={{ marginRight: 10, fontSize: 12, color: "var(--vizithink-merged)" }}>Sent ✓</span>
         )}
         <button type="button" onClick={send} disabled={placed.length === 0} style={sendBtn(placed.length > 0)}>
           {sent ? "Send again ↩" : "Send to chat ↩"}
@@ -479,8 +479,8 @@ const iconBtn: CSSProperties = {
   width: 20,
   height: 20,
   borderRadius: 6,
-  border: "1px solid var(--dec-border)",
-  background: "var(--dec-surface-2)",
+  border: "1px solid var(--vizithink-border)",
+  background: "var(--vizithink-surface-2)",
   color: "#ff8b8b",
   cursor: "pointer",
   flexShrink: 0,
@@ -490,9 +490,9 @@ const addBtn: CSSProperties = {
   fontSize: 11,
   padding: "3px 10px",
   borderRadius: 6,
-  border: "1px solid var(--dec-border)",
-  background: "var(--dec-surface-2)",
-  color: "var(--dec-text-muted)",
+  border: "1px solid var(--vizithink-border)",
+  background: "var(--vizithink-surface-2)",
+  color: "var(--vizithink-text-muted)",
   cursor: "pointer",
 };
 
@@ -501,9 +501,9 @@ const genBtn = (enabled: boolean): CSSProperties => ({
   fontWeight: 600,
   padding: "3px 10px",
   borderRadius: 6,
-  border: "1px solid var(--dec-border)",
-  background: enabled ? "var(--dec-accent-soft)" : "var(--dec-surface)",
-  color: enabled ? "var(--dec-text)" : "var(--dec-text-subtle)",
+  border: "1px solid var(--vizithink-border)",
+  background: enabled ? "var(--vizithink-accent-soft)" : "var(--vizithink-surface)",
+  color: enabled ? "var(--vizithink-text)" : "var(--vizithink-text-subtle)",
   cursor: enabled ? "pointer" : "not-allowed",
   whiteSpace: "nowrap",
 });
@@ -514,7 +514,7 @@ const sendBtn = (enabled: boolean): CSSProperties => ({
   padding: "6px 12px",
   borderRadius: 8,
   border: "none",
-  background: enabled ? "var(--dec-accent)" : "var(--dec-border)",
-  color: enabled ? "#0f1115" : "var(--dec-text-subtle)",
+  background: enabled ? "var(--vizithink-accent)" : "var(--vizithink-border)",
+  color: enabled ? "#0f1115" : "var(--vizithink-text-subtle)",
   cursor: enabled ? "pointer" : "not-allowed",
 });

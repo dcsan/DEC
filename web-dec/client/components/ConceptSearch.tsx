@@ -22,7 +22,7 @@ export function ConceptSearch({
   return (
     <div
       style={{
-        borderTop: "1px solid var(--dec-border-soft)",
+        borderTop: "1px solid var(--vizithink-border-soft)",
         padding: 12,
       }}
     >
@@ -42,7 +42,7 @@ export function ConceptSearch({
       </form>
 
       {search.isFetching && (
-        <p style={{ fontSize: 12, color: "var(--dec-text-subtle)", marginTop: 8 }}>
+        <p style={{ fontSize: 12, color: "var(--vizithink-text-subtle)", marginTop: 8 }}>
           Researching…
         </p>
       )}
@@ -53,7 +53,7 @@ export function ConceptSearch({
             style={{
               fontSize: 12,
               fontWeight: 600,
-              color: "var(--dec-text-muted)",
+              color: "var(--vizithink-text-muted)",
               marginBottom: 4,
             }}
           >
@@ -72,7 +72,7 @@ export function ConceptSearch({
                 borderRadius: 7,
               }}
             >
-              <span style={{ color: "var(--dec-text)" }}>{c.title}</span>
+              <span style={{ color: "var(--vizithink-text)" }}>{c.title}</span>
               <button
                 type="button"
                 title="Add to canvas"
@@ -104,9 +104,9 @@ const inputStyle: React.CSSProperties = {
   padding: "8px 10px",
   fontSize: 13,
   borderRadius: 8,
-  border: "1px solid var(--dec-border)",
-  background: "var(--dec-surface-2)",
-  color: "var(--dec-text)",
+  border: "1px solid var(--vizithink-border)",
+  background: "var(--vizithink-surface-2)",
+  color: "var(--vizithink-text)",
   outline: "none",
 };
 
@@ -114,9 +114,9 @@ const addBtnStyle: React.CSSProperties = {
   width: 22,
   height: 22,
   borderRadius: 6,
-  border: "1px solid var(--dec-border)",
-  background: "var(--dec-surface-2)",
-  color: "var(--dec-accent)",
+  border: "1px solid var(--vizithink-border)",
+  background: "var(--vizithink-surface-2)",
+  color: "var(--vizithink-accent)",
   cursor: "pointer",
   fontSize: 14,
   lineHeight: 1,

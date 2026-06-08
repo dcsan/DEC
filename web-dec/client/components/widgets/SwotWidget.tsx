@@ -15,7 +15,7 @@ export function SwotWidget(props: WidgetProps) {
       initialCells={blank.cells}
       quadrantLabels={LABELS}
       headerEmoji="◇"
-      accent="var(--dec-option)"
+      accent="var(--vizithink-option)"
       hint={
         <>
           Drag <strong>⠿</strong> to swap notes between quadrants if you want to reshuffle ideas.

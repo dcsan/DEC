@@ -19,10 +19,10 @@ import {
 } from "./scenario.spec";
 import type { ScenarioNodeSuggestion } from "../../../src/trpc/routers/scenario";
 
-const ACCENT = "var(--dec-option)";
-const GOOD = "var(--dec-merged)";
+const ACCENT = "var(--vizithink-option)";
+const GOOD = "var(--vizithink-merged)";
 const BAD = "#ff8b8b";
-const NEUTRAL = "var(--dec-text-subtle)";
+const NEUTRAL = "var(--vizithink-text-subtle)";
 const outcomeColor = (o: Outcome) => (o === "good" ? GOOD : o === "bad" ? BAD : NEUTRAL);
 
 // --- immutable tree helpers (operate on a node id, recurse into children) ----
@@ -159,7 +159,7 @@ export function ScenarioWidget({ initial, onSend, onRemove, onCommand }: WidgetP
             {more.isPending ? "Thinking…" : "✨ generate more"}
           </button>
           {suggest.isPending && (
-            <span style={{ fontSize: 11, color: "var(--dec-text-subtle)" }}>drafting tree…</span>
+            <span style={{ fontSize: 11, color: "var(--vizithink-text-subtle)" }}>drafting tree…</span>
           )}
           {error && <span style={{ fontSize: 11, color: BAD }}>{error}</span>}
         </div>
@@ -234,9 +234,9 @@ function OutcomeToggle({ value, onChange }: { value: Outcome; onChange: (o: Outc
       height: 24,
       fontSize: 12,
       borderRadius: 6,
-      border: `1px solid ${active ? color : "var(--dec-border)"}`,
+      border: `1px solid ${active ? color : "var(--vizithink-border)"}`,
       background: active ? `${color}33` : "transparent",
-      color: active ? color : "var(--dec-text-subtle)",
+      color: active ? color : "var(--vizithink-text-subtle)",
       cursor: "pointer",
       padding: 0,
     };
@@ -334,12 +334,12 @@ function ScenarioTree({ tree }: { tree: ScenarioNode[] }) {
 
   return (
     <div style={{ marginTop: 12, overflowX: "auto" }}>
-      <div style={{ fontSize: 11, fontWeight: 600, marginBottom: 4, color: "var(--dec-text-subtle)" }}>
+      <div style={{ fontSize: 11, fontWeight: 600, marginBottom: 4, color: "var(--vizithink-text-subtle)" }}>
         Scenario tree
       </div>
       <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} style={{ display: "block", maxWidth: "none" }}>
         {/* decision root */}
-        <rect x={rootX} y={rootY - 9} width={10} height={18} rx={3} fill="var(--dec-text-subtle)" opacity={0.6} />
+        <rect x={rootX} y={rootY - 9} width={10} height={18} rx={3} fill="var(--vizithink-text-subtle)" opacity={0.6} />
         {links.map((l, i) => (
           <path key={i} d={curve(l)} fill="none" stroke={outcomeColor(l.outcome)} strokeWidth={2} opacity={0.5} />
         ))}
@@ -350,7 +350,7 @@ function ScenarioTree({ tree }: { tree: ScenarioNode[] }) {
           return (
             <g key={n.id}>
               <circle cx={n.x} cy={n.y} r={4} fill={color} />
-              <text x={n.x + 8} y={n.y} dominantBaseline="middle" fontSize={11} fill="var(--dec-text)">
+              <text x={n.x + 8} y={n.y} dominantBaseline="middle" fontSize={11} fill="var(--vizithink-text)">
                 {label}
               </text>
             </g>
@@ -371,7 +371,7 @@ const pctSuffix: CSSProperties = {
   top: "50%",
   transform: "translateY(-50%)",
   fontSize: 11,
-  color: "var(--dec-text-subtle)",
+  color: "var(--vizithink-text-subtle)",
   pointerEvents: "none",
 };
 
@@ -380,10 +380,10 @@ function shell(accent: string): CSSProperties {
     width: "100%",
     maxWidth: 840,
     borderRadius: 12,
-    background: "var(--dec-surface-2)",
+    background: "var(--vizithink-surface-2)",
     border: `1.5px solid ${accent}`,
     boxShadow: "0 1px 2px #0006",
-    color: "var(--dec-text)",
+    color: "var(--vizithink-text)",
     overflow: "hidden",
   };
 }
@@ -404,8 +404,8 @@ function HeaderRow(props: {
         alignItems: "center",
         gap: 8,
         padding: "8px 10px",
-        borderBottom: "1px solid var(--dec-border-soft)",
-        background: "var(--dec-surface)",
+        borderBottom: "1px solid var(--vizithink-border-soft)",
+        background: "var(--vizithink-surface)",
       }}
     >
       <span style={{ fontSize: 13 }}>{emoji}</span>
@@ -422,7 +422,7 @@ function HeaderRow(props: {
           fontWeight: 600,
           border: "none",
           background: "transparent",
-          color: "var(--dec-text)",
+          color: "var(--vizithink-text)",
           outline: "none",
         }}
       />
@@ -447,12 +447,12 @@ function FooterRow(props: { sent: boolean; hasContent: boolean; send: () => void
         alignItems: "center",
         justifyContent: "flex-end",
         padding: "8px 10px",
-        borderTop: "1px solid var(--dec-border-soft)",
-        background: "var(--dec-surface)",
+        borderTop: "1px solid var(--vizithink-border-soft)",
+        background: "var(--vizithink-surface)",
       }}
     >
       {sent && (
-        <span style={{ marginRight: 10, fontSize: 12, color: "var(--dec-merged)" }}>Sent ✓</span>
+        <span style={{ marginRight: 10, fontSize: 12, color: "var(--vizithink-merged)" }}>Sent ✓</span>
       )}
       <button type="button" onClick={send} disabled={!hasContent} style={sendBtn(hasContent)}>
         {sent ? "Send again ↩" : "Send to chat ↩"}
@@ -467,9 +467,9 @@ const inp: CSSProperties = {
   padding: "5px 7px",
   fontSize: 12,
   borderRadius: 6,
-  border: "1px solid var(--dec-border)",
-  background: "var(--dec-surface)",
-  color: "var(--dec-text)",
+  border: "1px solid var(--vizithink-border)",
+  background: "var(--vizithink-surface)",
+  color: "var(--vizithink-text)",
   outline: "none",
 };
 
@@ -477,9 +477,9 @@ const addBtn: CSSProperties = {
   fontSize: 11,
   padding: "4px 8px",
   borderRadius: 6,
-  border: "1px dashed var(--dec-border)",
+  border: "1px dashed var(--vizithink-border)",
   background: "transparent",
-  color: "var(--dec-text-muted)",
+  color: "var(--vizithink-text-muted)",
   cursor: "pointer",
 };
 
@@ -488,9 +488,9 @@ const branchBtn: CSSProperties = {
   width: 24,
   height: 24,
   borderRadius: 6,
-  border: "1px solid var(--dec-border)",
-  background: "var(--dec-surface)",
-  color: "var(--dec-text-muted)",
+  border: "1px solid var(--vizithink-border)",
+  background: "var(--vizithink-surface)",
+  color: "var(--vizithink-text-muted)",
   cursor: "pointer",
   flexShrink: 0,
   padding: 0,
@@ -501,8 +501,8 @@ const removeBtn: CSSProperties = {
   width: 24,
   height: 24,
   borderRadius: 6,
-  border: "1px solid var(--dec-border)",
-  background: "var(--dec-surface)",
+  border: "1px solid var(--vizithink-border)",
+  background: "var(--vizithink-surface)",
   color: BAD,
   cursor: "pointer",
   flexShrink: 0,
@@ -514,9 +514,9 @@ const genBtn = (enabled: boolean): CSSProperties => ({
   fontWeight: 600,
   padding: "4px 10px",
   borderRadius: 6,
-  border: "1px solid var(--dec-border)",
-  background: enabled ? "var(--dec-accent-soft)" : "var(--dec-surface)",
-  color: enabled ? "var(--dec-text)" : "var(--dec-text-subtle)",
+  border: "1px solid var(--vizithink-border)",
+  background: enabled ? "var(--vizithink-accent-soft)" : "var(--vizithink-surface)",
+  color: enabled ? "var(--vizithink-text)" : "var(--vizithink-text-subtle)",
   cursor: enabled ? "pointer" : "not-allowed",
   whiteSpace: "nowrap",
 });
@@ -526,8 +526,8 @@ const iconBtn: CSSProperties = {
   width: 20,
   height: 20,
   borderRadius: 6,
-  border: "1px solid var(--dec-border)",
-  background: "var(--dec-surface-2)",
+  border: "1px solid var(--vizithink-border)",
+  background: "var(--vizithink-surface-2)",
   color: "#ff8b8b",
   cursor: "pointer",
   flexShrink: 0,
@@ -539,9 +539,9 @@ const helpBtn: CSSProperties = {
   width: 20,
   height: 20,
   borderRadius: 6,
-  border: "1px solid var(--dec-border)",
-  background: "var(--dec-surface-2)",
-  color: "var(--dec-text-subtle)",
+  border: "1px solid var(--vizithink-border)",
+  background: "var(--vizithink-surface-2)",
+  color: "var(--vizithink-text-subtle)",
   cursor: "pointer",
   flexShrink: 0,
 };
@@ -552,7 +552,7 @@ const sendBtn = (enabled: boolean): CSSProperties => ({
   padding: "6px 12px",
   borderRadius: 8,
   border: "none",
-  background: enabled ? "var(--dec-accent)" : "var(--dec-border)",
-  color: enabled ? "#0f1115" : "var(--dec-text-subtle)",
+  background: enabled ? "var(--vizithink-accent)" : "var(--vizithink-border)",
+  color: enabled ? "#0f1115" : "var(--vizithink-text-subtle)",
   cursor: enabled ? "pointer" : "not-allowed",
 });

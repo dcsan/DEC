@@ -14,7 +14,7 @@ import {
   type Factor,
 } from "./factors.spec";
 
-const ACCENT = "var(--dec-merged)";
+const ACCENT = "var(--vizithink-merged)";
 
 export function FactorsWidget({ initial, onSend, onRemove }: WidgetProps) {
   const seed = blankFactorsData(initial?.title || "");
@@ -108,10 +108,10 @@ export function FactorsWidget({ initial, onSend, onRemove }: WidgetProps) {
         width: "100%",
         maxWidth: 840,
         borderRadius: 12,
-        background: "var(--dec-surface-2)",
+        background: "var(--vizithink-surface-2)",
         border: `1.5px solid ${ACCENT}`,
         boxShadow: "0 1px 2px #0006",
-        color: "var(--dec-text)",
+        color: "var(--vizithink-text)",
         overflow: "hidden",
       }}
     >
@@ -122,8 +122,8 @@ export function FactorsWidget({ initial, onSend, onRemove }: WidgetProps) {
           alignItems: "center",
           gap: 8,
           padding: "8px 10px",
-          borderBottom: "1px solid var(--dec-border-soft)",
-          background: "var(--dec-surface)",
+          borderBottom: "1px solid var(--vizithink-border-soft)",
+          background: "var(--vizithink-surface)",
         }}
       >
         <span style={{ fontSize: 13 }}>✓</span>
@@ -140,7 +140,7 @@ export function FactorsWidget({ initial, onSend, onRemove }: WidgetProps) {
             fontWeight: 600,
             border: "none",
             background: "transparent",
-            color: "var(--dec-text)",
+            color: "var(--vizithink-text)",
             outline: "none",
           }}
         />
@@ -155,8 +155,8 @@ export function FactorsWidget({ initial, onSend, onRemove }: WidgetProps) {
           margin: 0,
           padding: "8px 10px",
           fontSize: 12,
-          color: "var(--dec-text-muted)",
-          borderBottom: "1px solid var(--dec-border-soft)",
+          color: "var(--vizithink-text-muted)",
+          borderBottom: "1px solid var(--vizithink-border-soft)",
         }}
       >
         Rate the factors below by how important they are to you.
@@ -170,10 +170,10 @@ export function FactorsWidget({ initial, onSend, onRemove }: WidgetProps) {
           justifyContent: "space-between",
           gap: 8,
           padding: "6px 10px",
-          borderBottom: "1px solid var(--dec-border-soft)",
+          borderBottom: "1px solid var(--vizithink-border-soft)",
         }}
       >
-        <span style={{ fontSize: 11, color: "var(--dec-text-subtle)" }}>
+        <span style={{ fontSize: 11, color: "var(--vizithink-text-subtle)" }}>
           {suggest.isPending || more.isPending
             ? "Thinking…"
             : error
@@ -201,7 +201,7 @@ export function FactorsWidget({ initial, onSend, onRemove }: WidgetProps) {
               gap: 5,
               padding: "8px 0",
               borderBottom:
-                i < factors.length - 1 ? "1px solid var(--dec-border-soft)" : "none",
+                i < factors.length - 1 ? "1px solid var(--vizithink-border-soft)" : "none",
             }}
           >
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -215,13 +215,13 @@ export function FactorsWidget({ initial, onSend, onRemove }: WidgetProps) {
                 type="button"
                 title="Remove factor"
                 onClick={() => removeFactor(i)}
-                style={{ ...iconBtn, width: 22, color: "var(--dec-text-subtle)" }}
+                style={{ ...iconBtn, width: 22, color: "var(--vizithink-text-subtle)" }}
               >
                 −
               </button>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 8, paddingRight: 28 }}>
-              <span style={{ fontSize: 11, color: "var(--dec-text-subtle)", whiteSpace: "nowrap" }}>
+              <span style={{ fontSize: 11, color: "var(--vizithink-text-subtle)", whiteSpace: "nowrap" }}>
                 Matters
               </span>
               <input
@@ -237,7 +237,7 @@ export function FactorsWidget({ initial, onSend, onRemove }: WidgetProps) {
                 style={{
                   fontSize: 12,
                   fontWeight: 700,
-                  color: "var(--dec-text)",
+                  color: "var(--vizithink-text)",
                   width: 26,
                   textAlign: "right",
                 }}
@@ -260,12 +260,12 @@ export function FactorsWidget({ initial, onSend, onRemove }: WidgetProps) {
           alignItems: "center",
           justifyContent: "flex-end",
           padding: "8px 10px",
-          borderTop: "1px solid var(--dec-border-soft)",
-          background: "var(--dec-surface)",
+          borderTop: "1px solid var(--vizithink-border-soft)",
+          background: "var(--vizithink-surface)",
         }}
       >
         {sent && (
-          <span style={{ marginRight: 10, fontSize: 12, color: "var(--dec-merged)" }}>
+          <span style={{ marginRight: 10, fontSize: 12, color: "var(--vizithink-merged)" }}>
             Sent ✓
           </span>
         )}
@@ -282,8 +282,8 @@ const iconBtn: React.CSSProperties = {
   width: 20,
   height: 20,
   borderRadius: 6,
-  border: "1px solid var(--dec-border)",
-  background: "var(--dec-surface-2)",
+  border: "1px solid var(--vizithink-border)",
+  background: "var(--vizithink-surface-2)",
   color: "#ff8b8b",
   cursor: "pointer",
   flexShrink: 0,
@@ -294,9 +294,9 @@ const rowInput: React.CSSProperties = {
   padding: "5px 7px",
   fontSize: 12,
   borderRadius: 6,
-  border: "1px solid var(--dec-border)",
-  background: "var(--dec-surface)",
-  color: "var(--dec-text)",
+  border: "1px solid var(--vizithink-border)",
+  background: "var(--vizithink-surface)",
+  color: "var(--vizithink-text)",
   outline: "none",
 };
 
@@ -305,9 +305,9 @@ const addRowBtn: React.CSSProperties = {
   fontSize: 11,
   padding: "3px 8px",
   borderRadius: 6,
-  border: "1px dashed var(--dec-border)",
+  border: "1px dashed var(--vizithink-border)",
   background: "transparent",
-  color: "var(--dec-text-muted)",
+  color: "var(--vizithink-text-muted)",
   cursor: "pointer",
 };
 
@@ -316,9 +316,9 @@ const suggestBtn = (enabled: boolean): React.CSSProperties => ({
   fontWeight: 600,
   padding: "4px 10px",
   borderRadius: 8,
-  border: "1px solid var(--dec-border)",
-  background: enabled ? "var(--dec-accent-soft)" : "var(--dec-surface)",
-  color: enabled ? "var(--dec-text)" : "var(--dec-text-subtle)",
+  border: "1px solid var(--vizithink-border)",
+  background: enabled ? "var(--vizithink-accent-soft)" : "var(--vizithink-surface)",
+  color: enabled ? "var(--vizithink-text)" : "var(--vizithink-text-subtle)",
   cursor: enabled ? "pointer" : "not-allowed",
   flexShrink: 0,
 });
@@ -329,7 +329,7 @@ const sendBtn = (enabled: boolean): React.CSSProperties => ({
   padding: "6px 12px",
   borderRadius: 8,
   border: "none",
-  background: enabled ? "var(--dec-accent)" : "var(--dec-border)",
-  color: enabled ? "#0f1115" : "var(--dec-text-subtle)",
+  background: enabled ? "var(--vizithink-accent)" : "var(--vizithink-border)",
+  color: enabled ? "#0f1115" : "var(--vizithink-text-subtle)",
   cursor: enabled ? "pointer" : "not-allowed",
 });

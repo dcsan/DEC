@@ -72,8 +72,8 @@ export function ChatSidebar({
         flexShrink: 0,
         display: "flex",
         flexDirection: "column",
-        borderRight: "1px solid var(--dec-border-soft)",
-        background: "var(--dec-surface)",
+        borderRight: "1px solid var(--vizithink-border-soft)",
+        background: "var(--vizithink-surface)",
         minHeight: 0,
       }}
     >
@@ -88,7 +88,7 @@ export function ChatSidebar({
       </div>
 
       {/* Composer */}
-      <div style={{ padding: 12, borderTop: "1px solid var(--dec-border-soft)" }}>
+      <div style={{ padding: 12, borderTop: "1px solid var(--vizithink-border-soft)" }}>
         <textarea
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
@@ -106,9 +106,9 @@ export function ChatSidebar({
             padding: "8px 10px",
             fontSize: 13,
             borderRadius: 8,
-            border: "1px solid var(--dec-border)",
-            background: "var(--dec-surface-2)",
-            color: "var(--dec-text)",
+            border: "1px solid var(--vizithink-border)",
+            background: "var(--vizithink-surface-2)",
+            color: "var(--vizithink-text)",
             outline: "none",
             fontFamily: "inherit",
           }}
@@ -146,9 +146,9 @@ function MessageBubble({
           fontSize: 13,
           lineHeight: 1.45,
           whiteSpace: "pre-wrap",
-          background: isUser ? "var(--dec-accent-soft)" : "var(--dec-surface-2)",
-          color: muted ? "var(--dec-text-subtle)" : "var(--dec-text)",
-          border: "1px solid var(--dec-border-soft)",
+          background: isUser ? "var(--vizithink-accent-soft)" : "var(--vizithink-surface-2)",
+          color: muted ? "var(--vizithink-text-subtle)" : "var(--vizithink-text)",
+          border: "1px solid var(--vizithink-border-soft)",
         }}
       >
         {content}

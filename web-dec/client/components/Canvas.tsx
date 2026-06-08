@@ -133,7 +133,7 @@ function Flow({ boardId, nodes: dbNodes, edges: dbEdges, onChanged }: Props) {
         source: e.source,
         target: e.target,
         label: e.label ?? undefined,
-        style: { stroke: "var(--dec-border)" },
+        style: { stroke: "var(--vizithink-border)" },
       })),
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -180,14 +180,14 @@ function Flow({ boardId, nodes: dbNodes, edges: dbEdges, onChanged }: Props) {
       }
       fitView
       proOptions={{ hideAttribution: true }}
-      style={{ background: "var(--dec-bg)" }}
+      style={{ background: "var(--vizithink-bg)" }}
     >
       <Background color="#2a2f3a" gap={20} />
       <Controls />
       <MiniMap
         pannable
         zoomable
-        style={{ background: "var(--dec-surface)" }}
+        style={{ background: "var(--vizithink-surface)" }}
         nodeColor="#3a4150"
       />
     </ReactFlow>

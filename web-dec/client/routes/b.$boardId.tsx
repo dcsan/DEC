@@ -43,7 +43,7 @@ function Centered({ children }: { children: React.ReactNode }) {
         height: "100%",
         display: "grid",
         placeItems: "center",
-        color: "var(--dec-text-subtle)",
+        color: "var(--vizithink-text-subtle)",
       }}
     >
       {children}

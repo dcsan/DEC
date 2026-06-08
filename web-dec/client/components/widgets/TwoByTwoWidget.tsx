@@ -19,7 +19,7 @@ import {
   type PlacedItem,
 } from "./twobytwo.spec";
 
-const ACCENT = "var(--dec-framework)";
+const ACCENT = "var(--vizithink-framework)";
 
 const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n));
 
@@ -356,7 +356,7 @@ export function TwoByTwoWidget({ initial, onSend, onRemove, onMessage }: WidgetP
       {/* Suggest bar — status text always; the suggest button lives here until a
           few options exist, after which it moves into the "redo axes" panel. */}
       <div style={suggestBar}>
-        <span style={{ fontSize: 11, color: error ? "#ff8b8b" : "var(--dec-text-subtle)" }}>
+        <span style={{ fontSize: 11, color: error ? "#ff8b8b" : "var(--vizithink-text-subtle)" }}>
           {suggest.isPending
             ? "Deriving axes…"
             : options.isPending
@@ -503,7 +503,7 @@ export function TwoByTwoWidget({ initial, onSend, onRemove, onMessage }: WidgetP
           ⚙ change axes {showSettings ? "▲" : "▾"}
         </button>
         <div style={{ display: "flex", alignItems: "center" }}>
-          {sent && <span style={{ marginRight: 10, fontSize: 12, color: "var(--dec-merged)" }}>Sent ✓</span>}
+          {sent && <span style={{ marginRight: 10, fontSize: 12, color: "var(--vizithink-merged)" }}>Sent ✓</span>}
           <button type="button" onClick={send} disabled={!hasContent} style={sendBtn(hasContent)}>
             {sent ? "Send again ↩" : "Send to chat ↩"}
           </button>
@@ -515,12 +515,12 @@ export function TwoByTwoWidget({ initial, onSend, onRemove, onMessage }: WidgetP
           re-score every option in place on the new axes. */}
       {showSettings && (
         <div style={{ ...settingsPanel, margin: "0 10px 10px", borderRadius: 8 }}>
-          <div style={{ fontSize: 11, color: "var(--dec-text-subtle)", marginBottom: 2 }}>
+          <div style={{ fontSize: 11, color: "var(--vizithink-text-subtle)", marginBottom: 2 }}>
             Pick up to two ways to compare these options, then re-score them.
           </div>
 
           {options.isPending && optionAxes.length === 0 ? (
-            <div style={{ fontSize: 11, color: "var(--dec-text-subtle)" }}>Finding ways to compare…</div>
+            <div style={{ fontSize: 11, color: "var(--vizithink-text-subtle)" }}>Finding ways to compare…</div>
           ) : (
             optionAxes.map((ax, i) => {
               const checked = picks.includes(i);
@@ -530,7 +530,7 @@ export function TwoByTwoWidget({ initial, onSend, onRemove, onMessage }: WidgetP
                   <input type="checkbox" checked={checked} disabled={full} onChange={() => togglePick(i)} />
                   <span style={{ fontSize: 12, fontWeight: 600 }}>{ax.label}</span>
                   {(ax.low || ax.high) && (
-                    <span style={{ fontSize: 11, color: "var(--dec-text-subtle)" }}>
+                    <span style={{ fontSize: 11, color: "var(--vizithink-text-subtle)" }}>
                       {ax.low || "low"} → {ax.high || "high"}
                     </span>
                   )}
@@ -622,12 +622,16 @@ function InfoButton({ onClick, busy, name }: { onClick: () => void; busy: boolea
 
 const shell: CSSProperties = {
   width: "100%",
-  maxWidth: 840,
+  // Cap width by the SMALLER of available width (840) and viewport height. The
+  // plane is a square sized from the shell width, so an unbounded width makes the
+  // widget taller than a landscape viewport (axis labels + footer scroll off).
+  // Subtracting the app header + composer + chrome keeps the whole widget visible.
+  maxWidth: "min(840px, calc(100dvh - 280px))",
   borderRadius: 12,
-  background: "var(--dec-surface-2)",
+  background: "var(--vizithink-surface-2)",
   border: `1.5px solid ${ACCENT}`,
   boxShadow: "0 1px 2px #0006",
-  color: "var(--dec-text)",
+  color: "var(--vizithink-text)",
   overflow: "hidden",
 };
 
@@ -636,8 +640,8 @@ const headerRow: CSSProperties = {
   alignItems: "center",
   gap: 8,
   padding: "8px 10px",
-  borderBottom: "1px solid var(--dec-border-soft)",
-  background: "var(--dec-surface)",
+  borderBottom: "1px solid var(--vizithink-border-soft)",
+  background: "var(--vizithink-surface)",
 };
 
 const titleInput: CSSProperties = {
@@ -646,7 +650,7 @@ const titleInput: CSSProperties = {
   fontWeight: 600,
   border: "none",
   background: "transparent",
-  color: "var(--dec-text)",
+  color: "var(--vizithink-text)",
   outline: "none",
 };
 
@@ -656,7 +660,7 @@ const suggestBar: CSSProperties = {
   justifyContent: "space-between",
   gap: 8,
   padding: "6px 10px",
-  borderBottom: "1px solid var(--dec-border-soft)",
+  borderBottom: "1px solid var(--vizithink-border-soft)",
 };
 
 const yAxisCol: CSSProperties = {
@@ -673,8 +677,8 @@ const plane: CSSProperties = {
   flex: 1,
   aspectRatio: "1 / 1",
   borderRadius: 8,
-  border: "1px solid var(--dec-border)",
-  background: "var(--dec-surface)",
+  border: "1px solid var(--vizithink-border)",
+  background: "var(--vizithink-surface)",
   touchAction: "none",
   overflow: "hidden",
 };
@@ -685,7 +689,7 @@ const crosshairV: CSSProperties = {
   top: 0,
   bottom: 0,
   width: 1,
-  background: "var(--dec-border-soft)",
+  background: "var(--vizithink-border-soft)",
 };
 const crosshairH: CSSProperties = {
   position: "absolute",
@@ -693,7 +697,7 @@ const crosshairH: CSSProperties = {
   left: 0,
   right: 0,
   height: 1,
-  background: "var(--dec-border-soft)",
+  background: "var(--vizithink-border-soft)",
 };
 
 const chip: CSSProperties = {
@@ -701,9 +705,9 @@ const chip: CSSProperties = {
   fontSize: 11,
   fontWeight: 600,
   borderRadius: 999,
-  border: "1px solid var(--dec-border)",
-  background: "var(--dec-surface-2)",
-  color: "var(--dec-text)",
+  border: "1px solid var(--vizithink-border)",
+  background: "var(--vizithink-surface-2)",
+  color: "var(--vizithink-text)",
   userSelect: "none",
   whiteSpace: "nowrap",
 };
@@ -713,7 +717,7 @@ const chipX: CSSProperties = {
   lineHeight: 1,
   border: "none",
   background: "transparent",
-  color: "var(--dec-text-subtle)",
+  color: "var(--vizithink-text-subtle)",
   cursor: "pointer",
   padding: 0,
 };
@@ -741,9 +745,9 @@ const poleInput: CSSProperties = {
   padding: "3px 6px",
   fontSize: 11,
   borderRadius: 6,
-  border: "1px solid var(--dec-border-soft)",
-  background: "var(--dec-surface-2)",
-  color: "var(--dec-text)",
+  border: "1px solid var(--vizithink-border-soft)",
+  background: "var(--vizithink-surface-2)",
+  color: "var(--vizithink-text)",
   outline: "none",
   minWidth: 0,
   width: "100%",
@@ -755,9 +759,9 @@ const redoBtn: CSSProperties = {
   fontWeight: 600,
   padding: "4px 10px",
   borderRadius: 8,
-  border: "1px solid var(--dec-border)",
-  background: "var(--dec-surface)",
-  color: "var(--dec-text-muted)",
+  border: "1px solid var(--vizithink-border)",
+  background: "var(--vizithink-surface)",
+  color: "var(--vizithink-text-muted)",
   cursor: "pointer",
 };
 
@@ -768,8 +772,8 @@ const settingsPanel: CSSProperties = {
   marginTop: 6,
   padding: "8px 10px",
   borderRadius: 8,
-  border: "1px solid var(--dec-border-soft)",
-  background: "var(--dec-surface)",
+  border: "1px solid var(--vizithink-border-soft)",
+  background: "var(--vizithink-surface)",
 };
 
 const optionRow: CSSProperties = {
@@ -777,7 +781,7 @@ const optionRow: CSSProperties = {
   alignItems: "baseline",
   gap: 8,
   fontSize: 12,
-  color: "var(--dec-text)",
+  color: "var(--vizithink-text)",
 };
 
 const addInput: CSSProperties = {
@@ -785,9 +789,9 @@ const addInput: CSSProperties = {
   padding: "5px 7px",
   fontSize: 12,
   borderRadius: 6,
-  border: "1px solid var(--dec-border)",
-  background: "var(--dec-surface)",
-  color: "var(--dec-text)",
+  border: "1px solid var(--vizithink-border)",
+  background: "var(--vizithink-surface)",
+  color: "var(--vizithink-text)",
   outline: "none",
 };
 
@@ -795,9 +799,9 @@ const addBtn: CSSProperties = {
   fontSize: 11,
   padding: "3px 10px",
   borderRadius: 6,
-  border: "1px dashed var(--dec-border)",
+  border: "1px dashed var(--vizithink-border)",
   background: "transparent",
-  color: "var(--dec-text-muted)",
+  color: "var(--vizithink-text-muted)",
   cursor: "pointer",
   whiteSpace: "nowrap",
 };
@@ -807,8 +811,8 @@ const footerRow: CSSProperties = {
   alignItems: "center",
   justifyContent: "flex-end",
   padding: "8px 10px",
-  borderTop: "1px solid var(--dec-border-soft)",
-  background: "var(--dec-surface)",
+  borderTop: "1px solid var(--vizithink-border-soft)",
+  background: "var(--vizithink-surface)",
 };
 
 const iconBtn: CSSProperties = {
@@ -816,8 +820,8 @@ const iconBtn: CSSProperties = {
   width: 20,
   height: 20,
   borderRadius: 6,
-  border: "1px solid var(--dec-border)",
-  background: "var(--dec-surface-2)",
+  border: "1px solid var(--vizithink-border)",
+  background: "var(--vizithink-surface-2)",
   color: "#ff8b8b",
   cursor: "pointer",
   flexShrink: 0,
@@ -828,9 +832,9 @@ const suggestBtn = (enabled: boolean): CSSProperties => ({
   fontWeight: 600,
   padding: "4px 10px",
   borderRadius: 8,
-  border: "1px solid var(--dec-border)",
-  background: enabled ? "var(--dec-accent-soft)" : "var(--dec-surface)",
-  color: enabled ? "var(--dec-text)" : "var(--dec-text-subtle)",
+  border: "1px solid var(--vizithink-border)",
+  background: enabled ? "var(--vizithink-accent-soft)" : "var(--vizithink-surface)",
+  color: enabled ? "var(--vizithink-text)" : "var(--vizithink-text-subtle)",
   cursor: enabled ? "pointer" : "not-allowed",
   flexShrink: 0,
 });
@@ -841,7 +845,7 @@ const sendBtn = (enabled: boolean): CSSProperties => ({
   padding: "6px 12px",
   borderRadius: 8,
   border: "none",
-  background: enabled ? "var(--dec-accent)" : "var(--dec-border)",
-  color: enabled ? "#0f1115" : "var(--dec-text-subtle)",
+  background: enabled ? "var(--vizithink-accent)" : "var(--vizithink-border)",
+  color: enabled ? "#0f1115" : "var(--vizithink-text-subtle)",
   cursor: enabled ? "pointer" : "not-allowed",
 });

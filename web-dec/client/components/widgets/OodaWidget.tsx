@@ -4,7 +4,7 @@ import { useState, type CSSProperties } from "react";
 import type { WidgetProps } from "./types";
 import { blankOodaData, oodaSpec } from "./ooda.spec";
 
-const ACCENT = "var(--dec-framework)";
+const ACCENT = "var(--vizithink-framework)";
 
 export function OodaWidget({ onSend, onRemove }: WidgetProps) {
   const blank = blankOodaData("");
@@ -51,8 +51,8 @@ export function OodaWidget({ onSend, onRemove }: WidgetProps) {
           alignItems: "center",
           gap: 8,
           padding: "8px 10px",
-          borderBottom: "1px solid var(--dec-border-soft)",
-          background: "var(--dec-surface)",
+          borderBottom: "1px solid var(--vizithink-border-soft)",
+          background: "var(--vizithink-surface)",
         }}
       >
         <span style={{ fontSize: 13 }}>↻</span>
@@ -69,7 +69,7 @@ export function OodaWidget({ onSend, onRemove }: WidgetProps) {
             fontWeight: 600,
             border: "none",
             background: "transparent",
-            color: "var(--dec-text)",
+            color: "var(--vizithink-text)",
             outline: "none",
           }}
         />
@@ -90,12 +90,12 @@ export function OodaWidget({ onSend, onRemove }: WidgetProps) {
           alignItems: "center",
           justifyContent: "flex-end",
           padding: "8px 10px",
-          borderTop: "1px solid var(--dec-border-soft)",
-          background: "var(--dec-surface)",
+          borderTop: "1px solid var(--vizithink-border-soft)",
+          background: "var(--vizithink-surface)",
         }}
       >
         {sent && (
-          <span style={{ marginRight: 10, fontSize: 12, color: "var(--dec-merged)" }}>Sent ✓</span>
+          <span style={{ marginRight: 10, fontSize: 12, color: "var(--vizithink-merged)" }}>Sent ✓</span>
         )}
         <button type="button" onClick={send} disabled={!hasContent} style={sendBtn(hasContent)}>
           {sent ? "Send again ↩" : "Send to chat ↩"}
@@ -110,25 +110,25 @@ function shell(accent: string): CSSProperties {
     width: "100%",
     maxWidth: 840,
     borderRadius: 12,
-    background: "var(--dec-surface-2)",
+    background: "var(--vizithink-surface-2)",
     border: `1.5px solid ${accent}`,
     boxShadow: "0 1px 2px #0006",
-    color: "var(--dec-text)",
+    color: "var(--vizithink-text)",
     overflow: "hidden",
   };
 }
 
 const lab: CSSProperties = { display: "flex", flexDirection: "column", gap: 4 };
-const labT: CSSProperties = { fontSize: 11, fontWeight: 600, color: "var(--dec-text-subtle)" };
+const labT: CSSProperties = { fontSize: 11, fontWeight: 600, color: "var(--vizithink-text-subtle)" };
 const ta: CSSProperties = {
   width: "100%",
   boxSizing: "border-box",
   padding: "6px 8px",
   fontSize: 12,
   borderRadius: 6,
-  border: "1px solid var(--dec-border)",
-  background: "var(--dec-surface)",
-  color: "var(--dec-text)",
+  border: "1px solid var(--vizithink-border)",
+  background: "var(--vizithink-surface)",
+  color: "var(--vizithink-text)",
   outline: "none",
   resize: "vertical",
   fontFamily: "inherit",
@@ -140,8 +140,8 @@ const iconBtn: CSSProperties = {
   width: 20,
   height: 20,
   borderRadius: 6,
-  border: "1px solid var(--dec-border)",
-  background: "var(--dec-surface-2)",
+  border: "1px solid var(--vizithink-border)",
+  background: "var(--vizithink-surface-2)",
   color: "#ff8b8b",
   cursor: "pointer",
   flexShrink: 0,
@@ -153,7 +153,7 @@ const sendBtn = (enabled: boolean): CSSProperties => ({
   padding: "6px 12px",
   borderRadius: 8,
   border: "none",
-  background: enabled ? "var(--dec-accent)" : "var(--dec-border)",
-  color: enabled ? "#0f1115" : "var(--dec-text-subtle)",
+  background: enabled ? "var(--vizithink-accent)" : "var(--vizithink-border)",
+  color: enabled ? "#0f1115" : "var(--vizithink-text-subtle)",
   cursor: enabled ? "pointer" : "not-allowed",
 });

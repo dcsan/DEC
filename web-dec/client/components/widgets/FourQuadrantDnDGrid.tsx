@@ -4,8 +4,8 @@ import { useState, type CSSProperties, type DragEvent, type ReactNode } from "re
 import type { WidgetProps, WidgetSpec } from "./types";
 import type { FourCells, Quadrant4Data } from "./quadrant4Types";
 
-/** Card border tint — pick a distinct `--dec-*` per widget (see references/contract.md). */
-const DEFAULT_ACCENT = "var(--dec-framework)";
+/** Card border tint — pick a distinct `--vizithink-*` per widget (see references/contract.md). */
+const DEFAULT_ACCENT = "var(--vizithink-framework)";
 
 function swapCells(cells: FourCells, from: number, to: number): FourCells {
   if (from === to) return cells;
@@ -79,10 +79,10 @@ export function FourQuadrantDnDGrid({
         width: "100%",
         maxWidth: 840,
         borderRadius: 12,
-        background: "var(--dec-surface-2)",
+        background: "var(--vizithink-surface-2)",
         border: `1.5px solid ${accent}`,
         boxShadow: "0 1px 2px #0006",
-        color: "var(--dec-text)",
+        color: "var(--vizithink-text)",
         overflow: "hidden",
       }}
     >
@@ -92,8 +92,8 @@ export function FourQuadrantDnDGrid({
           alignItems: "center",
           gap: 8,
           padding: "8px 10px",
-          borderBottom: "1px solid var(--dec-border-soft)",
-          background: "var(--dec-surface)",
+          borderBottom: "1px solid var(--vizithink-border-soft)",
+          background: "var(--vizithink-surface)",
         }}
       >
         <span style={{ fontSize: 13 }}>{headerEmoji}</span>
@@ -110,7 +110,7 @@ export function FourQuadrantDnDGrid({
             fontWeight: 600,
             border: "none",
             background: "transparent",
-            color: "var(--dec-text)",
+            color: "var(--vizithink-text)",
             outline: "none",
           }}
         />
@@ -123,7 +123,7 @@ export function FourQuadrantDnDGrid({
         style={{
           margin: "6px 10px 0",
           fontSize: 11,
-          color: "var(--dec-text-subtle)",
+          color: "var(--vizithink-text-subtle)",
         }}
       >
         {hint}
@@ -151,8 +151,8 @@ export function FourQuadrantDnDGrid({
               gap: 4,
               padding: 8,
               borderRadius: 8,
-              border: "1px solid var(--dec-border)",
-              background: "var(--dec-surface)",
+              border: "1px solid var(--vizithink-border)",
+              background: "var(--vizithink-surface)",
               minHeight: 72,
             }}
           >
@@ -169,12 +169,12 @@ export function FourQuadrantDnDGrid({
                   fontSize: 14,
                   lineHeight: 1,
                   userSelect: "none",
-                  color: "var(--dec-text-muted)",
+                  color: "var(--vizithink-text-muted)",
                 }}
               >
                 ⠿
               </span>
-              <span style={{ fontSize: 10, fontWeight: 700, color: "var(--dec-text-subtle)" }}>
+              <span style={{ fontSize: 10, fontWeight: 700, color: "var(--vizithink-text-subtle)" }}>
                 {label}
               </span>
             </div>
@@ -190,9 +190,9 @@ export function FourQuadrantDnDGrid({
                 padding: "5px 7px",
                 fontSize: 12,
                 borderRadius: 6,
-                border: "1px solid var(--dec-border-soft)",
-                background: "var(--dec-surface-2)",
-                color: "var(--dec-text)",
+                border: "1px solid var(--vizithink-border-soft)",
+                background: "var(--vizithink-surface-2)",
+                color: "var(--vizithink-text)",
                 outline: "none",
                 fontFamily: "inherit",
                 boxSizing: "border-box",
@@ -208,12 +208,12 @@ export function FourQuadrantDnDGrid({
           alignItems: "center",
           justifyContent: "flex-end",
           padding: "8px 10px",
-          borderTop: "1px solid var(--dec-border-soft)",
-          background: "var(--dec-surface)",
+          borderTop: "1px solid var(--vizithink-border-soft)",
+          background: "var(--vizithink-surface)",
         }}
       >
         {sent && (
-          <span style={{ marginRight: 10, fontSize: 12, color: "var(--dec-merged)" }}>Sent ✓</span>
+          <span style={{ marginRight: 10, fontSize: 12, color: "var(--vizithink-merged)" }}>Sent ✓</span>
         )}
         <button type="button" onClick={send} disabled={!hasContent} style={sendBtn(hasContent)}>
           {sent ? "Send again ↩" : "Send to chat ↩"}
@@ -228,8 +228,8 @@ const iconBtn: CSSProperties = {
   width: 20,
   height: 20,
   borderRadius: 6,
-  border: "1px solid var(--dec-border)",
-  background: "var(--dec-surface-2)",
+  border: "1px solid var(--vizithink-border)",
+  background: "var(--vizithink-surface-2)",
   color: "#ff8b8b",
   cursor: "pointer",
   flexShrink: 0,
@@ -241,7 +241,7 @@ const sendBtn = (enabled: boolean): CSSProperties => ({
   padding: "6px 12px",
   borderRadius: 8,
   border: "none",
-  background: enabled ? "var(--dec-accent)" : "var(--dec-border)",
-  color: enabled ? "#0f1115" : "var(--dec-text-subtle)",
+  background: enabled ? "var(--vizithink-accent)" : "var(--vizithink-border)",
+  color: enabled ? "#0f1115" : "var(--vizithink-text-subtle)",
   cursor: enabled ? "pointer" : "not-allowed",
 });

@@ -15,13 +15,13 @@ export interface ConceptNodeData {
 }
 
 const KIND_COLOR: Record<NodeKind, string> = {
-  option: "var(--dec-option)",
-  concept: "var(--dec-concept)",
-  framework: "var(--dec-framework)",
-  merged: "var(--dec-merged)",
-  note: "var(--dec-text-subtle)",
+  option: "var(--vizithink-option)",
+  concept: "var(--vizithink-concept)",
+  framework: "var(--vizithink-framework)",
+  merged: "var(--vizithink-merged)",
+  note: "var(--vizithink-text-subtle)",
   // procon renders via ProConNode, but keep the map total for type-safety.
-  procon: "var(--dec-framework)",
+  procon: "var(--vizithink-framework)",
 };
 
 function ConceptNodeImpl({ id, data, selected }: NodeProps) {
@@ -36,12 +36,12 @@ function ConceptNodeImpl({ id, data, selected }: NodeProps) {
         maxWidth: 240,
         padding: "10px 12px",
         borderRadius: 12,
-        background: "var(--dec-surface-2)",
-        border: `1.5px solid ${selected ? accent : "var(--dec-border)"}`,
+        background: "var(--vizithink-surface-2)",
+        border: `1.5px solid ${selected ? accent : "var(--vizithink-border)"}`,
         boxShadow: selected ? `0 0 0 3px ${accent}33` : "0 1px 2px #0006",
         opacity: d.dimmed ? 0.25 : 1,
         transition: "opacity 120ms, border-color 120ms",
-        color: "var(--dec-text)",
+        color: "var(--vizithink-text)",
       }}
     >
       <Handle type="target" position={Position.Top} style={{ background: accent }} />
@@ -68,7 +68,7 @@ function ConceptNodeImpl({ id, data, selected }: NodeProps) {
             margin: "8px 0 0",
             fontSize: 12,
             lineHeight: 1.4,
-            color: "var(--dec-text-muted)",
+            color: "var(--vizithink-text-muted)",
           }}
         >
           {d.description}
@@ -125,9 +125,9 @@ function NodeBtn({
         fontSize: 11,
         padding: "3px 7px",
         borderRadius: 7,
-        border: "1px solid var(--dec-border)",
-        background: "var(--dec-surface)",
-        color: danger ? "#ff8b8b" : "var(--dec-text-muted)",
+        border: "1px solid var(--vizithink-border)",
+        background: "var(--vizithink-surface)",
+        color: danger ? "#ff8b8b" : "var(--vizithink-text-muted)",
         cursor: "pointer",
       }}
     >
