@@ -152,3 +152,8 @@ export type Message = typeof messages.$inferSelect;
 export type ChatLog = typeof chatLogs.$inferSelect;
 export type NewChatLog = typeof chatLogs.$inferInsert;
 export type WaitlistEntry = typeof waitlist.$inferSelect;
+
+// Better Auth tables (user/session/account/verification + OAuth provider tables)
+// — generated into auth-schema.ts by `pnpm auth:generate`. Re-exported here so
+// drizzle-kit migrations include them. See src/auth/index.ts.
+export * from "./auth-schema";

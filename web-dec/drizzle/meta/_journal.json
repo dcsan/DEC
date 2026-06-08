@@ -15,6 +15,13 @@
       "when": 1780834422797,
       "tag": "0001_sweet_wallow",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1780850504879,
+      "tag": "0002_flawless_triathlon",
+      "breakpoints": true
     }
   ]
 }

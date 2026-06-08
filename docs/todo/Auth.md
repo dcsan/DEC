@@ -497,6 +497,46 @@ As someone building an MCP server, don't put anything malicious in your tool def
 > `resources/read` all return correctly; `pnpm run typecheck` + `pnpm run build`
 > pass on the Workers runtime.
 >
+> **✅ Connected in ChatGPT (no auth) — 2026-06-07.** Live at
+> `https://dec.visithink.net/mcp` via a permanent Cloudflare named tunnel (§11).
+> ChatGPT connected without a sign-in prompt and the app works.
+>
+> **Gotcha fixed:** the SPA catch-all (`app.get("*")`) was returning `index.html`
+> (HTTP 200) for ChatGPT's OAuth-discovery probes, so ChatGPT reported *"MCP
+> server does not implement OAuth."* Fix: serve real OAuth metadata at those
+> `.well-known` paths (5c), with a `c.notFound()` fallback for other probes.
+>
+> **🔐 Phase 5c — OAuth/Connect server wired (2026-06-07).** Self-hosted **Better
+> Auth** is the OAuth/OIDC authorization server (`src/auth/index.ts`,
+> `createAuth(env)` per-request), backed by Neon (migration `0002`, 7 auth
+> tables). Mounted in `src/index.ts`:
+> - `/api/auth/*` — Better Auth handler (sign-in, authorize, token, **DCR**
+>   `/register`, jwks).
+> - `/.well-known/oauth-authorization-server` + `openid-configuration` +
+>   `oauth-protected-resource(/mcp)` — discovery (issuer `https://dec.visithink.net`).
+> - `/mcp` wrapped in `withMcpAuth` → 401 + `WWW-Authenticate` when no token.
+> - `/sign-in` (`client/routes/sign-in.tsx`, email/password sign-in+up) — Better
+>   Auth redirects here mid-flow; on success it resumes `/api/auth/mcp/authorize`.
+> - Consent: server-rendered `src/auth/consent.ts` via `oidcConfig.getConsentHTML`
+>   (DCR clients aren't pre-trusted, so consent is required).
+>
+> Verified through the tunnel: discovery JSON, DCR register returns a client_id,
+> unauth `/mcp` → 401, `authorize` (unauth) → 302 to `/sign-in?<params>`,
+> `/sign-in` renders. `typecheck` + Worker bundle pass.
+>
+> **Dep gotcha:** `better-auth` allows `kysely@^0.28.17 || ^0.29.0`; pnpm picked
+> 0.29.2, which dropped the root export `DEFAULT_MIGRATION_TABLE` that
+> `@better-auth/kysely-adapter` imports → Worker bundle failed. Fix: pnpm
+> override `"kysely": "0.28.17"` in package.json.
+>
+> **Env added** (`.dev.vars`): `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL=https://dec.visithink.net`.
+> Regenerate auth schema with `pnpm auth:generate`.
+>
+> **To test in ChatGPT:** connect `https://dec.visithink.net/mcp` with **OAuth** →
+> you'll be sent to `/sign-in` (create an account the first time) → consent →
+> connected. (App + tunnel must be running.) **Still TODO:** Google OAuth,
+> per-user data scoping (5d), web-app login UI (Phase 3), prod secrets/deploy.
+>
 > **To connect in ChatGPT dev mode:** `cd web-dec && pnpm run dev` (Worker on
 > :6390), expose it over HTTPS, then in ChatGPT: Settings → Apps & Connectors →
 > Advanced → developer mode, Create connector → `https://<host>/mcp`. No sign-in
@@ -743,9 +783,25 @@ A **named tunnel** maps a stable hostname (e.g. `dec.<yourdomain>.com`) to the
 local Worker, so the URL never changes. This matters even more for §8.5c: the
 OAuth issuer / `.well-known` discovery / token `aud` must stay constant.
 
-Prereq: a domain in your Cloudflare account, and `cloudflared` logged in
-(`cloudflared tunnel login` → writes `~/.cloudflared/cert.pem`). On this machine
-both are already done (existing named tunnels confirm the login).
+**Done on this machine (2026-06-07)** — scripted via
+`web-dec/scripts/setup-cf-tunnel.sh`:
+- Tunnel **`dec`** = `c37dadcd-3714-43e2-b09c-3e15d4686c20`, config
+  `~/.cloudflared/dec.yml` → `http://localhost:6390`.
+- Public hostname **`dec.visithink.net`** (CNAME → `<UUID>.cfargotunnel.com`,
+  proxied). Connector URL: `https://dec.visithink.net/mcp`.
+- **Gotcha:** the `cloudflared` login cert was scoped to `alpha-calls.com`, so
+  `cloudflared tunnel route dns` couldn't write into the `visithink.net` zone —
+  it silently created a junk record `dec.visithink.net.alpha-calls.com`. Both
+  zones are in the same CF account. Fix used: add the CNAME by hand in the
+  visithink.net dashboard (Name `dec` → `<UUID>.cfargotunnel.com`, proxied) and
+  delete the junk record. (Alternative: re-login scoped to visithink.net.) The
+  setup script now detects the wrong-zone case and prints both fixes.
+- Run it: `cloudflared tunnel --config ~/.cloudflared/dec.yml run dec` (+
+  `pnpm run dev`). Always-on: `sudo cloudflared --config ~/.cloudflared/dec.yml
+  service install`.
+
+Prereq (for reference): a domain in your Cloudflare account, and `cloudflared`
+logged in (`cloudflared tunnel login` → writes `~/.cloudflared/cert.pem`).
 
 ```bash
 # 1. Create the named tunnel (writes a <UUID>.json credentials file in ~/.cloudflared/)
