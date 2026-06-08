@@ -29,10 +29,10 @@ function RootComponent() {
             textDecoration: "none",
           }}
         >
-          DEC
+          VisiThink.net
         </Link>
         <span style={{ color: "var(--dec-text-subtle)", fontSize: 13 }}>
-          decide with AI
+          Decide with AI
         </span>
         <Link
           to="/chat"
