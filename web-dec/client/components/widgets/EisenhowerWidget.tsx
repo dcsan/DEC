@@ -65,6 +65,7 @@ export function EisenhowerWidget({ initial, onSend, onRemove }: WidgetProps) {
   const draggingTaskIdRef = useRef<string | null>(null);
 
   const more = trpc.suggest.more.useMutation();
+  const categorize = trpc.eisenhower.categorize.useMutation();
   const isDragging = dragId !== null;
   const dirty = () => {
     setSent(false);
@@ -94,6 +95,35 @@ export function EisenhowerWidget({ initial, onSend, onRemove }: WidgetProps) {
       }
     } catch (err) {
       setGenError(err instanceof Error ? err.message : "Could not generate more.");
+    }
+  };
+
+  // Map the two Eisenhower flags to a quadrant zone (mirrors ZONE_FLAGS).
+  const zoneFor = (important: boolean, urgent: boolean): Exclude<Zone, "pool"> =>
+    important && urgent ? "do" : important ? "schedule" : urgent ? "delegate" : "eliminate";
+
+  // Auto-categorise the unsorted pool: ask the LLM to rate each task on
+  // important/urgent, then move each into its quadrant. Lenient text match in
+  // case the model rewords; unmatched tasks stay in the pool to drag manually.
+  const runCategorize = async () => {
+    const q = seedQuestion();
+    const poolTexts = tasks.filter((t) => t.zone === "pool").map((t) => t.text.trim()).filter(Boolean);
+    if (!q || categorize.isPending || poolTexts.length === 0) return;
+    setGenError(null);
+    try {
+      const out = await categorize.mutateAsync({ question: q, items: poolTexts });
+      const norm = (s: string) => s.trim().toLowerCase();
+      const byText = new Map(out.items.map((it) => [norm(it.text), it]));
+      setTasks((cur) =>
+        cur.map((t) => {
+          if (t.zone !== "pool") return t;
+          const c = byText.get(norm(t.text));
+          return c ? { ...t, zone: zoneFor(c.important, c.urgent) } : t;
+        }),
+      );
+      setSent(false);
+    } catch (err) {
+      setGenError(err instanceof Error ? err.message : "Could not categorise the tasks.");
     }
   };
 
@@ -445,6 +475,15 @@ export function EisenhowerWidget({ initial, onSend, onRemove }: WidgetProps) {
             style={genBtn(!!seedQuestion() && !more.isPending)}
           >
             {more.isPending ? "Thinking…" : "✨ generate more"}
+          </button>
+          <button
+            type="button"
+            onClick={runCategorize}
+            disabled={!seedQuestion() || pool.length === 0 || categorize.isPending}
+            title="Sort the pooled tasks into the matrix automatically"
+            style={genBtn(!!seedQuestion() && pool.length > 0 && !categorize.isPending)}
+          >
+            {categorize.isPending ? "Sorting…" : "⚡ categorize"}
           </button>
         </div>
         {genError && (
