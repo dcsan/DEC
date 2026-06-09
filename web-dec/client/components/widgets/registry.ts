@@ -259,7 +259,7 @@ export function widgetHelpText(): string {
     (w) => `\`/${w.spec.commands[0]}\` — **${w.spec.title}**: ${w.spec.description}`,
   );
   return [
-    "**Widget shortcuts**",
+    "## Widget shortcuts",
     "",
     ...rows,
     "",
@@ -287,7 +287,8 @@ export function widgetDraftText(): string {
     (w) => `\`/${w.spec.commands[0]}\` — **${w.spec.title}**: ${w.spec.description}`,
   );
   return [
-    "**Draft widgets** (experimental — not auto-suggested; open by command)",
+    "## Draft widgets",
+    "_Experimental — not auto-suggested; open by command._",
     "",
     ...rows,
     "",
@@ -312,7 +313,7 @@ export function matchDraftsCommand(input: string): Record<string, never> | null 
 export function widgetHelpDetail(entry: WidgetEntry): string {
   const { spec } = entry;
   return [
-    `**\`/${spec.commands[0]}\` — ${spec.title}**`,
+    `## \`/${spec.commands[0]}\` — ${spec.title}`,
     "",
     spec.help,
     "",

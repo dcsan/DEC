@@ -4,8 +4,9 @@
 // router chooses the most relevant widget and extracts the choices to prefill it
 // — both returned and rendered here. Otherwise it's interpreted in context.
 
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { trpc } from "../lib/trpc";
+import { Markdown } from "./Markdown";
 import {
   allSlashCommands,
   getWidget,
@@ -60,7 +61,7 @@ const menuItemStyle: CSSProperties = {
   cursor: "pointer",
 };
 
-export function ChatView() {
+export function ChatView({ initialPrompt }: { initialPrompt?: string } = {}) {
   const [items, setItems] = useState<ChatItem[]>([]);
   const [draft, setDraft] = useState("");
   // Composer height: collapsed (1 row) or expanded (4 rows) via the expand button.
@@ -86,6 +87,23 @@ export function ChatView() {
   const facts = trpc.facts.list.useMutation();
   const diff = trpc.facts.diff.useMutation();
   const summary = trpc.summary.run.useMutation();
+  // Explicit in-flight flag for the chat.send path (routing + widget recommend),
+  // toggled via try/finally in the callers. We do NOT use `send.isPending`: when
+  // the convo router is auto-fired from a mount effect (entering via a `?q=` idea
+  // bubble), React StrictMode tears down and recreates the useMutation observer
+  // between the call and its resolution, leaving `isPending` stuck true forever —
+  // which wedged the composer in a permanent "thinking" state. A plain state flag
+  // we own is immune to that.
+  const [sending, setSending] = useState(false);
+  // True whenever a server request is in flight — blocks new sends and grays the
+  // Send button so it's clear we're waiting on a response.
+  const busy =
+    sending ||
+    research.isPending ||
+    viz.isPending ||
+    facts.isPending ||
+    diff.isPending ||
+    summary.isPending;
 
   // Keep the latest item in view as the stream grows.
   useEffect(() => {
@@ -137,32 +155,42 @@ export function ChatView() {
   // surfaced it, so the server can recommend a decision with full context (not
   // just the widget's formatted output). Show the recommendation as a reply.
   const postWidgetResult = async (output: WidgetOutput, question?: string) => {
-    const res = await send.mutateAsync({
-      text: output.text,
-      widget: { type: output.type, data: output.data },
-      question: question || undefined,
-      sessionId,
-    });
-    append({ kind: "message", id: uid(), role: "assistant", content: res.reply });
+    setSending(true);
+    try {
+      const res = await send.mutateAsync({
+        text: output.text,
+        widget: { type: output.type, data: output.data },
+        question: question || undefined,
+        sessionId,
+      });
+      append({ kind: "message", id: uid(), role: "assistant", content: res.reply });
+    } finally {
+      setSending(false);
+    }
   };
 
   // Route a free-text message: show the reply, and if the router chose a widget,
   // drop it into the stream prefilled with the extracted choices.
   const routeMessage = async (content: string) => {
-    const res = await send.mutateAsync({
-      text: content,
-      history: toHistory({ role: "user", content }),
-      sessionId,
-    });
-    append({ kind: "message", id: uid(), role: "assistant", content: res.reply });
-    if (res.widget && getWidget(res.widget)) {
-      append({
-        kind: "widget",
-        id: uid(),
-        type: res.widget,
-        // Carry the original message so it's forwarded back on the final post.
-        init: { title: res.title ?? undefined, items: res.items, question: content },
+    setSending(true);
+    try {
+      const res = await send.mutateAsync({
+        text: content,
+        history: toHistory({ role: "user", content }),
+        sessionId,
       });
+      append({ kind: "message", id: uid(), role: "assistant", content: res.reply });
+      if (res.widget && getWidget(res.widget)) {
+        append({
+          kind: "widget",
+          id: uid(),
+          type: res.widget,
+          // Carry the original message so it's forwarded back on the final post.
+          init: { title: res.title ?? undefined, items: res.items, question: content },
+        });
+      }
+    } finally {
+      setSending(false);
     }
   };
 
@@ -312,7 +340,7 @@ export function ChatView() {
     const content = raw.trim();
     if (
       !content ||
-      send.isPending ||
+      sending ||
       research.isPending ||
       viz.isPending ||
       facts.isPending ||
@@ -457,7 +485,7 @@ export function ChatView() {
 
   // Submit the composer textarea, clearing the draft once accepted.
   const submit = () => {
-    if (!draft.trim() || send.isPending || research.isPending) return;
+    if (!draft.trim() || busy) return;
     const line = draft;
     handleInput(line);
     setDraft("");
@@ -466,6 +494,19 @@ export function ChatView() {
     setSentHistory((h) => (h[h.length - 1] === line ? h : [...h, line]));
     setHistIndex(null);
   };
+
+  // `/chat?q=…` deep link (e.g. a landing-page speech bubble): ask the question
+  // once on mount so it shows as the user's message and the router replies. The
+  // ref makes this fire exactly once — including under StrictMode's double-invoke
+  // — and we deliberately DON'T navigate to strip `q` here: doing so mid-mount
+  // aborted the in-flight request and wedged the composer.
+  const startedRef = useRef(false);
+  useEffect(() => {
+    if (startedRef.current || !initialPrompt?.trim()) return;
+    startedRef.current = true;
+    handleInput(initialPrompt);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialPrompt]);
 
   // Up/down-arrow recall of previously sent lines (Slack-style). Up walks back
   // through history; down walks forward and finally back to a blank draft.
@@ -530,12 +571,32 @@ export function ChatView() {
       <div style={{ flex: 1, overflowY: "auto", padding: "16px 0" }}>
         <div style={{ maxWidth: 880, margin: "0 auto", padding: "0 16px" }}>
           {items.length === 0 && (
-            <p style={{ color: "var(--vizithink-text-subtle)", fontSize: 14, marginTop: 24, lineHeight: 1.6 }}>
-              Describe a decision — "should I join a startup?" or "compare apples
-              to oranges" — and I'll surface a thinking framework to help.
-              <br />
-              Type <code>/help</code> for more.
-            </p>
+            <div style={{ display: "flex", justifyContent: "flex-start", marginTop: 8, marginBottom: 12 }}>
+              <div
+                style={{
+                  maxWidth: "min(85%, 680px)",
+                  padding: "10px 13px",
+                  borderRadius: 12,
+                  fontSize: 14,
+                  lineHeight: 1.55,
+                  background: "var(--vizithink-surface-2)",
+                  color: "var(--vizithink-text)",
+                  border: "1px solid var(--vizithink-border-soft)",
+                }}
+              >
+                Describe a decision — "should I join a startup?" or "compare apples
+                to oranges" — and I'll surface a thinking framework to help.
+                <br />
+                Type <code style={{
+                  fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+                  fontSize: "0.9em",
+                  padding: "1px 5px",
+                  borderRadius: 5,
+                  background: "var(--vizithink-surface)",
+                  border: "1px solid var(--vizithink-border-soft)",
+                }}>/help</code> for more.
+              </div>
+            </div>
           )}
 
           {items.map((it) => {
@@ -574,26 +635,25 @@ export function ChatView() {
               </div>
             );
           })}
-          {(send.isPending ||
+          {(sending ||
             research.isPending ||
             viz.isPending ||
             facts.isPending ||
             diff.isPending ||
             summary.isPending) && (
-            <MessageBubble
-              role="assistant"
-              content={
+            <ThinkingBubble
+              label={
                 research.isPending
-                  ? "Researching…"
+                  ? "Researching"
                   : viz.isPending
-                    ? "Visualising…"
+                    ? "Visualising"
                     : facts.isPending
-                      ? "Recalling…"
+                      ? "Recalling"
                       : diff.isPending
-                        ? "Comparing…"
+                        ? "Comparing"
                         : summary.isPending
-                          ? "Summarising…"
-                          : "…"
+                          ? "Summarising"
+                          : "Thinking"
               }
             />
           )}
@@ -818,7 +878,7 @@ export function ChatView() {
           <button
             type="button"
             onClick={submit}
-            disabled={!draft.trim()}
+            disabled={!draft.trim() || busy}
             style={{
               height: 41,
               padding: "0 18px",
@@ -826,12 +886,12 @@ export function ChatView() {
               fontWeight: 600,
               borderRadius: 10,
               border: "none",
-              background: draft.trim() ? "var(--vizithink-accent)" : "var(--vizithink-border)",
-              color: draft.trim() ? "#0f1115" : "var(--vizithink-text-subtle)",
-              cursor: draft.trim() ? "pointer" : "not-allowed",
+              background: draft.trim() && !busy ? "var(--vizithink-accent)" : "var(--vizithink-border)",
+              color: draft.trim() && !busy ? "#0f1115" : "var(--vizithink-text-subtle)",
+              cursor: draft.trim() && !busy ? "pointer" : "not-allowed",
             }}
           >
-            Send
+            {busy ? "…" : "Send"}
           </button>
         </div>
       </div>
@@ -1054,6 +1114,36 @@ function AddContextPanel({ sessionId }: { sessionId: string }) {
   );
 }
 
+// Animated placeholder shown while a server response is pending — a larger
+// assistant bubble with a label and three bouncing dots (see .vt-thinking-dot
+// in index.css). Replaces the old tiny "…" so waiting reads as active.
+function ThinkingBubble({ label }: { label: string }) {
+  return (
+    <div style={{ display: "flex", justifyContent: "flex-start", marginBottom: 12 }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 12,
+          padding: "12px 16px",
+          borderRadius: 12,
+          fontSize: 14,
+          background: "var(--vizithink-surface-2)",
+          color: "var(--vizithink-text-muted)",
+          border: "1px solid var(--vizithink-border-soft)",
+        }}
+      >
+        <span>{label}</span>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+          <span className="vt-thinking-dot" style={{ animationDelay: "0s" }} />
+          <span className="vt-thinking-dot" style={{ animationDelay: "0.18s" }} />
+          <span className="vt-thinking-dot" style={{ animationDelay: "0.36s" }} />
+        </span>
+      </div>
+    </div>
+  );
+}
+
 function MessageBubble({
   role,
   content,
@@ -1064,6 +1154,9 @@ function MessageBubble({
   markdown?: boolean;
 }) {
   const isUser = role === "user";
+  // Assistant/system bubbles are markdown by default (LLM replies, /help, …);
+  // the user's own text is shown verbatim. `markdown` can force it either way.
+  const asMarkdown = markdown ?? !isUser;
   return (
     <div
       style={{
@@ -1079,63 +1172,14 @@ function MessageBubble({
           borderRadius: 12,
           fontSize: 14,
           lineHeight: 1.5,
-          whiteSpace: "pre-wrap",
+          whiteSpace: asMarkdown ? "normal" : "pre-wrap",
           background: isUser ? "var(--vizithink-accent-soft)" : "var(--vizithink-surface-2)",
           color: "var(--vizithink-text)",
           border: "1px solid var(--vizithink-border-soft)",
         }}
       >
-        {markdown ? renderMarkdown(content) : content}
+        {asMarkdown ? <Markdown>{content}</Markdown> : content}
       </div>
     </div>
   );
-}
-
-// Minimal markdown rendering for chat bubbles — just what /help needs: bold
-// (**text**) and inline code (`text`), line by line. Deliberately tiny: no
-// dependency, no block grammar, no HTML injection.
-function renderInline(text: string): ReactNode[] {
-  const out: ReactNode[] = [];
-  // Tokens: `code` or **bold**. Everything else is plain text.
-  const re = /`([^`]+)`|\*\*([^*]+)\*\*/g;
-  let last = 0;
-  let m: RegExpExecArray | null;
-  let k = 0;
-  while ((m = re.exec(text)) !== null) {
-    if (m.index > last) out.push(text.slice(last, m.index));
-    if (m[1] !== undefined) {
-      out.push(
-        <code
-          key={k++}
-          style={{
-            fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
-            fontSize: "0.9em",
-            padding: "1px 5px",
-            borderRadius: 5,
-            background: "var(--vizithink-surface)",
-            border: "1px solid var(--vizithink-border-soft)",
-          }}
-        >
-          {m[1]}
-        </code>,
-      );
-    } else if (m[2] !== undefined) {
-      out.push(
-        <strong key={k++} style={{ fontWeight: 700 }}>
-          {m[2]}
-        </strong>,
-      );
-    }
-    last = re.lastIndex;
-  }
-  if (last < text.length) out.push(text.slice(last));
-  return out;
-}
-
-function renderMarkdown(text: string): ReactNode[] {
-  return text.split("\n").map((line, i) => (
-    <div key={i} style={{ minHeight: line.trim() ? undefined : "0.6em" }}>
-      {renderInline(line)}
-    </div>
-  ));
 }
