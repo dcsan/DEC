@@ -16,6 +16,8 @@ import { suggestRouter } from "./routers/suggest";
 import { treeRouter } from "./routers/tree";
 import { premortemRouter } from "./routers/premortem";
 import { scenarioRouter } from "./routers/scenario";
+import { swotRouter } from "./routers/swot";
+import { eisenhowerRouter } from "./routers/eisenhower";
 import { waitlistRouter } from "./routers/waitlist";
 
 export const appRouter = router({
@@ -36,6 +38,8 @@ export const appRouter = router({
   tree: treeRouter,
   premortem: premortemRouter,
   scenario: scenarioRouter,
+  swot: swotRouter,
+  eisenhower: eisenhowerRouter,
   waitlist: waitlistRouter,
 });
 

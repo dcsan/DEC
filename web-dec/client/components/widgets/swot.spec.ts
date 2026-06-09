@@ -20,11 +20,11 @@ export const swotSpec: WidgetSpec<SwotData> = {
   type: "swot",
   commands: ["swot", "s-w-o-t", "swotmatrix"],
   title: "SWOT analysis",
-  description: "Strengths / weaknesses / opportunities / threats in a 2×2 you can reorder by drag.",
+  description: "Strengths / weaknesses / opportunities / threats as draggable bubbles on a 2×2 canvas.",
   purpose: "Contrast internal strengths and weaknesses with external opportunities and threats.",
   example: "What's the SWOT of launching my side project as a business?",
   help:
-    "Fill the four quadrants: internal Strengths and Weaknesses, external Opportunities and Threats. Drag the handle on a tile to swap it with another. On send, the grid goes to chat.",
+    "Each point is a bubble on a four-quadrant canvas: Strengths and Weaknesses (internal) on top, Opportunities and Threats (external) below. Drag a bubble anywhere — drop it across the lines to recategorise it — add your own points, and click ⓘ on a bubble to ask why it sits in that quadrant. On send, the grid goes to chat.",
 
   format: (data) => {
     const lines: string[] = [
