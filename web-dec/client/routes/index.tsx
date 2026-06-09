@@ -45,6 +45,14 @@ const EXAMPLES: Example[] = [
   },
 ];
 
+// Clickable starter questions. Each opens /chat?q=… which auto-asks the
+// question (shows it as the user's message) and lets the router answer.
+const EXAMPLE_PROMPTS = [
+  "Help me compare New York and Tokyo, London, Paris for cost of living vs. access to a good tech scene",
+  "What outcomes should I prepare for if I quit to go freelance?",
+  "What are the factors to consider when working at a startup vs a big bank?",
+];
+
 const TESTIMONIALS = [
   {
     quote:
@@ -70,6 +78,7 @@ function LandingPage() {
   return (
     <div style={{ overflowY: "auto", height: "100%" }}>
       <Hero />
+      <ExamplePrompts />
       <Manifesto />
       <Gallery />
       <Testimonials />
@@ -99,11 +108,11 @@ function Hero() {
       }}
     >
       <img
-        src="/logo.svg"
+        src="/logo-mark.svg"
         alt="ViziThink"
-        width={64}
-        height={64}
-        style={{ display: "block", margin: "0 auto 20px" }}
+        width={148}
+        height={148}
+        style={{ display: "block", margin: "0 auto 12px" }}
       />
       <div
         style={{
@@ -155,6 +164,45 @@ function Hero() {
         <a href="#waitlist" style={secondaryBtn}>
           Follow updates
         </a>
+      </div>
+    </section>
+  );
+}
+
+function ExamplePrompts() {
+  // A little colour variety per bubble, drawn from the theme tokens.
+  const colors = [
+    "var(--vizithink-concept)",
+    "var(--vizithink-framework)",
+    "var(--vizithink-merged)",
+  ];
+  return (
+    <section style={{ maxWidth: 720, margin: "0 auto", padding: "8px 24px 56px" }}>
+      <SectionHeading
+        kicker="Try it"
+        title="Ask anything"
+        subtitle="Tap a question to open the chat — ViziThink asks it for you, then answers and surfaces the right framework."
+      />
+      <div style={{ display: "flex", flexDirection: "column", gap: 24, marginTop: 32 }}>
+        {EXAMPLE_PROMPTS.map((q, i) => {
+          const color = colors[i % colors.length];
+          return (
+            <Link
+              key={q}
+              to="/chat"
+              search={{ q }}
+              className="vizithink-bubble"
+              style={{ ...bubble, borderColor: color }}
+              aria-label={`Ask: ${q}`}
+            >
+              <span style={{ display: "block", paddingRight: 40 }}>{q}</span>
+              <span style={{ ...bubbleArrow, background: color }} aria-hidden>
+                →
+              </span>
+              <span style={{ ...bubbleTail, borderColor: color }} aria-hidden />
+            </Link>
+          );
+        })}
       </div>
     </section>
   );
@@ -545,6 +593,52 @@ const secondaryBtn: CSSProperties = {
   borderRadius: 10,
   textDecoration: "none",
   cursor: "pointer",
+};
+
+// Large clickable "speech bubble" for an example prompt. The tail is a rotated
+// square pinned to the bottom-left (matching the bubble's bg + border colour).
+const bubble: CSSProperties = {
+  position: "relative",
+  display: "block",
+  background: "var(--vizithink-surface)",
+  border: "1.5px solid var(--vizithink-accent)",
+  borderRadius: 22,
+  padding: "24px 28px",
+  fontSize: 21,
+  lineHeight: 1.4,
+  fontWeight: 500,
+  color: "var(--vizithink-text)",
+  textDecoration: "none",
+  cursor: "pointer",
+  boxShadow: "0 1px 2px #0004",
+};
+
+const bubbleTail: CSSProperties = {
+  position: "absolute",
+  bottom: -10,
+  left: 36,
+  width: 20,
+  height: 20,
+  background: "var(--vizithink-surface)",
+  borderLeft: "1.5px solid var(--vizithink-accent)",
+  borderBottom: "1.5px solid var(--vizithink-accent)",
+  borderBottomLeftRadius: 4,
+  transform: "rotate(-45deg)",
+};
+
+const bubbleArrow: CSSProperties = {
+  position: "absolute",
+  right: 20,
+  bottom: 18,
+  width: 30,
+  height: 30,
+  borderRadius: 999,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  color: "#0f1115",
+  fontSize: 16,
+  fontWeight: 700,
 };
 
 const manifestoP: CSSProperties = {
