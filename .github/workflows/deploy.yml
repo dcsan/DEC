@@ -1,0 +1,45 @@
+name: Deploy
+
+# Deploy the Worker to Cloudflare on every push to main (and on-demand via the
+# Actions tab). The app lives in web-dec/, so every step runs there.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Never let two deploys race; a newer push supersedes an in-flight one.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web-dec
+    steps:
+      - uses: actions/checkout@v4
+
+      # pnpm must be set up before setup-node so its cache can find pnpm.
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.2
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: web-dec/pnpm-lock.yaml
+
+      - run: pnpm install --frozen-lockfile
+
+      # Fail the deploy if types are broken, rather than shipping a bad bundle.
+      - run: pnpm run typecheck
+
+      # `deploy` = build:widgets + build:client + `wrangler deploy`.
+      # wrangler authenticates from these env vars (no `wrangler login` needed).
+      - run: pnpm run deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
