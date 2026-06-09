@@ -16,7 +16,7 @@ export const WIDGET_REGISTRY: WidgetInfo[] = [
     type: "factors",
     title: "Factor Weighting",
     purpose:
-      "Decide between two options, or a single yes/no choice (e.g. should I get a dog or a cat, buy or rent, join a startup or stay), by surfacing the factors that pull on the decision and ranking how much each one matters to YOU on a 1-5 scale. You don't score each option — you weight the factors — so the trade-off is explicit. This is the default tool for an either/or personal decision; prefer it over the decision matrix unless the user explicitly wants to score several options on numeric criteria.",
+      "Decide between two options, or a single yes/no choice (e.g. should I get a dog or a cat, buy or rent, join a startup or stay), by surfacing the factors that pull on the decision. Each factor is a SPECTRUM between two opposing values (e.g. 'Organizational structure' from 'Bureaucratic' to 'Freeform') and you mark where you sit or what you prefer on each, so the trade-offs are explicit. This is the default tool for an either/or personal decision; prefer it over the decision matrix unless the user explicitly wants to score several options on numeric criteria.",
   },
   {
     type: "twobytwo",

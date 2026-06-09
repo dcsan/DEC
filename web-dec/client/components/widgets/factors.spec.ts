@@ -11,10 +11,16 @@
 
 import type { WidgetSpec } from "./types";
 
-// One factor (row): a statement plus how much it matters to the user (1-5).
+// One factor (row): a named spectrum between two OPPOSITE poles, plus where the
+// user sits on it. `left`/`right` are opposite values on the same scale (e.g.
+// label "Organizational structure", left "Bureaucratic", right "Freeform"), and
+// `value` (1-5) is the user's position — 1 = fully left, 3 = neutral, 5 = fully
+// right. This makes an otherwise-ambiguous factor's slider direction concrete.
 export interface Factor {
-  text: string;
-  importance: number; // how much this matters to me: 1 (low) – 5 (high)
+  label: string; // the dimension, e.g. "Organizational structure"
+  left: string; // the left pole, e.g. "Bureaucratic"
+  right: string; // the opposite right pole, e.g. "Freeform"
+  value: number; // where the user sits: 1 (left) – 5 (right), 3 = neutral
 }
 
 export interface FactorsData {
@@ -22,12 +28,12 @@ export interface FactorsData {
   factors: Factor[];
 }
 
-// A fresh widget seeds a few blank factors (importance centred at 3) so there's
-// a list to fill in (or to replace with LLM-suggested factors).
+// A fresh widget seeds a few blank factors (slider centred at 3 = neutral) so
+// there's a list to fill in (or to replace with LLM-suggested factors).
 export function blankFactorsData(question: string): FactorsData {
   return {
     question: question.trim() || "",
-    factors: Array.from({ length: 3 }, () => ({ text: "", importance: 3 })),
+    factors: Array.from({ length: 3 }, () => ({ label: "", left: "", right: "", value: 3 })),
   };
 }
 
@@ -35,36 +41,44 @@ export const factorsSpec: WidgetSpec<FactorsData> = {
   type: "factors",
   commands: ["factors", "fa"],
   title: "Factor Weighting",
-  description: "Weight how much each factor matters to you (1–5) for an either/or or yes/no decision.",
+  description: "Place yourself on each factor's spectrum (between two opposite poles) for an either/or or yes/no decision.",
   purpose:
     "Decide between two options, or a single yes/no choice (e.g. should I get a " +
     "dog or a cat, buy or rent, join a startup or stay), by surfacing the factors " +
-    "that pull on the decision and ranking how much each one matters to YOU on a " +
-    "1-5 scale. You don't score each option — you weight the factors — so the " +
-    "trade-off is explicit. This is the default tool for an either/or personal " +
-    "decision; prefer it over the decision matrix unless the user explicitly " +
-    "wants to score several options on numeric criteria.",
+    "that pull on the decision. Each factor is a SPECTRUM between two opposing " +
+    "values (e.g. 'Organizational structure' from 'Bureaucratic' to 'Freeform'), " +
+    "and you mark where you sit or what you prefer on each — so the trade-offs are " +
+    "explicit. This is the default tool for an either/or personal decision; prefer " +
+    "it over the decision matrix unless the user explicitly wants to score several " +
+    "options on numeric criteria.",
   example: "Should I get a dog or a cat?",
   help:
-    "For an either/or or yes/no decision, the AI lists the factors that pull on it. Rate each by how important it is to YOU on the 1–5 slider — you weight the factors, you don't score the options. Use ✨ generate more to add factors. On send, the ranked factors go to chat for a recommendation.",
+    "For an either/or or yes/no decision, the AI lists the factors that pull on it — each as a spectrum between two opposite labels (e.g. Bureaucratic ↔ Freeform). Slide each toward the side you prefer or that fits you. Use ✨ generate more to add factors. On send, your positions go to chat for a recommendation.",
 
-  // Output contract: name the decision, then list each filled factor sorted by
-  // how much it matters, with its 1-5 weight. Written for an LLM reader so it
-  // can weigh the factors into a recommendation without seeing the widget.
+  // Output contract: name the decision, then list each filled factor as its
+  // spectrum and where the user landed. Written for an LLM reader so it can weigh
+  // the user's leanings into a recommendation without seeing the widget.
   format: (data) => {
-    const filled = data.factors.filter((f) => f.text.trim() !== "");
+    const filled = data.factors.filter((f) => f.label.trim() !== "");
 
     const lines: string[] = [`**${data.question.trim() || "Decision"}**`, ""];
 
     if (filled.length === 0) {
-      lines.push("(no factors ranked yet)");
+      lines.push("(no factors set yet)");
       return lines.join("\n");
     }
 
-    lines.push("Factors that matter, ranked by how important each is to me (1 low – 5 high):");
-    const sorted = [...filled].sort((a, b) => b.importance - a.importance);
-    for (const f of sorted) {
-      lines.push(`- ${f.text.trim()} — importance ${f.importance}/5`);
+    lines.push("Factors as spectrums, with where I sit on each (1 = left … 5 = right):");
+    for (const f of filled) {
+      const left = f.left.trim() || "left";
+      const right = f.right.trim() || "right";
+      const lean =
+        f.value < 3
+          ? `leans toward "${left}"`
+          : f.value > 3
+            ? `leans toward "${right}"`
+            : "balanced";
+      lines.push(`- ${f.label.trim()}: ${left} ←→ ${right} — ${lean} (${f.value}/5)`);
     }
     return lines.join("\n");
   },

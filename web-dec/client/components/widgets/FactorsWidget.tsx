@@ -27,7 +27,8 @@ export function FactorsWidget({ initial, onSend, onRemove }: WidgetProps) {
   const [error, setError] = useState<string | null>(null);
 
   const suggest = trpc.factors.suggest.useMutation();
-  const more = trpc.suggest.more.useMutation();
+  const more = trpc.factors.suggest.useMutation();
+  const busy = suggest.isPending || more.isPending;
 
   // Any edit re-arms the Send button and clears a stale error.
   const dirty = () => {
@@ -40,7 +41,7 @@ export function FactorsWidget({ initial, onSend, onRemove }: WidgetProps) {
     dirty();
   };
   const addFactor = () => {
-    setFactors((cur) => [...cur, { text: "", importance: 3 }]);
+    setFactors((cur) => [...cur, { label: "", left: "", right: "", value: 3 }]);
     dirty();
   };
   const removeFactor = (i: number) => {
@@ -48,14 +49,15 @@ export function FactorsWidget({ initial, onSend, onRemove }: WidgetProps) {
     dirty();
   };
 
-  // Ask the LLM to draft the factors that bear on this decision.
+  // Ask the LLM to draft the factors (each a left↔right spectrum) for this
+  // decision, replacing the blank starter rows.
   const runSuggest = async () => {
     if (!question.trim() || suggest.isPending) return;
     setError(null);
     try {
       const out = await suggest.mutateAsync({ question: question.trim() });
       if (out.factors.length) {
-        setFactors(out.factors.map((text) => ({ text, importance: 3 })));
+        setFactors(out.factors.map((f) => ({ ...f, value: 3 })));
       }
       setSent(false);
     } catch (err) {
@@ -63,18 +65,18 @@ export function FactorsWidget({ initial, onSend, onRemove }: WidgetProps) {
     }
   };
 
-  // Append more factors from the LLM, keeping the ones already ranked.
+  // Append more spectrum-factors, keeping the ones already positioned and
+  // skipping any whose label is already on screen.
   const generateMore = async () => {
     if (!question.trim() || more.isPending) return;
     setError(null);
     try {
       const out = await more.mutateAsync({
         question: question.trim(),
-        itemNoun: "factor that bears on this decision",
-        existing: factors.map((f) => f.text.trim()).filter(Boolean),
+        existing: factors.map((f) => f.label.trim()).filter(Boolean),
       });
-      if (out.items.length) {
-        setFactors((cur) => [...cur, ...out.items.map((text) => ({ text, importance: 3 }))]);
+      if (out.factors.length) {
+        setFactors((cur) => [...cur, ...out.factors.map((f) => ({ ...f, value: 3 }))]);
         setSent(false);
       }
     } catch (err) {
@@ -93,7 +95,7 @@ export function FactorsWidget({ initial, onSend, onRemove }: WidgetProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const hasContent = factors.some((f) => f.text.trim() !== "");
+  const hasContent = factors.some((f) => f.label.trim() !== "");
 
   const send = () => {
     if (!hasContent) return;
@@ -159,7 +161,7 @@ export function FactorsWidget({ initial, onSend, onRemove }: WidgetProps) {
           borderBottom: "1px solid var(--vizithink-border-soft)",
         }}
       >
-        Rate the factors below by how important they are to you.
+        Slide each factor toward the side that fits you or that you prefer.
       </p>
 
       {/* Suggest bar */}
@@ -174,17 +176,13 @@ export function FactorsWidget({ initial, onSend, onRemove }: WidgetProps) {
         }}
       >
         <span style={{ fontSize: 11, color: "var(--vizithink-text-subtle)" }}>
-          {suggest.isPending || more.isPending
-            ? "Thinking…"
-            : error
-              ? error
-              : "Add more factors with AI."}
+          {busy ? "Thinking…" : error ? error : "Add more factors with AI."}
         </span>
         <button
           type="button"
           onClick={generateMore}
-          disabled={!question.trim() || suggest.isPending || more.isPending}
-          style={suggestBtn(!!question.trim() && !suggest.isPending && !more.isPending)}
+          disabled={!question.trim() || busy}
+          style={suggestBtn(!!question.trim() && !busy)}
         >
           ✨ generate more
         </button>
@@ -206,10 +204,10 @@ export function FactorsWidget({ initial, onSend, onRemove }: WidgetProps) {
           >
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
               <input
-                value={f.text}
-                placeholder={`Factor ${i + 1} (e.g. freedom from corporate life)`}
-                onChange={(e) => patch(i, { text: e.target.value })}
-                style={rowInput}
+                value={f.label}
+                placeholder={`Factor ${i + 1} (e.g. organizational structure)`}
+                onChange={(e) => patch(i, { label: e.target.value })}
+                style={{ ...rowInput, fontWeight: 600 }}
               />
               <button
                 type="button"
@@ -220,30 +218,29 @@ export function FactorsWidget({ initial, onSend, onRemove }: WidgetProps) {
                 −
               </button>
             </div>
+            {/* The spectrum: left pole ← slider → right pole (opposite values) */}
             <div style={{ display: "flex", alignItems: "center", gap: 8, paddingRight: 28 }}>
-              <span style={{ fontSize: 11, color: "var(--vizithink-text-subtle)", whiteSpace: "nowrap" }}>
-                Matters
-              </span>
+              <input
+                value={f.left}
+                placeholder="left"
+                onChange={(e) => patch(i, { left: e.target.value })}
+                style={poleInput("left")}
+              />
               <input
                 type="range"
                 min={1}
                 max={5}
                 step={1}
-                value={f.importance}
-                onChange={(e) => patch(i, { importance: Number(e.target.value) })}
+                value={f.value}
+                onChange={(e) => patch(i, { value: Number(e.target.value) })}
                 style={{ flex: 1, accentColor: ACCENT, cursor: "pointer" }}
               />
-              <span
-                style={{
-                  fontSize: 12,
-                  fontWeight: 700,
-                  color: "var(--vizithink-text)",
-                  width: 26,
-                  textAlign: "right",
-                }}
-              >
-                {f.importance}/5
-              </span>
+              <input
+                value={f.right}
+                placeholder="right"
+                onChange={(e) => patch(i, { right: e.target.value })}
+                style={poleInput("right")}
+              />
             </div>
           </div>
         ))}
@@ -299,6 +296,21 @@ const rowInput: React.CSSProperties = {
   color: "var(--vizithink-text)",
   outline: "none",
 };
+
+// A small pole-label field flanking the slider. Left-aligned on the left end,
+// right-aligned on the right, so the spectrum reads label … ←slider→ … label.
+const poleInput = (side: "left" | "right"): React.CSSProperties => ({
+  width: 92,
+  flexShrink: 0,
+  padding: "4px 6px",
+  fontSize: 11,
+  borderRadius: 6,
+  border: "1px solid var(--vizithink-border-soft)",
+  background: "var(--vizithink-surface)",
+  color: "var(--vizithink-text-muted)",
+  outline: "none",
+  textAlign: side === "right" ? "right" : "left",
+});
 
 const addRowBtn: React.CSSProperties = {
   marginTop: 6,
