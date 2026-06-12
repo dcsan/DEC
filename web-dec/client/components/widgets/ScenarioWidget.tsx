@@ -131,6 +131,56 @@ export function ScenarioWidget({ initial, onSend, onRemove, onCommand }: WidgetP
     setSent(true);
   };
 
+  // Clicking a Sankey node sends the whole root→node path to the chat and asks
+  // how likely that path really is and how to make it more likely.
+  const askPath = (id: string) => {
+    if (!onCommand) return;
+    const path: ScenarioNode[] = [];
+    const find = (nodes: ScenarioNode[], trail: ScenarioNode[]): boolean => {
+      for (const n of nodes) {
+        const next = [...trail, n];
+        if (n.id === id) {
+          path.push(...next);
+          return true;
+        }
+        if (find(n.children, next)) return true;
+      }
+      return false;
+    };
+    find(tree, []);
+    if (path.length === 0) return;
+
+    // Absolute path likelihood — the same sibling normalisation the Sankey uses
+    // (chances are conditional on the parent; missing chance counts as 1).
+    let abs = 1;
+    let siblings = tree;
+    for (const node of path) {
+      const shown = siblings.filter(isShown);
+      const weights = shown.map((n) => Math.max(0.001, parseChance(n.chance) ?? 1));
+      const total = weights.reduce((a, b) => a + b, 0);
+      const i = shown.findIndex((n) => n.id === node.id);
+      if (i >= 0 && total > 0) abs *= weights[i]! / total;
+      siblings = node.children;
+    }
+    const pct = abs * 100;
+    const pctText = pct < 1 ? "under 1" : `about ${Math.round(pct)}`;
+
+    const step = (n: ScenarioNode) => {
+      const name = n.name.trim() || "Branch";
+      const c = parseChance(n.chance);
+      return c != null ? `${name} (${Math.round(c)}%)` : name;
+    };
+    const pathText = [seedQuestion() || title.trim() || "My decision", ...path.map(step)].join(" → ");
+
+    const goal =
+      path[path.length - 1]!.outcome === "bad"
+        ? "reduce the chance of this path happening, or soften its impact if it does"
+        : "increase the chance of this path happening";
+    onCommand(
+      `Looking at this path in my scenario tree:\n\n${pathText}\n\nThe chances above multiply out to ${pctText}% overall. How realistic is that likelihood, and what concrete things can I do to ${goal}?`,
+    );
+  };
+
   return (
     <div style={shell(ACCENT)}>
       <HeaderRow
@@ -178,7 +228,7 @@ export function ScenarioWidget({ initial, onSend, onRemove, onCommand }: WidgetP
           {error && <span style={{ fontSize: 11, color: BAD }}>{error}</span>}
         </div>
 
-        <ScenarioSankey tree={tree} title={title} />
+        <ScenarioSankey tree={tree} title={title} onAsk={onCommand ? askPath : undefined} />
       </div>
       <FooterRow sent={sent} hasContent={hasContent} send={send} />
     </div>
@@ -294,7 +344,15 @@ type SankeyFlow = { source: string; target: string; value: number };
 
 type SNode = SankeyNode<SankeyDatum, SankeyFlow>;
 
-function ScenarioSankey({ tree, title }: { tree: ScenarioNode[]; title: string }) {
+function ScenarioSankey({
+  tree,
+  title,
+  onAsk,
+}: {
+  tree: ScenarioNode[];
+  title: string;
+  onAsk?: (id: string) => void;
+}) {
   // Hooks first (before any early return) so hook order stays stable.
   // `hl` = the current highlight set; `tip` = tooltip text + position.
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -377,23 +435,100 @@ function ScenarioSankey({ tree, title }: { tree: ScenarioNode[]; title: string }
     setTip(null);
   };
 
+  // The decision node renders in brand blue; everything downstream takes its
+  // outcome colour. Links blend source → target via per-link gradients.
+  const nodeColor = (n: SankeyDatum | SNode) =>
+    n.id === ROOT ? "var(--vizithink-accent)" : outcomeColor(n.outcome);
+
   return (
-    <div ref={wrapRef} style={{ marginTop: 12, overflowX: "auto", position: "relative" }}>
-      <div style={{ fontSize: 11, fontWeight: 600, marginBottom: 4, color: "var(--vizithink-text-subtle)" }}>
-        Scenario flow
+    <div ref={wrapRef} style={{ marginTop: 12, position: "relative" }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          marginBottom: 6,
+        }}
+      >
+        <span
+          style={{
+            fontSize: 10,
+            fontWeight: 700,
+            textTransform: "uppercase",
+            letterSpacing: "0.06em",
+            color: "var(--vizithink-text-subtle)",
+          }}
+        >
+          Scenario flow
+        </span>
+        <span style={{ display: "flex", gap: 10 }}>
+          {OUTCOME_CYCLE.slice().reverse().map((o) => (
+            <span
+              key={o}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 4,
+                fontSize: 10,
+                color: "var(--vizithink-text-subtle)",
+              }}
+            >
+              <span
+                style={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: 999,
+                  background: OUTCOME_META[o].color,
+                  display: "inline-block",
+                }}
+              />
+              {OUTCOME_META[o].label}
+            </span>
+          ))}
+        </span>
       </div>
+      <div
+        style={{
+          overflowX: "auto",
+          borderRadius: 10,
+          border: "1px solid var(--vizithink-border-soft)",
+          background:
+            "radial-gradient(420px 160px at 12% 0%, rgba(110, 168, 254, 0.06), transparent 70%), var(--vizithink-bg)",
+          padding: "6px 8px",
+        }}
+      >
       <svg width={W} height={H} style={{ display: "block", maxWidth: "none" }} onMouseLeave={clear}>
+        <defs>
+          {graph.links.map((l, i) => {
+            const source = l.source as SNode;
+            const target = l.target as SNode;
+            return (
+              <linearGradient
+                key={i}
+                id={`vt-sk-${i}`}
+                gradientUnits="userSpaceOnUse"
+                x1={source.x1 ?? 0}
+                x2={target.x0 ?? 0}
+                y1={0}
+                y2={0}
+              >
+                <stop offset="0%" stopColor={nodeColor(source)} stopOpacity={0.75} />
+                <stop offset="100%" stopColor={nodeColor(target)} />
+              </linearGradient>
+            );
+          })}
+        </defs>
         {graph.links.map((l, i) => {
           const source = l.source as SNode;
           const target = l.target as SNode;
           const tipText = `${truncate(source.name, 26)} → ${truncate(target.name, 26)}${target.chance != null ? ` · ${Math.round(target.chance)}%` : ""}`;
-          const opacity = hl ? (hl.linkIdx.has(i) ? 0.85 : 0.08) : 0.4;
+          const opacity = hl ? (hl.linkIdx.has(i) ? 0.9 : 0.07) : 0.45;
           return (
             <path
               key={i}
               d={linkPath(l) ?? undefined}
               fill="none"
-              stroke={outcomeColor(target.outcome)}
+              stroke={`url(#vt-sk-${i})`}
               strokeWidth={Math.max(1.5, l.width ?? 1)}
               strokeOpacity={opacity}
               style={{ cursor: "pointer", transition: "stroke-opacity 120ms ease" }}
@@ -412,15 +547,19 @@ function ScenarioSankey({ tree, title }: { tree: ScenarioNode[]; title: string }
           const y0 = n.y0 ?? 0;
           const y1 = n.y1 ?? 0;
           const cy = (y0 + y1) / 2;
-          const label = truncate(n.name, 22) + (n.chance != null ? ` · ${Math.round(n.chance)}%` : "");
           const dimmed = hl != null && !hl.nodeIds.has(n.id);
+          const lit = hl != null && hl.nodeIds.has(n.id);
           const meta = OUTCOME_META[n.outcome];
+          const clickable = onAsk != null && n.id !== ROOT;
           const tipText =
-            n.id === ROOT ? n.name : `${n.name} · ${meta.label}${n.chance != null ? ` · ${Math.round(n.chance)}% likely` : ""}`;
+            n.id === ROOT
+              ? n.name
+              : `${n.name} · ${meta.label}${n.chance != null ? ` · ${Math.round(n.chance)}% likely` : ""}${clickable ? " — click to ask about this path" : ""}`;
           return (
             <g
               key={n.id}
-              style={{ cursor: "pointer", opacity: dimmed ? 0.25 : 1, transition: "opacity 120ms ease" }}
+              style={{ cursor: clickable ? "pointer" : "default", opacity: dimmed ? 0.22 : 1, transition: "opacity 120ms ease" }}
+              onClick={clickable ? () => onAsk(n.id) : undefined}
               onMouseEnter={(e) => {
                 hoverNode(n);
                 tipAt(e, tipText);
@@ -428,14 +567,36 @@ function ScenarioSankey({ tree, title }: { tree: ScenarioNode[]; title: string }
               onMouseMove={(e) => tipAt(e, tipText)}
               onMouseLeave={clear}
             >
-              <rect x={x0} y={y0} width={Math.max(1, x1 - x0)} height={Math.max(1, y1 - y0)} rx={2} fill={outcomeColor(n.outcome)} />
-              <text x={x1 + 6} y={cy} dominantBaseline="middle" fontSize={11} fill="var(--vizithink-text)">
-                {label}
+              <rect
+                x={x0}
+                y={y0}
+                width={Math.max(1, x1 - x0)}
+                height={Math.max(1, y1 - y0)}
+                rx={3}
+                fill={nodeColor(n)}
+                stroke={lit ? "var(--vizithink-text)" : "none"}
+                strokeWidth={lit ? 1 : 0}
+              />
+              <text
+                x={x1 + 7}
+                y={cy}
+                dominantBaseline="middle"
+                fontSize={11}
+                fontWeight={n.id === ROOT ? 700 : 600}
+                fill="var(--vizithink-text)"
+              >
+                {truncate(n.name, 22)}
+                {n.chance != null && (
+                  <tspan fill="var(--vizithink-text-subtle)" fontWeight={500}>
+                    {`  ${Math.round(n.chance)}%`}
+                  </tspan>
+                )}
               </text>
             </g>
           );
         })}
       </svg>
+      </div>
       {tip && (
         <div
           style={{
