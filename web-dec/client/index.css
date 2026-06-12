@@ -4,27 +4,30 @@
   color-scheme: dark;
   font-family: "Inter", system-ui, -apple-system, sans-serif;
 
-  /* Surfaces — dark, calm, canvas-friendly */
-  --vizithink-bg: #0f1115;
-  --vizithink-surface: #171a21;
-  --vizithink-surface-2: #1e222b;
-  --vizithink-border: #2a2f3a;
-  --vizithink-border-soft: #21262f;
+  /* Surfaces — deep blue-black, calm, canvas-friendly */
+  --vizithink-bg: #0a0c12;
+  --vizithink-surface: #13161f;
+  --vizithink-surface-2: #1a1e2a;
+  --vizithink-border: #2c3242;
+  --vizithink-border-soft: #222736;
 
   /* Ink */
-  --vizithink-text: #e8eaed;
-  --vizithink-text-muted: #a7adba;
-  --vizithink-text-subtle: #6b7280;
+  --vizithink-text: #edeff4;
+  --vizithink-text-muted: #a9b0c2;
+  --vizithink-text-subtle: #6e7588;
 
-  /* Accent */
+  /* Accent — brand blue, with the logo's violet as a second accent */
   --vizithink-accent: #6ea8fe;
-  --vizithink-accent-soft: #2b3a55;
+  --vizithink-accent-2: #9b8cff;
+  --vizithink-accent-soft: #233252;
+  --vizithink-glow: rgba(110, 168, 254, 0.35);
 
   /* Node kind tints */
   --vizithink-option: #f0b86e;
   --vizithink-concept: #6ea8fe;
   --vizithink-framework: #9b8cff;
   --vizithink-merged: #5fd6a6;
+  --vizithink-bad: #ff8b8b;
 }
 
 * {
@@ -43,17 +46,70 @@ body {
   color: var(--vizithink-text);
 }
 
+/* Aurora backdrop — two soft brand-coloured glows pinned to the viewport.
+   Fixed attachment so scrolling content drifts over a still field of light. */
+.vt-aurora {
+  background:
+    radial-gradient(900px 480px at 18% -8%, rgba(110, 168, 254, 0.13), transparent 64%),
+    radial-gradient(820px 460px at 84% 4%, rgba(155, 140, 255, 0.11), transparent 62%),
+    radial-gradient(700px 520px at 50% 110%, rgba(95, 214, 166, 0.05), transparent 60%),
+    var(--vizithink-bg);
+  background-attachment: fixed, fixed, fixed, fixed;
+}
+
 .vizithink-display {
   font-family: "Newsreader", Georgia, serif;
 }
 
+/* Headline gradient — the logo's violet→blue trend line, as text. */
+.vt-grad-text {
+  background: linear-gradient(100deg, #dbe9ff 10%, var(--vizithink-accent) 48%, var(--vizithink-accent-2) 90%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Lifting cards (gallery tiles, quotes). */
+.vt-card {
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+.vt-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.5), 0 0 0 1px var(--vizithink-border);
+  border-color: var(--vizithink-border) !important;
+}
+
 /* Clickable example-prompt speech bubbles on the landing page. */
 .vizithink-bubble {
-  transition: transform 0.12s ease, box-shadow 0.12s ease;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 .vizithink-bubble:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 22px #0007;
+  transform: translateY(-2px) scale(1.005);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.55), 0 0 24px var(--vizithink-glow);
+}
+
+/* Primary CTA glow. */
+.vt-cta {
+  transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+  box-shadow: 0 4px 18px rgba(110, 168, 254, 0.28);
+}
+.vt-cta:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 28px rgba(110, 168, 254, 0.42);
+  filter: brightness(1.06);
+}
+
+/* Gentle float for the hero mock. */
+@keyframes vt-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+.vt-float {
+  animation: vt-float 7s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .vt-float { animation: none; }
+  .vt-card, .vizithink-bubble, .vt-cta { transition: none; }
 }
 
 /* Animated "thinking" dots shown while waiting for a server response. */
@@ -89,6 +145,50 @@ body {
 }
 .vt-md > :last-child {
   margin-bottom: 0;
+}
+
+/* Custom range slider (factor spectrums etc.) — a slim gradient track running
+   between the two poles with a glowing grabbable thumb. */
+.vt-range {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 22px;
+  background: transparent;
+  cursor: pointer;
+}
+.vt-range::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--vizithink-accent-2), var(--vizithink-border) 50%, var(--vizithink-accent));
+}
+.vt-range::-moz-range-track {
+  height: 6px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--vizithink-accent-2), var(--vizithink-border) 50%, var(--vizithink-accent));
+}
+.vt-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  margin-top: -6px;
+  border-radius: 50%;
+  background: #dbe9ff;
+  border: 2px solid var(--vizithink-accent);
+  box-shadow: 0 0 0 4px rgba(110, 168, 254, 0.18), 0 2px 6px rgba(0, 0, 0, 0.5);
+  transition: box-shadow 0.12s ease;
+}
+.vt-range::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #dbe9ff;
+  border: 2px solid var(--vizithink-accent);
+  box-shadow: 0 0 0 4px rgba(110, 168, 254, 0.18), 0 2px 6px rgba(0, 0, 0, 0.5);
+}
+.vt-range:hover::-webkit-slider-thumb,
+.vt-range:focus-visible::-webkit-slider-thumb {
+  box-shadow: 0 0 0 6px rgba(110, 168, 254, 0.28), 0 2px 8px rgba(0, 0, 0, 0.55);
 }
 
 /* react-flow dark tweaks */

@@ -6,8 +6,8 @@
 
 ### Your AI Decision Buddy
 
-Make complex decisions with visual thinking frameworks. ViziThink turns the
-churn of analysis into a clear picture you can act on.
+Make complex decisions with visual thinking frameworks. ViziThink helps you
+see the road ahead and decide with clarity.
 
 </div>
 
@@ -15,13 +15,12 @@ churn of analysis into a clear picture you can act on.
 
 ## Why ViziThink
 
-As we work more with AI, the role of the human is to make **fewer, better
-decisions**.
+As we work more with AI, the role of the human is to make **fewer, better decisions**.
 
-AI can help with the analysis and research — but the information has to be
-presented clearly. We're drowning in pages of "deep research" AI slop.
+AI can help with the analysis and research — but the information has to be presented clearly.
+We're drowning in pages of "deep research" AI slop.
 
-**ViziThink helps you get to the point quickly.**
+**ViziThink helps you see the road ahead and decide with clarity.**
 
 ## A framework for every decision
 
