@@ -6,6 +6,7 @@
 
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { trpc } from "../lib/trpc";
+import { getTempUserId } from "../lib/userId";
 import { Markdown } from "./Markdown";
 import {
   allSlashCommands,
@@ -61,7 +62,10 @@ const menuItemStyle: CSSProperties = {
   cursor: "pointer",
 };
 
-export function ChatView({ initialPrompt }: { initialPrompt?: string } = {}) {
+export function ChatView({
+  initialPrompt,
+  initialSessionId,
+}: { initialPrompt?: string; initialSessionId?: string } = {}) {
   const [items, setItems] = useState<ChatItem[]>([]);
   const [draft, setDraft] = useState("");
   // Composer height: collapsed (1 row) or expanded (4 rows) via the expand button.
@@ -78,9 +82,15 @@ export function ChatView({ initialPrompt }: { initialPrompt?: string } = {}) {
   const [histIndex, setHistIndex] = useState<number | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  // Id for this chat session — scopes the context/memory stored in Honcho.
-  // `/new` rotates it (and clears the stream) to start a fresh conversation.
-  const [sessionId, setSessionId] = useState(() => uid());
+  // Id for this chat session — scopes the context/memory stored in Honcho and
+  // keys the chat_logs rows in Postgres. `/new` rotates it (and clears the
+  // stream) to start a fresh conversation. A `/chat?s=…` share link supplies an
+  // existing id, whose logged conversation is replayed below.
+  const [sessionId, setSessionId] = useState(() => initialSessionId ?? uid());
+  // Temp user id (per-browser, localStorage) — tags chat_logs rows so the
+  // admin pages can group sessions by visitor. See docs/todo/TempUserId.md.
+  const [userId] = useState(getTempUserId);
+  const trpcUtils = trpc.useUtils();
   const send = trpc.chat.send.useMutation();
   const research = trpc.research.run.useMutation();
   const viz = trpc.viz.run.useMutation();
@@ -162,6 +172,7 @@ export function ChatView({ initialPrompt }: { initialPrompt?: string } = {}) {
         widget: { type: output.type, data: output.data },
         question: question || undefined,
         sessionId,
+        userId,
       });
       append({ kind: "message", id: uid(), role: "assistant", content: res.reply });
     } finally {
@@ -178,6 +189,7 @@ export function ChatView({ initialPrompt }: { initialPrompt?: string } = {}) {
         text: content,
         history: toHistory({ role: "user", content }),
         sessionId,
+        userId,
       });
       append({ kind: "message", id: uid(), role: "assistant", content: res.reply });
       if (res.widget && getWidget(res.widget)) {
@@ -508,6 +520,75 @@ export function ChatView({ initialPrompt }: { initialPrompt?: string } = {}) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialPrompt]);
 
+  // `/chat?s=…` share link: replay the session's logged conversation from the
+  // database (text only — widget submissions show as their plain-text rendering)
+  // and keep using its session id, so the recipient continues the same thread.
+  // Same once-only ref guard as the `?q=` effect (StrictMode double-invoke).
+  const restoredRef = useRef(false);
+  useEffect(() => {
+    if (restoredRef.current || !initialSessionId) return;
+    restoredRef.current = true;
+    void (async () => {
+      try {
+        const rows = await trpcUtils.chatLog.get.fetch({ sessionId: initialSessionId });
+        if (rows.length === 0) return;
+        setItems(
+          rows.map((r) => ({
+            kind: "message" as const,
+            id: uid(),
+            role: r.role === "user" ? (r.widget ? ("widget" as const) : ("user" as const)) : ("assistant" as const),
+            content: r.content,
+          })),
+        );
+      } catch {
+        append({
+          kind: "message",
+          id: uid(),
+          role: "assistant",
+          content: "Couldn't load the shared conversation — starting fresh instead.",
+        });
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialSessionId]);
+
+  // ☰ → Share: copy a link that replays this conversation (`/chat?s=<id>`) and
+  // confirm in-stream, quoting the first question so it's clear what's shared.
+  const shareSession = async () => {
+    const first = items.find(
+      (it): it is Extract<ChatItem, { kind: "message" }> => it.kind === "message" && it.role === "user",
+    );
+    if (!first) {
+      append({
+        kind: "message",
+        id: uid(),
+        role: "assistant",
+        content: "Nothing to share yet — ask a question first.",
+      });
+      return;
+    }
+    const url = `${window.location.origin}/chat?s=${sessionId}`;
+    let copied = false;
+    try {
+      await navigator.clipboard.writeText(url);
+      copied = true;
+    } catch {
+      // Clipboard can be unavailable (permissions, non-secure context) — still
+      // show the link so the user can copy it by hand.
+    }
+    append({
+      kind: "message",
+      id: uid(),
+      role: "assistant",
+      content:
+        `**Share this conversation**\n\n` +
+        `\`${url}\`\n\n` +
+        `It opens with your first question — "${first.content.slice(0, 120)}"` +
+        `${copied ? "\n\nLink copied to clipboard." : ""}`,
+      markdown: true,
+    });
+  };
+
   // Up/down-arrow recall of previously sent lines (Slack-style). Up walks back
   // through history; down walks forward and finally back to a blank draft.
   // Returns true if it handled the key (so the caller stops default movement).
@@ -566,7 +647,7 @@ export function ChatView({ initialPrompt }: { initialPrompt?: string } = {}) {
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%", minHeight: 0 }}>
+    <div className="vt-aurora" style={{ display: "flex", flexDirection: "column", height: "100%", minHeight: 0 }}>
       {/* Message stream */}
       <div style={{ flex: 1, overflowY: "auto", padding: "16px 0" }}>
         <div style={{ maxWidth: 880, margin: "0 auto", padding: "0 16px" }}>
@@ -786,6 +867,28 @@ export function ChatView({ initialPrompt }: { initialPrompt?: string } = {}) {
                   >
                     📎 Upload documents
                   </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      setMenuOpen(false);
+                      void shareSession();
+                    }}
+                    style={menuItemStyle}
+                  >
+                    🔗 Share chat
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      setExpanded((v) => !v);
+                      setMenuOpen(false);
+                    }}
+                    style={menuItemStyle}
+                  >
+                    {expanded ? "⤡ Collapse input" : "⤢ Expand input"}
+                  </button>
                 </div>
               </>
             )}
@@ -856,25 +959,6 @@ export function ChatView({ initialPrompt }: { initialPrompt?: string } = {}) {
               fontFamily: "inherit",
             }}
           />
-          <button
-            type="button"
-            onClick={() => setExpanded((v) => !v)}
-            title={expanded ? "Collapse input" : "Expand input"}
-            aria-label={expanded ? "Collapse input" : "Expand input"}
-            style={{
-              height: 41,
-              width: 40,
-              flexShrink: 0,
-              fontSize: 15,
-              borderRadius: 10,
-              border: "1px solid var(--vizithink-border)",
-              background: "var(--vizithink-surface-2)",
-              color: "var(--vizithink-text-muted)",
-              cursor: "pointer",
-            }}
-          >
-            {expanded ? "⤡" : "⤢"}
-          </button>
           <button
             type="button"
             onClick={submit}

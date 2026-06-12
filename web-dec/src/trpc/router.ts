@@ -5,6 +5,7 @@ import { edgeRouter } from "./routers/edge";
 import { messageRouter } from "./routers/message";
 import { conceptRouter } from "./routers/concept";
 import { chatRouter } from "./routers/chat";
+import { chatLogRouter } from "./routers/chatLog";
 import { researchRouter } from "./routers/research";
 import { vizRouter } from "./routers/viz";
 import { factsRouter } from "./routers/facts";
@@ -27,6 +28,7 @@ export const appRouter = router({
   message: messageRouter,
   concept: conceptRouter,
   chat: chatRouter,
+  chatLog: chatLogRouter,
   research: researchRouter,
   viz: vizRouter,
   facts: factsRouter,

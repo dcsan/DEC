@@ -126,13 +126,19 @@ export const chatLogs = pgTable(
       .primaryKey()
       .$defaultFn(() => crypto.randomUUID()),
     sessionId: text("session_id").notNull(),
+    // Anonymous per-browser id (localStorage, sent by the client) — groups a
+    // visitor's sessions together. Null on rows logged before it existed.
+    userId: text("user_id"),
     role: text("role").$type<MessageRole>().notNull(),
     content: text("content").notNull(),
     // Null for plain-text turns; set when the message is a widget result.
     widget: jsonb("widget").$type<ChatLogWidget>(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => ({ sessionIdx: index("chat_logs_session_idx").on(t.sessionId) }),
+  (t) => ({
+    sessionIdx: index("chat_logs_session_idx").on(t.sessionId),
+    userIdx: index("chat_logs_user_idx").on(t.userId),
+  }),
 );
 
 // Landing-page waitlist signups. Email is unique so a repeat submission is an

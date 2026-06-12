@@ -75,6 +75,9 @@ export const chatRouter = router({
         // The chat session id — enables Honcho: attached /context documents are
         // folded into routing/recommendations, and each turn is mirrored back.
         sessionId: z.string().min(1).max(200).optional(),
+        // Anonymous per-browser id — stamped on chat_logs rows so the admin
+        // pages can group a visitor's sessions together.
+        userId: z.string().min(1).max(200).optional(),
       }),
     )
     .mutation(async ({ ctx, input }): Promise<RouteResult> => {
@@ -115,10 +118,15 @@ export const chatRouter = router({
       ) => {
         if (!(input.sessionId && ctx.env.DATABASE_URL)) return;
         ctx.waitUntil(
-          logChatTurns(ctx.db, input.sessionId, [
-            { role: "user", content: input.text, widget: widget ?? null },
-            { role: "assistant", content: reply },
-          ]),
+          logChatTurns(
+            ctx.db,
+            input.sessionId,
+            [
+              { role: "user", content: input.text, widget: widget ?? null },
+              { role: "assistant", content: reply },
+            ],
+            input.userId,
+          ),
         );
       };
 
