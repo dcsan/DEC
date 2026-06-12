@@ -108,7 +108,7 @@ export function TwoByTwoWidget({ initial, onSend, onRemove, onMessage }: WidgetP
       setSent(false);
       if (names.length > 0) {
         // Use the freshly-returned axes (state hasn't updated yet). Best-effort:
-        // if scoring fails the options just stay in the tray to drag manually.
+        // if scoring fails the options stay in the tray to drag manually, but say so.
         try {
           const scored = await score.mutateAsync({
             question: q,
@@ -117,8 +117,9 @@ export function TwoByTwoWidget({ initial, onSend, onRemove, onMessage }: WidgetP
             yAxis: out.yAxis,
           });
           placeScores(scored.scores);
-        } catch {
-          /* leave unplaced — user can drag */
+        } catch (err) {
+          console.warn("[2x2] auto-place failed", err);
+          setError("Couldn't auto-place the options — drag them onto the grid.");
         }
       }
     } catch (err) {
@@ -178,6 +179,19 @@ export function TwoByTwoWidget({ initial, onSend, onRemove, onMessage }: WidgetP
   // Toggle a candidate axis, capping the selection at two.
   const togglePick = (i: number) => {
     setPicks((cur) => (cur.includes(i) ? cur.filter((x) => x !== i) : cur.length >= 2 ? cur : [...cur, i]));
+  };
+
+  // Add the typed axis straight into the candidate list, checked — no LLM call.
+  // Re-scoring only happens when "change axes" is pressed. If two axes are
+  // already picked, the oldest pick is dropped to make room.
+  const addCustomAxis = () => {
+    const label = customAxis.trim();
+    if (!label) return;
+    const existing = optionAxes.findIndex((a) => a.label.trim().toLowerCase() === label.toLowerCase());
+    const idx = existing >= 0 ? existing : optionAxes.length;
+    if (existing === -1) setOptionAxes((cur) => [...cur, { label, low: "", high: "" }]);
+    setPicks((cur) => (cur.includes(idx) ? cur : [...(cur.length >= 2 ? cur.slice(1) : cur), idx]));
+    setCustomAxis("");
   };
 
   // Apply the chosen axes (picked options first, then a custom one if room),
@@ -402,6 +416,7 @@ export function TwoByTwoWidget({ initial, onSend, onRemove, onMessage }: WidgetP
           }}
         >
           {/* center crosshair (reference only — not buckets) */}
+          <div style={quadrantGlow} />
           <div style={crosshairV} />
           <div style={crosshairH} />
 
@@ -539,10 +554,17 @@ export function TwoByTwoWidget({ initial, onSend, onRemove, onMessage }: WidgetP
             })
           )}
 
-          {/* User's own axis */}
+          {/* User's own axis — Enter adds it to the list above, checked */}
           <input
             value={customAxis}
             onChange={(e) => setCustomAxis(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                addCustomAxis();
+              }
+            }}
+            onBlur={addCustomAxis}
             placeholder="…or type your own axis"
             style={{ ...addInput, marginTop: 2 }}
           />
@@ -676,11 +698,19 @@ const plane: CSSProperties = {
   position: "relative",
   flex: 1,
   aspectRatio: "1 / 1",
-  borderRadius: 8,
+  borderRadius: 10,
   border: "1px solid var(--vizithink-border)",
-  background: "var(--vizithink-surface)",
+  background: "var(--vizithink-bg)",
   touchAction: "none",
   overflow: "hidden",
+};
+
+// Soft glow in the high/high corner — a quiet cue that up-and-right wins.
+const quadrantGlow: CSSProperties = {
+  position: "absolute",
+  inset: 0,
+  background: "radial-gradient(60% 60% at 100% 0%, rgba(110, 168, 254, 0.1), transparent 70%)",
+  pointerEvents: "none",
 };
 
 const crosshairV: CSSProperties = {
@@ -688,20 +718,20 @@ const crosshairV: CSSProperties = {
   left: "50%",
   top: 0,
   bottom: 0,
-  width: 1,
-  background: "var(--vizithink-border-soft)",
+  width: 0,
+  borderLeft: "1px dashed var(--vizithink-border)",
 };
 const crosshairH: CSSProperties = {
   position: "absolute",
   top: "50%",
   left: 0,
   right: 0,
-  height: 1,
-  background: "var(--vizithink-border-soft)",
+  height: 0,
+  borderTop: "1px dashed var(--vizithink-border)",
 };
 
 const chip: CSSProperties = {
-  padding: "3px 8px",
+  padding: "3px 9px",
   fontSize: 11,
   fontWeight: 600,
   borderRadius: 999,
@@ -710,6 +740,7 @@ const chip: CSSProperties = {
   color: "var(--vizithink-text)",
   userSelect: "none",
   whiteSpace: "nowrap",
+  boxShadow: "0 2px 8px rgba(0, 0, 0, 0.45), 0 0 10px rgba(155, 140, 255, 0.12)",
 };
 
 const chipX: CSSProperties = {
