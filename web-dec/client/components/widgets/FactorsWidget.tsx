@@ -228,12 +228,13 @@ export function FactorsWidget({ initial, onSend, onRemove }: WidgetProps) {
               />
               <input
                 type="range"
+                className="vt-range"
                 min={1}
                 max={5}
                 step={1}
                 value={f.value}
                 onChange={(e) => patch(i, { value: Number(e.target.value) })}
-                style={{ flex: 1, accentColor: ACCENT, cursor: "pointer" }}
+                style={{ flex: 1 }}
               />
               <input
                 value={f.right}

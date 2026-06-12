@@ -21,11 +21,11 @@ const ZONE_FLAGS: Record<Exclude<Zone, "pool">, { important: 0 | 1; urgent: 0 | 
   eliminate: { important: 0, urgent: 0 },
 };
 
-const QUADRANTS: { zone: Exclude<Zone, "pool">; label: string }[] = [
-  { zone: "do", label: "Do now" },
-  { zone: "schedule", label: "Schedule" },
-  { zone: "delegate", label: "Delegate" },
-  { zone: "eliminate", label: "Drop" },
+const QUADRANTS: { zone: Exclude<Zone, "pool">; label: string; tint: string }[] = [
+  { zone: "do", label: "Do now", tint: "95, 214, 166" }, // green
+  { zone: "schedule", label: "Schedule", tint: "110, 168, 254" }, // blue
+  { zone: "delegate", label: "Delegate", tint: "240, 184, 110" }, // amber
+  { zone: "eliminate", label: "Drop", tint: "155, 140, 255" }, // violet
 ];
 
 interface Task {
@@ -40,16 +40,23 @@ function seedTasks(items?: string[]): Task[] {
   return texts.map((text) => ({ id: crypto.randomUUID(), text, zone: "pool" as const }));
 }
 
-function zoneDropSurface(active: boolean, dim: boolean, isPool: boolean): CSSProperties {
+function zoneDropSurface(active: boolean, dim: boolean, isPool: boolean, tint?: string): CSSProperties {
+  // Quadrants get a faint wash of their zone colour (`tint` = "r, g, b") so the
+  // four cells read at a glance; the pool stays neutral.
+  const wash = tint ? `rgba(${tint}, ${active ? 0.16 : 0.07})` : undefined;
   return {
     minHeight: isPool ? undefined : 92,
     padding: 8,
     borderRadius: 8,
-    border: active ? "2px solid var(--vizithink-accent)" : "1px dashed var(--vizithink-border)",
-    background: active ? "var(--vizithink-accent-soft)" : "var(--vizithink-surface)",
+    border: active
+      ? `2px solid ${tint ? `rgb(${tint})` : "var(--vizithink-accent)"}`
+      : tint
+        ? `1px solid rgba(${tint}, 0.3)`
+        : "1px dashed var(--vizithink-border)",
+    background: wash ?? (active ? "var(--vizithink-accent-soft)" : "var(--vizithink-surface)"),
     opacity: dim ? 0.72 : 1,
     transition: "border-color 100ms ease, background-color 100ms ease, opacity 100ms ease",
-    boxShadow: active ? "inset 0 0 0 1px var(--vizithink-accent)" : undefined,
+    boxShadow: active ? `inset 0 0 0 1px ${tint ? `rgb(${tint})` : "var(--vizithink-accent)"}` : undefined,
   };
 }
 
@@ -367,15 +374,16 @@ export function EisenhowerWidget({ initial, onSend, onRemove }: WidgetProps) {
                 <div
                   key={q.zone}
                   {...dropProps(q.zone)}
-                  style={zoneDropSurface(active, dim, false)}
+                  style={zoneDropSurface(active, dim, false, q.tint)}
                 >
                   <div
                     onDragOver={chipDragOver(q.zone)}
                     style={{
                       fontSize: 10,
+                      fontWeight: 700,
                       textTransform: "uppercase",
                       letterSpacing: "0.05em",
-                      color: "var(--vizithink-text-subtle)",
+                      color: `rgb(${q.tint})`,
                       marginBottom: 4,
                     }}
                   >
