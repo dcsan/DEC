@@ -242,7 +242,7 @@ on what the downstream agent needs to do with it.
 
 ## Design tokens & shared styles
 
-Use the `--dec-*` CSS variables for every color so widgets match the dark theme
+Use the `--vizithink-*` CSS variables for every color so widgets match the dark theme
 and stay themeable. The full token list and the reusable style objects (the
 card, header, `iconBtn`, `sendBtn`, row inputs) are in
 `references/contract.md` — read it when styling the component.

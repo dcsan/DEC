@@ -66,39 +66,46 @@ via `initial`.
 means: the two widget files, the client registry line, and the server registry
 entry. Only the registries know the widget exists.
 
-## Design tokens (`--dec-*`, defined in `client/index.css`)
+## Design tokens (`--vizithink-*`, defined in `client/index.css`)
 
 Use these for **every** color. Never hardcode hex (the one exception in the
-shipped code is `#ff8b8b` for the remove-button glyph and `#0f1115` as the
-on-accent text color — match those if you copy the shell).
+shipped code is `#0a0c12` as the on-accent text color — match it if you copy
+the shell).
 
 | Token | Value | Use |
 |-------|-------|-----|
-| `--dec-bg` | `#0f1115` | page background |
-| `--dec-surface` | `#171a21` | header/footer, inputs, drop zones |
-| `--dec-surface-2` | `#1e222b` | the widget card body |
-| `--dec-border` | `#2a2f3a` | borders, inputs |
-| `--dec-border-soft` | `#21262f` | header/footer divider lines |
-| `--dec-text` | `#e8eaed` | primary text |
-| `--dec-text-muted` | `#a7adba` | secondary buttons/labels |
-| `--dec-text-subtle` | `#6b7280` | captions, axis labels, placeholders |
-| `--dec-accent` | `#6ea8fe` | the Send button background |
-| `--dec-accent-soft` | `#2b3a55` | soft accent fills |
-| `--dec-option` | `#f0b86e` | tint (orange) — e.g. con checkbox |
-| `--dec-concept` | `#6ea8fe` | tint (blue) — Eisenhower card border |
-| `--dec-framework` | `#9b8cff` | tint (purple) — Pros & Cons card border |
-| `--dec-merged` | `#5fd6a6` | tint (green) — "Sent ✓", pro checkbox |
+| `--vizithink-bg` | `#0a0c12` | page background, chart panels |
+| `--vizithink-surface` | `#13161f` | header/footer, inputs, drop zones |
+| `--vizithink-surface-2` | `#1a1e2a` | the widget card body |
+| `--vizithink-border` | `#2c3242` | borders, inputs |
+| `--vizithink-border-soft` | `#222736` | header/footer divider lines |
+| `--vizithink-text` | `#edeff4` | primary text |
+| `--vizithink-text-muted` | `#a9b0c2` | secondary buttons/labels |
+| `--vizithink-text-subtle` | `#6e7588` | captions, axis labels, placeholders |
+| `--vizithink-accent` | `#6ea8fe` | the Send button background |
+| `--vizithink-accent-2` | `#9b8cff` | gradient partner for the accent |
+| `--vizithink-accent-soft` | `#233252` | soft accent fills |
+| `--vizithink-glow` | `rgba(110,168,254,.35)` | glow shadows |
+| `--vizithink-option` | `#f0b86e` | tint (orange) — e.g. con checkbox |
+| `--vizithink-concept` | `#6ea8fe` | tint (blue) — Eisenhower card border |
+| `--vizithink-framework` | `#9b8cff` | tint (purple) — Pros & Cons card border |
+| `--vizithink-merged` | `#5fd6a6` | tint (green) — "Sent ✓", pro checkbox |
+| `--vizithink-bad` | `#ff8b8b` | tint (red) — remove buttons, bad outcomes |
+
+Shared visual-effect classes also live in `client/index.css`: `vt-range`
+(styled `<input type="range">` — use it instead of `accentColor`), `vt-card`
+(hover lift), `vt-grad-text`, `vt-cta`, `vt-aurora`.
 
 **Picking the card accent:** each widget uses one tint for its `ACCENT` (the
-card border + header icon). Pros & Cons uses `--dec-framework`, Eisenhower uses
-`--dec-concept`. Pick an unused/fitting tint for the new widget.
+card border + header icon). Pros & Cons uses `--vizithink-framework`, Eisenhower uses
+`--vizithink-concept`. Pick an unused/fitting tint for the new widget.
 
 ## The shared shell
 
 Every widget is a bordered card with three regions. Copy this structure (it's in
 both shipped widgets, verbatim apart from the body):
 
-- **Card**: `maxWidth: 460`, `borderRadius: 12`, `background var(--dec-surface-2)`,
+- **Card**: `maxWidth: 460`, `borderRadius: 12`, `background var(--vizithink-surface-2)`,
   `border: 1.5px solid ${ACCENT}`, `overflow: hidden`.
 - **Header**: an icon glyph, an editable title `<input>` (transparent, changing
   it clears `sent`), and a `⨯` remove button (`onRemove`).
@@ -114,24 +121,24 @@ Copy them into the new component:
 ```ts
 const iconBtn: React.CSSProperties = {
   fontSize: 12, width: 20, height: 20, borderRadius: 6,
-  border: "1px solid var(--dec-border)",
-  background: "var(--dec-surface-2)",
-  color: "#ff8b8b", cursor: "pointer", flexShrink: 0,
+  border: "1px solid var(--vizithink-border)",
+  background: "var(--vizithink-surface-2)",
+  color: "var(--vizithink-bad)", cursor: "pointer", flexShrink: 0,
 };
 
 const sendBtn = (enabled: boolean): React.CSSProperties => ({
   fontSize: 12, fontWeight: 600, padding: "6px 12px", borderRadius: 8,
   border: "none",
-  background: enabled ? "var(--dec-accent)" : "var(--dec-border)",
-  color: enabled ? "#0f1115" : "var(--dec-text-subtle)",
+  background: enabled ? "var(--vizithink-accent)" : "var(--vizithink-border)",
+  color: enabled ? "#0a0c12" : "var(--vizithink-text-subtle)",
   cursor: enabled ? "pointer" : "not-allowed",
 });
 
 const rowInput: React.CSSProperties = {
   flex: 1, padding: "5px 7px", fontSize: 12, borderRadius: 6,
-  border: "1px solid var(--dec-border)",
-  background: "var(--dec-surface)",
-  color: "var(--dec-text)", outline: "none",
+  border: "1px solid var(--vizithink-border)",
+  background: "var(--vizithink-surface)",
+  color: "var(--vizithink-text)", outline: "none",
 };
 ```
 

@@ -111,9 +111,10 @@ the two-file + two-registry + prefill conventions and the shared visual shell.
 
 ### Conventions worth matching
 
-- Styling is **inline `style={{…}}` with `--dec-*` CSS variables**
+- Styling is **inline `style={{…}}` with `--vizithink-*` CSS variables**
   (`client/index.css`) — no Tailwind classes in components, no hardcoded hex
-  (match the theme tokens).
+  (match the theme tokens). Shared visual effects (aurora backdrop, card hover,
+  gradient text, custom range slider) live in `index.css` as `vt-*` classes.
 - Routes are **file-based** (`@tanstack/router-plugin`); the route tree is
   generated, so add a file under `client/routes/` and rebuild rather than
   editing `routeTree.gen.ts`.

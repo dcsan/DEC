@@ -9,8 +9,8 @@ import type { WidgetProps } from "./types";
 import { blankFooData, fooSpec, type FooItem } from "./foo.spec";
 
 // One tint per widget for the card border + header icon. Pick an unused
-// --dec-* node tint (concept/framework/option/merged). See references/contract.md.
-const ACCENT = "var(--dec-option)";
+// --vizithink-* node tint (concept/framework/option/merged). See references/contract.md.
+const ACCENT = "var(--vizithink-option)";
 
 export function FooWidget({ initial, onSend, onRemove }: WidgetProps) {
   const [title, setTitle] = useState(initial?.title || "Foo");
@@ -52,10 +52,10 @@ export function FooWidget({ initial, onSend, onRemove }: WidgetProps) {
         width: "100%",
         maxWidth: 460,
         borderRadius: 12,
-        background: "var(--dec-surface-2)",
+        background: "var(--vizithink-surface-2)",
         border: `1.5px solid ${ACCENT}`,
         boxShadow: "0 1px 2px #0006",
-        color: "var(--dec-text)",
+        color: "var(--vizithink-text)",
         overflow: "hidden",
       }}
     >
@@ -66,8 +66,8 @@ export function FooWidget({ initial, onSend, onRemove }: WidgetProps) {
           alignItems: "center",
           gap: 8,
           padding: "8px 10px",
-          borderBottom: "1px solid var(--dec-border-soft)",
-          background: "var(--dec-surface)",
+          borderBottom: "1px solid var(--vizithink-border-soft)",
+          background: "var(--vizithink-surface)",
         }}
       >
         <span style={{ fontSize: 13 }}>◧</span>
@@ -84,7 +84,7 @@ export function FooWidget({ initial, onSend, onRemove }: WidgetProps) {
             fontWeight: 600,
             border: "none",
             background: "transparent",
-            color: "var(--dec-text)",
+            color: "var(--vizithink-text)",
             outline: "none",
           }}
         />
@@ -107,7 +107,7 @@ export function FooWidget({ initial, onSend, onRemove }: WidgetProps) {
               type="button"
               title="Remove row"
               onClick={() => removeRow(i)}
-              style={{ ...iconBtn, width: 22, color: "var(--dec-text-subtle)" }}
+              style={{ ...iconBtn, width: 22, color: "var(--vizithink-text-subtle)" }}
             >
               −
             </button>
@@ -125,12 +125,12 @@ export function FooWidget({ initial, onSend, onRemove }: WidgetProps) {
           alignItems: "center",
           justifyContent: "flex-end",
           padding: "8px 10px",
-          borderTop: "1px solid var(--dec-border-soft)",
-          background: "var(--dec-surface)",
+          borderTop: "1px solid var(--vizithink-border-soft)",
+          background: "var(--vizithink-surface)",
         }}
       >
         {sent && (
-          <span style={{ marginRight: 10, fontSize: 12, color: "var(--dec-merged)" }}>Sent ✓</span>
+          <span style={{ marginRight: 10, fontSize: 12, color: "var(--vizithink-merged)" }}>Sent ✓</span>
         )}
         <button type="button" onClick={send} disabled={!hasContent} style={sendBtn(hasContent)}>
           {sent ? "Send again ↩" : "Send to chat ↩"}
@@ -145,9 +145,9 @@ const iconBtn: React.CSSProperties = {
   width: 20,
   height: 20,
   borderRadius: 6,
-  border: "1px solid var(--dec-border)",
-  background: "var(--dec-surface-2)",
-  color: "#ff8b8b",
+  border: "1px solid var(--vizithink-border)",
+  background: "var(--vizithink-surface-2)",
+  color: "var(--vizithink-bad)",
   cursor: "pointer",
   flexShrink: 0,
 };
@@ -157,9 +157,9 @@ const addRowBtn: React.CSSProperties = {
   fontSize: 11,
   padding: "3px 8px",
   borderRadius: 6,
-  border: "1px dashed var(--dec-border)",
+  border: "1px dashed var(--vizithink-border)",
   background: "transparent",
-  color: "var(--dec-text-muted)",
+  color: "var(--vizithink-text-muted)",
   cursor: "pointer",
 };
 
@@ -168,9 +168,9 @@ const rowInput: React.CSSProperties = {
   padding: "5px 7px",
   fontSize: 12,
   borderRadius: 6,
-  border: "1px solid var(--dec-border)",
-  background: "var(--dec-surface)",
-  color: "var(--dec-text)",
+  border: "1px solid var(--vizithink-border)",
+  background: "var(--vizithink-surface)",
+  color: "var(--vizithink-text)",
   outline: "none",
 };
 
@@ -180,7 +180,7 @@ const sendBtn = (enabled: boolean): React.CSSProperties => ({
   padding: "6px 12px",
   borderRadius: 8,
   border: "none",
-  background: enabled ? "var(--dec-accent)" : "var(--dec-border)",
-  color: enabled ? "#0f1115" : "var(--dec-text-subtle)",
+  background: enabled ? "var(--vizithink-accent)" : "var(--vizithink-border)",
+  color: enabled ? "#0a0c12" : "var(--vizithink-text-subtle)",
   cursor: enabled ? "pointer" : "not-allowed",
 });
