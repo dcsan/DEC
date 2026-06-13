@@ -98,11 +98,14 @@ the router. Two pieces, deliberately split:
   here, slash commands still work but the router can never surface it from
   natural language.
 
-**Convo router** (`src/trpc/routers/chat.ts`): for free-text messages it
-classifies decision-vs-chat, and for decisions the LLM picks the best widget by
-`purpose` from `WIDGET_REGISTRY` and extracts the choices, returning
-`{ reply, widget, title, items }`. `ChatView` then drops that widget prefilled
-via `initial`. Heuristic fallback lives in `src/services/convoRouter.ts` (used
+**Convo router** (`src/trpc/routers/chat.ts`, prompts in `chat.prompts.ts`):
+for free-text messages it classifies decision-vs-chat. On the first message of
+a new chat it probes the dilemma (one short question per turn, max two) before
+routing; then the LLM picks the best widget by `purpose` from
+`WIDGET_REGISTRY` and extracts the choices, returning
+`{ bubbles, widget, title, question, items }` — `bubbles` render as separate
+chat messages, `question` is the decision distilled from the conversation.
+`ChatView` then drops that widget prefilled via `initial`. Heuristic fallback lives in `src/services/convoRouter.ts` (used
 when there's no API key). `ChatView` and the router stay generic over
 `WidgetOutput` — adding a widget never edits them.
 

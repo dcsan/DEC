@@ -149,6 +149,15 @@ export function ChatView({
 
   const append = (item: ChatItem) => setItems((cur) => [...cur, item]);
 
+  // The server replies with an ARRAY of bubbles; each becomes its own assistant
+  // message (so e.g. a probing question sits in its own bubble) and re-enters
+  // the history as a separate turn.
+  const appendBubbles = (bubbles: string[]) => {
+    for (const b of bubbles) {
+      if (b.trim()) append({ kind: "message", id: uid(), role: "assistant", content: b });
+    }
+  };
+
   // Build the chat history (text messages only) for server-side interpretation,
   // optionally with one not-yet-committed message appended.
   const toHistory = (extra?: { role: "user" | "assistant"; content: string }) => [
@@ -174,7 +183,7 @@ export function ChatView({
         sessionId,
         userId,
       });
-      append({ kind: "message", id: uid(), role: "assistant", content: res.reply });
+      appendBubbles(res.bubbles);
     } finally {
       setSending(false);
     }
@@ -191,14 +200,17 @@ export function ChatView({
         sessionId,
         userId,
       });
-      append({ kind: "message", id: uid(), role: "assistant", content: res.reply });
+      appendBubbles(res.bubbles);
       if (res.widget && getWidget(res.widget)) {
         append({
           kind: "widget",
           id: uid(),
           type: res.widget,
-          // Carry the original message so it's forwarded back on the final post.
-          init: { title: res.title ?? undefined, items: res.items, question: content },
+          // Carry the decision so it's forwarded back on the final post. Prefer
+          // the router's distilled question (the dilemma + constraints learned
+          // from its probing prelude) over the raw last message, which after a
+          // prelude exchange is just the user's answers.
+          init: { title: res.title ?? undefined, items: res.items, question: res.question || content },
         });
       }
     } finally {

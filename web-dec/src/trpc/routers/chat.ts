@@ -5,6 +5,7 @@ import { routeHeuristic, type WidgetInfo } from "../../services/convoRouter";
 import { WIDGET_REGISTRY } from "../../services/widgetRegistry";
 import { getAttachedContext, recordTurns } from "../../services/honcho";
 import { logChatTurns } from "../../services/chatlog";
+import { ROUTER_SYSTEM, routerPrompt, RECOMMEND_SYSTEM, recommendPrompt } from "./chat.prompts";
 
 // Standalone chat endpoint + conversation router for the /chat view.
 //
@@ -25,13 +26,24 @@ const HistoryMessage = z.object({
 // What the LLM router returns. `widget`/`title` are empty strings (not null) so
 // the schema stays strict-mode friendly.
 const RouteReplySchema = z.object({
-  reply: z.string().describe("a brief, friendly reply to the user's latest message"),
+  bubbles: z
+    .array(z.string())
+    .min(1)
+    .max(3)
+    .describe(
+      "the assistant's reply as 1-3 SHORT chat bubbles, each rendered as its own bubble in the chat. A probing question always gets its OWN bubble.",
+    ),
   widget: z
     .string()
     .describe("the `type` of the single most relevant tool to surface, or empty string if none applies"),
   title: z
     .string()
     .describe("a short title for the surfaced tool, derived from the decision, or empty string"),
+  question: z
+    .string()
+    .describe(
+      "the decision being worked through, restated as ONE concise self-contained question that folds in the key constraints learned from the conversation (e.g. \"Should I quit my job to start a company, given 8 months of runway?\"), or empty string when no tool applies",
+    ),
   items: z
     .array(z.string())
     .describe(
@@ -45,19 +57,32 @@ const RouteReplySchema = z.object({
 });
 
 // What the LLM returns when recommending a decision from a submitted widget.
+// Rendered as two bubbles: the headline (large, via markdown heading) then the
+// details underneath.
 const RecommendationSchema = z.object({
-  recommendation: z
+  headline: z
     .string()
     .describe(
-      "a concise, decisive recommendation grounded in the user's original question and their widget input — state what to do and the key reason, 2-4 sentences, no hedging",
+      "the conclusion as one short decisive line, 3-8 words — the call itself, e.g. \"Take the Tokyo offer\". No trailing period.",
+    ),
+  details: z
+    .string()
+    .describe(
+      "2-4 sentences grounding the recommendation in the user's original question and widget input — the one or two key reasons and at most one caveat, no hedging",
     ),
 });
 
 // Shape returned to the client.
 export interface RouteResult {
-  reply: string;
+  // The assistant's reply, split into chat bubbles — the client renders each
+  // string as its own bubble (a probing question gets a bubble to itself).
+  bubbles: string[];
   widget: string | null;
   title: string | null;
+  // The decision distilled from the whole conversation (incl. answers to the
+  // prelude's probing questions) — seeds the widget instead of the raw last
+  // message, so e.g. 2×2 axis derivation sees the full picture.
+  question: string | null;
   items: string[];
   // True when `items` were generated for an open-ended question (the user named
   // no options), so the UI can present them as editable suggestions.
@@ -133,13 +158,19 @@ export const chatRouter = router({
       // A widget result → recommend a decision from the original question +
       // the widget's formatted output. No routing.
       if (input.widget) {
-        const reply = await recommend(
+        const rec = await recommend(
           ctx.env.OPENROUTER_API_KEY,
           input.question,
           input.widget.type,
           input.text,
           attached,
         );
+        // Conclusion bubble (headline, rendered large via markdown heading)
+        // followed by a details bubble. The no-key fallback has no headline.
+        const bubbles = rec.headline
+          ? [`# ${rec.headline}`, rec.details]
+          : [rec.details];
+        const reply = bubbles.join("\n\n");
         // A submitted widget is the richest signal we get about the user's
         // values for this decision (e.g. the factors they weighted, the options
         // they scored). Persist it to Honcho as an explicit decision record —
@@ -160,15 +191,19 @@ export const chatRouter = router({
           );
         }
         logDb(reply, { type: input.widget.type, data: input.widget.data, text: input.text });
-        return { reply, widget: null, title: null, items: [], generated: false };
+        return { bubbles, widget: null, title: null, question: null, items: [], generated: false };
       }
 
+      // First exchange of a new chat (the assistant hasn't spoken yet) → the
+      // router opens with probing questions instead of jumping to a widget.
+      const firstTurn = !(input.history ?? []).some((m) => m.role === "assistant");
       const result = await route(
         ctx.env.OPENROUTER_API_KEY,
         input.history ?? [],
         input.text,
         WIDGET_REGISTRY,
         attached,
+        firstTurn,
       );
       console.log(
         `[chat] router → ${result.widget ?? "(chat)"}`,
@@ -176,8 +211,10 @@ export const chatRouter = router({
           ? `items${result.generated ? " (generated)" : ""}: ${JSON.stringify(result.items)}`
           : "",
       );
-      mirror(result.reply);
-      logDb(result.reply);
+      // Honcho/Postgres log the bubbles joined back into one assistant turn.
+      const replyText = result.bubbles.join("\n\n");
+      mirror(replyText);
+      logDb(replyText);
       return result;
     }),
 });
@@ -190,6 +227,10 @@ export async function route(
   text: string,
   catalog: WidgetInfo[],
   attachedContext = "",
+  // First message of a new chat → probe before routing (docs/todo/prelude.md):
+  // ask a couple of surprising questions about the dilemma, surface the tool on
+  // the NEXT turn once the answers are in. The eval harness leaves this false.
+  firstTurn = false,
 ): Promise<RouteResult> {
   const validTypes = new Set(catalog.map((w) => w.type));
 
@@ -206,45 +247,19 @@ export async function route(
         apiKey,
         schema: RouteReplySchema,
         schemaName: "route_reply",
-        system:
-          "You are ViziThink, a concise decision assistant that routes the user to the " +
-          "right thinking tool. Match the user's intent to a tool's purpose. When a " +
-          "user asks an open-ended question (e.g. \"what mattress should I buy?\"), " +
-          "don't just ask them what matters — do the initial thinking for them: pick " +
-          "the best tool for the kind of decision it is, and seed it with sensible, " +
-          "well-known options so they get a ready-made choice grid to react to.",
-        prompt:
-          (attachedContext
-            ? `Context the user attached (weigh this when interpreting them):\n${attachedContext}\n\n`
-            : "") +
-          `Available tools (widgets):\n${tools || "(none)"}\n\n` +
-          `Conversation so far:\n${transcript || "(none)"}\n\n` +
-          `Latest user message: ${text}\n\n` +
-          `If this is a decision, prioritisation, or choice that one of the tools ` +
-          `would help with, set "widget" to that tool's exact type and "title" to a ` +
-          `short title for the decision, then fill "items":\n` +
-          `• If the user named concrete options, use those and set "generated" false ` +
-          `(e.g. "buy a house or buy a car" → ["Buy a house", "Buy a car"]).\n` +
-          `• If the decision is OPEN-ENDED and the user named no concrete options ` +
-          `(e.g. "what mattress should I buy?", "where should I travel?"), GENERATE ` +
-          `3-5 representative, well-known options yourself so they get a starting ` +
-          `choice grid, and set "generated" true. Keep each option a SHORT, plain ` +
-          `label (the option's name only, no parenthetical descriptions) so it fits ` +
-          `on a grid. When you generate options, prefer a tool that compares options ` +
-          `(e.g. the 2×2 comparison) so the options become a visible grid; in your ` +
-          `"reply", say you've sketched a few common options to start from and they ` +
-          `can edit or add freely.\n` +
-          `Otherwise (not a decision) set "widget" and "title" to "", "items" to [], ` +
-          `"generated" false, and reply helpfully in context.`,
+        system: ROUTER_SYSTEM,
+        prompt: routerPrompt({ attachedContext, tools, transcript, text, firstTurn }),
         temperature: 0.4,
         title: "convo-router",
       });
 
       const widget = out.widget && validTypes.has(out.widget) ? out.widget : null;
+      const bubbles = out.bubbles.map((b) => b.trim()).filter(Boolean);
       return {
-        reply: out.reply,
+        bubbles: bubbles.length ? bubbles : ["Okay."],
         widget,
         title: widget ? out.title || null : null,
+        question: widget ? out.question || null : null,
         items: widget ? out.items : [],
         generated: widget ? out.generated : false,
       };
@@ -257,57 +272,50 @@ export async function route(
   const h = routeHeuristic(text, catalog);
   if (h.widget) {
     return {
-      reply: `This looks like a decision. Here's the ${h.title} to help.`,
+      bubbles: [`This looks like a decision. Here's the ${h.title} to help.`],
       widget: h.widget,
       title: h.title,
+      question: null,
       items: h.items,
       generated: false,
     };
   }
   return {
-    reply:
+    bubbles: [
       `Got it — "${text.slice(0, 80)}". Tell me more, or try /factors (decision factors) ` +
-      `or /eis (Eisenhower matrix). (Add OPENROUTER_API_KEY for smarter routing.)`,
+        `or /eis (Eisenhower matrix). (Add OPENROUTER_API_KEY for smarter routing.)`,
+    ],
     widget: null,
     title: null,
+    question: null,
     items: [],
     generated: false,
   };
 }
 
-// Turn a submitted widget into a decision recommendation. Uses the original
-// question (what the user was deciding) plus the widget's plain-text output so
-// the model reasons over the full context, not just the filled-in tool.
+// Turn a submitted widget into a decision recommendation: a short decisive
+// headline (the call) plus the supporting details. Uses the original question
+// (what the user was deciding) plus the widget's plain-text output so the
+// model reasons over the full context, not just the filled-in tool.
 async function recommend(
   apiKey: string | undefined,
   question: string | undefined,
   widgetType: string,
   widgetText: string,
   attachedContext = "",
-): Promise<string> {
+): Promise<{ headline: string; details: string }> {
   if (apiKey) {
     try {
       const out = await structuredChat({
         apiKey,
         schema: RecommendationSchema,
         schemaName: "recommendation",
-        system:
-          "You are ViziThink, a decisive decision assistant. The user worked through a " +
-          "thinking tool and submitted it. Using their original question and the " +
-          "filled-in tool, give a clear recommendation: say what you'd do and the " +
-          "one or two reasons why. Be concise and don't hedge.",
-        prompt:
-          (attachedContext
-            ? `Context the user attached (weigh this heavily):\n${attachedContext}\n\n`
-            : "") +
-          `Original decision: ${question?.trim() || "(not stated — infer from the tool)"}\n\n` +
-          `The user worked through it with the "${widgetType}" tool and submitted:\n` +
-          `${widgetText}\n\n` +
-          `Give your recommendation.`,
+        system: RECOMMEND_SYSTEM,
+        prompt: recommendPrompt({ attachedContext, question, widgetType, widgetText }),
         temperature: 0.4,
         title: "decision-recommend",
       });
-      return out.recommendation;
+      return { headline: out.headline.trim(), details: out.details.trim() };
     } catch (err) {
       console.error("[chat] recommend failed, using fallback", err);
     }
@@ -315,8 +323,10 @@ async function recommend(
 
   // No-key / LLM-failed fallback: reflect the input without a tailored call.
   const lead = question?.trim() ? `On "${question.trim()}": ` : "";
-  return (
-    `${lead}thanks — I've captured your ${widgetType} input. ` +
-    `Add OPENROUTER_API_KEY for a tailored recommendation.`
-  );
+  return {
+    headline: "",
+    details:
+      `${lead}thanks — I've captured your ${widgetType} input. ` +
+      `Add OPENROUTER_API_KEY for a tailored recommendation.`,
+  };
 }

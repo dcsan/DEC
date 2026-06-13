@@ -252,24 +252,27 @@ export function matchHelpCommand(input: string): HelpMatch | null {
 }
 
 // Render the shortcut list straight from WIDGETS, so it can never drift from the
-// registered widgets. Markdown: each canonical command as inline `code`, its
-// title in bold, no dash bullets — just a plain list of items.
+// registered widgets. The bubble renders MARKDOWN, where single newlines collapse
+// into one paragraph — so every row must be a `- ` list item to stay on its own
+// line.
 export function widgetHelpText(): string {
   const rows = WIDGETS.filter((w) => !w.spec.draft).map(
-    (w) => `\`/${w.spec.commands[0]}\` — **${w.spec.title}**: ${w.spec.description}`,
+    (w) => `- \`/${w.spec.commands[0]}\` — **${w.spec.title}**: ${w.spec.description}`,
   );
   return [
     "## Widget shortcuts",
     "",
     ...rows,
     "",
-    "`/research` — web-sourced deeper advice on your current decision",
-    "`/viz` — visualise the current decision as a diagram",
-    "`/summary` — recap what you're deciding so far",
-    "`/context` — attach a text document as context for this chat",
-    "`/facts` — what I've learned about you this session",
-    "`/drafts` — experimental tools not yet in the main set",
-    "`/new` — start a fresh conversation",
+    "**Chat commands**",
+    "",
+    "- `/research` — web-sourced deeper advice on your current decision",
+    "- `/viz` — visualise the current decision as a diagram",
+    "- `/summary` — recap what you're deciding so far",
+    "- `/context` — attach a text document as context for this chat",
+    "- `/facts` — what I've learned about you this session",
+    "- `/drafts` — experimental tools not yet in the main set",
+    "- `/new` — start a fresh conversation",
     "",
     "Or just describe a decision and I'll pick a tool. Force one with " +
       "`use <name>` (e.g. `use sc to plan what to do next`). Type " +
@@ -284,7 +287,7 @@ export function widgetDraftText(): string {
   const drafts = WIDGETS.filter((w) => w.spec.draft);
   if (drafts.length === 0) return "No draft widgets right now.";
   const rows = drafts.map(
-    (w) => `\`/${w.spec.commands[0]}\` — **${w.spec.title}**: ${w.spec.description}`,
+    (w) => `- \`/${w.spec.commands[0]}\` — **${w.spec.title}**: ${w.spec.description}`,
   );
   return [
     "## Draft widgets",
@@ -317,8 +320,8 @@ export function widgetHelpDetail(entry: WidgetEntry): string {
     "",
     spec.help,
     "",
-    `**Commands:** ${spec.commands.map((c) => `\`/${c}\``).join(", ")}`,
-    `**Example:** "${spec.example}"`,
+    `- **Commands:** ${spec.commands.map((c) => `\`/${c}\``).join(", ")}`,
+    `- **Example:** "${spec.example}"`,
   ].join("\n");
 }
 
@@ -349,14 +352,14 @@ export function matchExampleCommand(input: string): ExampleMatch | null {
 }
 
 // Render the example list from WIDGETS so it can't drift. Canonical command per
-// spec, its title, and the example decision it's the obvious tool for.
+// spec, its title, and the example decision it's the obvious tool for. Markdown
+// list items — the bubble renders markdown, which collapses bare newlines.
 export function widgetExampleText(): string {
   const rows = WIDGETS.filter((w) => !w.spec.draft).map(
-    (w) => `  /${w.spec.commands[0]} — ${w.spec.title}: "${w.spec.example}"`,
+    (w) => `- \`/${w.spec.commands[0]}\` — **${w.spec.title}**: "${w.spec.example}"`,
   );
   return [
-    "Example decisions — type /ex <name> to run one (e.g. /ex eis), or just",
-    "describe your own:",
+    "**Example decisions** — type `/ex <name>` to run one (e.g. `/ex eis`), or just describe your own:",
     "",
     ...rows,
   ].join("\n");
