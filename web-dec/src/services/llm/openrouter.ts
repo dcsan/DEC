@@ -17,6 +17,7 @@
 import type { z } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
 import { LLM_MODEL } from "../../config";
+import { recordLlmCall } from "./trace";
 
 const OPENROUTER_CHAT_URL = "https://openrouter.ai/api/v1/chat/completions";
 
@@ -97,43 +98,69 @@ export async function structuredChat<S extends z.ZodTypeAny>(
   };
   if (opts.title) headers["X-Title"] = opts.title;
 
+  // Record the exchange (success or failure) for the /chat prompts sidebar — a
+  // no-op unless the request opted into tracing (see src/trpc/trpc.ts).
+  const startedAt = Date.now();
+  let content: string | undefined;
+  const trace = (out: { response?: string; error?: string }) =>
+    recordLlmCall({
+      title: opts.title,
+      schemaName: opts.schemaName,
+      model: body.model,
+      temperature: opts.temperature,
+      web: opts.web,
+      system: opts.system,
+      prompt: opts.prompt,
+      schema: jsonSchema,
+      startedAt,
+      ms: Date.now() - startedAt,
+      ...out,
+    });
+
   const controller = new AbortController();
   const timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
-  let res: Response;
   try {
-    res = await fetch(OPENROUTER_CHAT_URL, {
-      method: "POST",
-      headers,
-      body: JSON.stringify(body),
-      signal: controller.signal,
-    });
-  } catch (err) {
-    if (err instanceof Error && err.name === "AbortError") {
-      throw new Error(`OpenRouter chat timed out after ${timeoutMs}ms`);
+    let res: Response;
+    try {
+      res = await fetch(OPENROUTER_CHAT_URL, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(body),
+        signal: controller.signal,
+      });
+    } catch (err) {
+      if (err instanceof Error && err.name === "AbortError") {
+        throw new Error(`OpenRouter chat timed out after ${timeoutMs}ms`);
+      }
+      throw err;
+    } finally {
+      clearTimeout(timer);
     }
+
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(`OpenRouter chat failed (${res.status}): ${text.slice(0, 500)}`);
+    }
+
+    const json = (await res.json()) as {
+      choices?: Array<{ message?: { content?: string } }>;
+    };
+    content = json.choices?.[0]?.message?.content;
+    if (typeof content !== "string") {
+      throw new Error(
+        `OpenRouter chat returned no content: ${JSON.stringify(json).slice(0, 300)}`,
+      );
+    }
+
+    // With json_schema the content is guaranteed JSON — parse once, validate.
+    const parsed = JSON.parse(content);
+    const result = opts.schema.parse(parsed) as z.infer<S>;
+    trace({ response: content });
+    return result;
+  } catch (err) {
+    trace({ response: content, error: err instanceof Error ? err.message : String(err) });
     throw err;
-  } finally {
-    clearTimeout(timer);
   }
-
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(`OpenRouter chat failed (${res.status}): ${text.slice(0, 500)}`);
-  }
-
-  const json = (await res.json()) as {
-    choices?: Array<{ message?: { content?: string } }>;
-  };
-  const content = json.choices?.[0]?.message?.content;
-  if (typeof content !== "string") {
-    throw new Error(
-      `OpenRouter chat returned no content: ${JSON.stringify(json).slice(0, 300)}`,
-    );
-  }
-
-  // With json_schema the content is guaranteed JSON — parse once, validate.
-  const parsed = JSON.parse(content);
-  return opts.schema.parse(parsed) as z.infer<S>;
 }

@@ -21,11 +21,11 @@ const ZONE_FLAGS: Record<Exclude<Zone, "pool">, { important: 0 | 1; urgent: 0 | 
   eliminate: { important: 0, urgent: 0 },
 };
 
-const QUADRANTS: { zone: Exclude<Zone, "pool">; label: string }[] = [
-  { zone: "do", label: "Do now" },
-  { zone: "schedule", label: "Schedule" },
-  { zone: "delegate", label: "Delegate" },
-  { zone: "eliminate", label: "Drop" },
+const QUADRANTS: { zone: Exclude<Zone, "pool">; label: string; tint: string }[] = [
+  { zone: "do", label: "Do now", tint: "95, 214, 166" }, // green
+  { zone: "schedule", label: "Schedule", tint: "110, 168, 254" }, // blue
+  { zone: "delegate", label: "Delegate", tint: "240, 184, 110" }, // amber
+  { zone: "eliminate", label: "Drop", tint: "155, 140, 255" }, // violet
 ];
 
 interface Task {
@@ -40,16 +40,23 @@ function seedTasks(items?: string[]): Task[] {
   return texts.map((text) => ({ id: crypto.randomUUID(), text, zone: "pool" as const }));
 }
 
-function zoneDropSurface(active: boolean, dim: boolean, isPool: boolean): CSSProperties {
+function zoneDropSurface(active: boolean, dim: boolean, isPool: boolean, tint?: string): CSSProperties {
+  // Quadrants get a faint wash of their zone colour (`tint` = "r, g, b") so the
+  // four cells read at a glance; the pool stays neutral.
+  const wash = tint ? `rgba(${tint}, ${active ? 0.16 : 0.07})` : undefined;
   return {
     minHeight: isPool ? undefined : 92,
     padding: 8,
     borderRadius: 8,
-    border: active ? "2px solid var(--vizithink-accent)" : "1px dashed var(--vizithink-border)",
-    background: active ? "var(--vizithink-accent-soft)" : "var(--vizithink-surface)",
+    border: active
+      ? `2px solid ${tint ? `rgb(${tint})` : "var(--vizithink-accent)"}`
+      : tint
+        ? `1px solid rgba(${tint}, 0.3)`
+        : "1px dashed var(--vizithink-border)",
+    background: wash ?? (active ? "var(--vizithink-accent-soft)" : "var(--vizithink-surface)"),
     opacity: dim ? 0.72 : 1,
     transition: "border-color 100ms ease, background-color 100ms ease, opacity 100ms ease",
-    boxShadow: active ? "inset 0 0 0 1px var(--vizithink-accent)" : undefined,
+    boxShadow: active ? `inset 0 0 0 1px ${tint ? `rgb(${tint})` : "var(--vizithink-accent)"}` : undefined,
   };
 }
 
@@ -65,6 +72,7 @@ export function EisenhowerWidget({ initial, onSend, onRemove }: WidgetProps) {
   const draggingTaskIdRef = useRef<string | null>(null);
 
   const more = trpc.suggest.more.useMutation();
+  const categorize = trpc.eisenhower.categorize.useMutation();
   const isDragging = dragId !== null;
   const dirty = () => {
     setSent(false);
@@ -94,6 +102,35 @@ export function EisenhowerWidget({ initial, onSend, onRemove }: WidgetProps) {
       }
     } catch (err) {
       setGenError(err instanceof Error ? err.message : "Could not generate more.");
+    }
+  };
+
+  // Map the two Eisenhower flags to a quadrant zone (mirrors ZONE_FLAGS).
+  const zoneFor = (important: boolean, urgent: boolean): Exclude<Zone, "pool"> =>
+    important && urgent ? "do" : important ? "schedule" : urgent ? "delegate" : "eliminate";
+
+  // Auto-categorise the unsorted pool: ask the LLM to rate each task on
+  // important/urgent, then move each into its quadrant. Lenient text match in
+  // case the model rewords; unmatched tasks stay in the pool to drag manually.
+  const runCategorize = async () => {
+    const q = seedQuestion();
+    const poolTexts = tasks.filter((t) => t.zone === "pool").map((t) => t.text.trim()).filter(Boolean);
+    if (!q || categorize.isPending || poolTexts.length === 0) return;
+    setGenError(null);
+    try {
+      const out = await categorize.mutateAsync({ question: q, items: poolTexts });
+      const norm = (s: string) => s.trim().toLowerCase();
+      const byText = new Map(out.items.map((it) => [norm(it.text), it]));
+      setTasks((cur) =>
+        cur.map((t) => {
+          if (t.zone !== "pool") return t;
+          const c = byText.get(norm(t.text));
+          return c ? { ...t, zone: zoneFor(c.important, c.urgent) } : t;
+        }),
+      );
+      setSent(false);
+    } catch (err) {
+      setGenError(err instanceof Error ? err.message : "Could not categorise the tasks.");
     }
   };
 
@@ -337,15 +374,16 @@ export function EisenhowerWidget({ initial, onSend, onRemove }: WidgetProps) {
                 <div
                   key={q.zone}
                   {...dropProps(q.zone)}
-                  style={zoneDropSurface(active, dim, false)}
+                  style={zoneDropSurface(active, dim, false, q.tint)}
                 >
                   <div
                     onDragOver={chipDragOver(q.zone)}
                     style={{
                       fontSize: 10,
+                      fontWeight: 700,
                       textTransform: "uppercase",
                       letterSpacing: "0.05em",
-                      color: "var(--vizithink-text-subtle)",
+                      color: `rgb(${q.tint})`,
                       marginBottom: 4,
                     }}
                   >
@@ -445,6 +483,15 @@ export function EisenhowerWidget({ initial, onSend, onRemove }: WidgetProps) {
             style={genBtn(!!seedQuestion() && !more.isPending)}
           >
             {more.isPending ? "Thinking…" : "✨ generate more"}
+          </button>
+          <button
+            type="button"
+            onClick={runCategorize}
+            disabled={!seedQuestion() || pool.length === 0 || categorize.isPending}
+            title="Sort the pooled tasks into the matrix automatically"
+            style={genBtn(!!seedQuestion() && pool.length > 0 && !categorize.isPending)}
+          >
+            {categorize.isPending ? "Sorting…" : "⚡ categorize"}
           </button>
         </div>
         {genError && (

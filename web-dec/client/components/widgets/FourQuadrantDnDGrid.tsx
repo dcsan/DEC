@@ -1,6 +1,6 @@
 // Reusable 2×2 drag-swap grid for chat widgets (see quadrant4Types.ts).
 
-import { useState, type CSSProperties, type DragEvent, type ReactNode } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type DragEvent, type ReactNode } from "react";
 import type { WidgetProps, WidgetSpec } from "./types";
 import type { FourCells, Quadrant4Data } from "./quadrant4Types";
 
@@ -28,6 +28,14 @@ export interface FourQuadrantDnDGridProps extends WidgetProps {
   hint: ReactNode;
   /** Border + shell accent; default matches Pros & Cons style. */
   accent?: string;
+  /**
+   * Optional auto-fill: when the widget is routed in with a question and the
+   * grid is empty, call `autofill(question)` once on mount to pre-populate the
+   * four quadrants (e.g. SWOT drafts S/W/O/T from the subject). Returns the
+   * cells to seed. Failures are swallowed — the grid just stays editable.
+   */
+  autofillQuestion?: string;
+  autofill?: (question: string) => Promise<FourCells>;
 }
 
 export function FourQuadrantDnDGrid({
@@ -39,12 +47,34 @@ export function FourQuadrantDnDGrid({
   headerEmoji,
   hint,
   accent = DEFAULT_ACCENT,
+  autofillQuestion,
+  autofill,
   onSend,
   onRemove,
 }: FourQuadrantDnDGridProps) {
   const [title, setTitle] = useState(initialTitle);
   const [cells, setCells] = useState<FourCells>(initialCells);
   const [sent, setSent] = useState(false);
+  const [filling, setFilling] = useState(false);
+
+  // Pre-fill the grid once from the routed-in question (e.g. SWOT drafts each
+  // quadrant). Only runs when an autofill is provided, a question exists, and
+  // the grid is still empty — so it never clobbers a user's own command input.
+  const autofilled = useRef(false);
+  useEffect(() => {
+    if (autofilled.current) return;
+    autofilled.current = true;
+    const q = autofillQuestion?.trim();
+    if (!autofill || !q || initialCells.some((c) => c.trim() !== "")) return;
+    setFilling(true);
+    autofill(q)
+      .then((next) => setCells(next))
+      .catch(() => {
+        /* leave the grid blank for manual entry */
+      })
+      .finally(() => setFilling(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const patchCell = (i: number, value: string) => {
     setCells((cur) => {
@@ -126,7 +156,7 @@ export function FourQuadrantDnDGrid({
           color: "var(--vizithink-text-subtle)",
         }}
       >
-        {hint}
+        {filling ? "Drafting a starting grid…" : hint}
       </p>
 
       <div

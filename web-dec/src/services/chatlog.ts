@@ -18,11 +18,13 @@ export async function logChatTurns(
   db: Db,
   sessionId: string,
   entries: ChatLogEntry[],
+  userId?: string,
 ): Promise<void> {
   const rows = entries
     .filter((e) => e.content.trim() || e.widget)
     .map((e) => ({
       sessionId,
+      userId: userId ?? null,
       role: e.role,
       content: e.content,
       widget: e.widget ?? null,

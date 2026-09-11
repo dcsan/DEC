@@ -7,6 +7,10 @@
         "Authorization": "Bearer ${HONCHO_API_KEY}",
         "X-Honcho-User-Name": "YourName"
       }
+    },
+    "fern_mcp_you-com-docs": {
+      "type": "http",
+      "url": "https://you.com/docs/_mcp/server"
     }
   }
 }

@@ -14,6 +14,11 @@ OPENROUTER_API_KEY=
 # Optional — those features report Honcho isn't configured without it.
 HONCHO_API_KEY=
 
+# you.com Research API — powers /research (multi-step web research with
+# citations). Optional: without it /research falls back to OpenRouter's web
+# search. Get a key at https://you.com/platform
+YDC_API_KEY=
+
 # Better Auth (Phase 5c). Generate a secret: openssl rand -base64 32
 BETTER_AUTH_SECRET=
 # Public base URL of the auth server (the tunnel/prod origin). OAuth issuer.

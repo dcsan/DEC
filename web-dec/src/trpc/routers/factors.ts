@@ -3,34 +3,57 @@ import { TRPCError } from "@trpc/server";
 import { router, publicProcedure } from "../trpc";
 import { structuredChat } from "../../services/llm/openrouter";
 
-// LLM endpoint for the Factor Weighting widget. Given a yes/no decision question
-// (e.g. "should I join a startup?"), it returns the factors that bear on it —
-// both those that pull toward yes and those that pull toward no. The user ranks
-// how much each matters, so the model only names them (it does not weight them).
-// The widget calls this from its "Suggest" button (and once on mount when routed
-// in with a question).
+// LLM endpoint for the Factor Weighting widget. Given a yes/no / either-or
+// decision (e.g. "should I join a startup?"), it returns the factors that bear
+// on it — each as a SPECTRUM with a neutral label and two OPPOSITE pole labels
+// (left/right). The user then marks where they sit on each, so the model only
+// names the dimensions and their opposing ends, it does not position them. The
+// widget calls this on mount, and again (passing `existing`) for "generate more".
 
-const SuggestSchema = z.object({
-  factors: z
-    .array(
-      z
-        .string()
-        .describe(
-          "a concise factor that bears on the decision (2-6 words), named neutrally rather than phrased as a pro or con, e.g. 'Freedom from corporate life', 'Equity upside', 'Steady paycheck', 'Job security'",
-        ),
-    )
+const FactorSchema = z.object({
+  label: z
+    .string()
     .describe(
-      "five to seven factors that genuinely pull on this decision, mixing ones that argue for it and ones that argue against it",
+      "the factor as a neutral dimension/axis name in 2-5 words, e.g. 'Organizational structure', 'Income stability', 'Day-to-day autonomy' — NOT phrased as a pro/con",
+    ),
+  left: z
+    .string()
+    .describe("the left pole: one extreme of this factor in 1-3 words, e.g. 'Bureaucratic'"),
+  right: z
+    .string()
+    .describe(
+      "the right pole: the OPPOSITE extreme on the same scale in 1-3 words, e.g. 'Freeform' (must be a true opposite of `left`)",
     ),
 });
 
+const SuggestSchema = z.object({
+  factors: z
+    .array(FactorSchema)
+    .describe(
+      "four to six factors that genuinely pull on this decision, each a spectrum between two opposing values",
+    ),
+});
+
+export interface FactorScale {
+  label: string;
+  left: string;
+  right: string;
+}
+
 export interface FactorsSuggestion {
-  factors: string[];
+  factors: FactorScale[];
 }
 
 export const factorsRouter = router({
   suggest: publicProcedure
-    .input(z.object({ question: z.string().min(1).max(2000) }))
+    .input(
+      z.object({
+        question: z.string().min(1).max(2000),
+        // Labels already on screen — pass for "generate more" so the model
+        // returns NEW dimensions instead of repeating ones the user has.
+        existing: z.array(z.string().max(120)).max(40).optional(),
+      }),
+    )
     .mutation(async ({ ctx, input }): Promise<FactorsSuggestion> => {
       const apiKey = ctx.env.OPENROUTER_API_KEY;
       if (!apiKey) {
@@ -41,32 +64,46 @@ export const factorsRouter = router({
         });
       }
 
+      const existing = (input.existing ?? []).map((s) => s.trim()).filter(Boolean);
+
       try {
         const out = await structuredChat({
           apiKey,
           schema: SuggestSchema,
           schemaName: "factors_suggestion",
           system:
-            "You help people make a single yes/no, go/no-go decision by surfacing " +
-            "the factors that genuinely bear on it. Name the factors neutrally — " +
-            "both the ones that argue for the decision and the ones that argue " +
-            "against it. The user will rank how much each one matters to them, so " +
-            "do not weight or rank them yourself.",
+            "You help people make a single yes/no or either-or decision by " +
+            "surfacing the factors that bear on it. Express EACH factor as a " +
+            "spectrum: a neutral dimension label plus two OPPOSITE poles (left and " +
+            "right) that are genuine opposite values on the same scale (e.g. label " +
+            "'Organizational structure', left 'Bureaucratic', right 'Freeform'). " +
+            "Do not phrase factors as pros or cons, and do not say where the user " +
+            "should land — they position themselves.",
           prompt:
             `Decision: ${input.question.trim()}\n\n` +
-            `Return five to seven factors that genuinely pull on this decision, ` +
-            `mixing ones that argue for it and ones that argue against it (e.g. for ` +
-            `"should I join a startup?": "Freedom from corporate life", "Equity ` +
-            `upside", "Steady paycheck", "Job security", "Risk tolerance", "Learning ` +
-            `and growth"). Name each factor in 2-6 words, neutrally — not as a pro ` +
-            `or con.`,
+            (existing.length
+              ? `Factors already listed (return DIFFERENT ones):\n${existing
+                  .map((e) => `- ${e}`)
+                  .join("\n")}\n\n`
+              : "") +
+            `Return ${existing.length ? "three to four more" : "four to six"} factors ` +
+            `that genuinely pull on this decision. For each, give a neutral 2-5 word ` +
+            `label and two opposite poles (1-3 words each) on the same scale. ` +
+            `Example: { label: "Organizational structure", left: "Bureaucratic", ` +
+            `right: "Freeform" }.`,
           temperature: 0.5,
           title: "factors-suggest",
         });
 
-        return {
-          factors: out.factors.map((f) => f.trim()).filter((f) => f !== ""),
-        };
+        const seen = new Set(existing.map((e) => e.toLowerCase()));
+        const factors: FactorScale[] = [];
+        for (const f of out.factors) {
+          const label = f.label.trim();
+          if (!label || seen.has(label.toLowerCase())) continue;
+          seen.add(label.toLowerCase());
+          factors.push({ label, left: f.left.trim(), right: f.right.trim() });
+        }
+        return { factors };
       } catch (err) {
         if (err instanceof TRPCError) throw err;
         console.error("[factors.suggest] failed", err);

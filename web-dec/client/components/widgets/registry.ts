@@ -109,202 +109,8 @@ export function getWidget(type: string): WidgetEntry | null {
   return WIDGETS.find((w) => w.spec.type === type) ?? null;
 }
 
-// One entry in the composer's slash-command autocomplete (the `/`-popup).
-export interface SlashCommandInfo {
-  command: string;
-  title: string;
-  description: string;
-}
-
-// Non-widget chat actions, shown in the slash popup alongside the widgets.
-const ACTION_SLASH_COMMANDS: SlashCommandInfo[] = [
-  { command: "help", title: "Help", description: "list commands, or /help <name>" },
-  { command: "ex", title: "Examples", description: "example decisions to try" },
-  { command: "research", title: "Research", description: "web-sourced deeper advice" },
-  { command: "viz", title: "Visualise", description: "diagram the current decision" },
-  { command: "summary", title: "Summary", description: "recap what you're deciding" },
-  { command: "facts", title: "Facts", description: "what I've learned about you" },
-  { command: "diff", title: "Perspective diff", description: "my view of you vs. your self-view" },
-  { command: "context", title: "Add context", description: "attach a document" },
-  { command: "drafts", title: "Drafts", description: "experimental tools not in the main set" },
-  { command: "session", title: "Session", description: "show the current session id" },
-  { command: "new", title: "New chat", description: "start a fresh conversation" },
-];
-
-// Every slash command for the composer autocomplete: each *core* widget's
-// canonical command plus the chat actions. Drafts are excluded (reach them via
-// `/drafts` or their own slash command). Built from WIDGETS so it can't drift.
-export function allSlashCommands(): SlashCommandInfo[] {
-  const widgets = WIDGETS.filter((w) => !w.spec.draft).map((w) => ({
-    command: w.spec.commands[0],
-    title: w.spec.title,
-    description: w.spec.description,
-  }));
-  return [...widgets, ...ACTION_SLASH_COMMANDS];
-}
-
-// `/research` (and aliases) — not a widget but a chat action: web-augmented
-// deeper advice on the current decision. Returns the trailing args (an explicit
-// decision to research, e.g. `/research should I move to Berlin`) or null if it
-// isn't a research command. Bare `/research` (empty args) is still a match.
-const RESEARCH_COMMANDS = ["research", "res", "deep"];
-
-export function matchResearchCommand(input: string): { args: string } | null {
-  if (!input.startsWith("/")) return null;
-  const [word, ...rest] = input.slice(1).trim().split(/\s+/);
-  if (!RESEARCH_COMMANDS.includes(word?.toLowerCase() ?? "")) return null;
-  return { args: rest.join(" ") };
-}
-
-// `/new` (and aliases) — not a widget but a chat action: start a fresh session
-// (clears the stream and rotates the session id) so the server tracks a new
-// conversation. Returns {} on a match, else null.
-const NEW_COMMANDS = ["new", "newchat", "reset"];
-
-export function matchNewCommand(input: string): Record<string, never> | null {
-  if (!input.startsWith("/")) return null;
-  const word = input.slice(1).trim().split(/\s+/)[0]?.toLowerCase();
-  return NEW_COMMANDS.includes(word ?? "") ? {} : null;
-}
-
-// `/facts` (and aliases) — not a widget but a chat action: list what Honcho has
-// concluded about the user this session. Returns {} on a match, else null.
-const FACTS_COMMANDS = ["facts", "fact", "memory", "remember"];
-
-export function matchFactsCommand(input: string): Record<string, never> | null {
-  if (!input.startsWith("/")) return null;
-  const word = input.slice(1).trim().split(/\s+/)[0]?.toLowerCase();
-  return FACTS_COMMANDS.includes(word ?? "") ? {} : null;
-}
-
-// `/diff` (and aliases) — not a widget but a chat action: compare ViziThink's
-// conclusions about the user against the user's self-conclusions, showing where
-// the two perspectives agree and diverge. Returns {} on a match, else null.
-const DIFF_COMMANDS = ["diff", "perspective", "perspectives"];
-
-export function matchDiffCommand(input: string): Record<string, never> | null {
-  if (!input.startsWith("/")) return null;
-  const word = input.slice(1).trim().split(/\s+/)[0]?.toLowerCase();
-  return DIFF_COMMANDS.includes(word ?? "") ? {} : null;
-}
-
-// `/summary` (and aliases) — not a widget but a chat action: recall the session
-// from Honcho and write a short summary of the decision. Returns {} else null.
-const SUMMARY_COMMANDS = ["summary", "summarise", "summarize", "recap"];
-
-export function matchSummaryCommand(input: string): Record<string, never> | null {
-  if (!input.startsWith("/")) return null;
-  const word = input.slice(1).trim().split(/\s+/)[0]?.toLowerCase();
-  return SUMMARY_COMMANDS.includes(word ?? "") ? {} : null;
-}
-
-// `/session` (and aliases) — not a widget but a chat action: show the current
-// client session id, so you can look the conversation up in Honcho. Returns {}
-// on a match, else null.
-const SESSION_COMMANDS = ["session", "sid", "sessionid"];
-
-export function matchSessionCommand(input: string): Record<string, never> | null {
-  if (!input.startsWith("/")) return null;
-  const word = input.slice(1).trim().split(/\s+/)[0]?.toLowerCase();
-  return SESSION_COMMANDS.includes(word ?? "") ? {} : null;
-}
-
-// `/viz` (and aliases) — not a widget but a chat action: generate an on-the-fly
-// SVG diagram of the current decision from the conversation. Returns the trailing
-// args (an explicit decision to visualise) or null. Bare `/viz` is still a match.
-const VIZ_COMMANDS = ["viz", "visualize", "visualise", "diagram"];
-
-export function matchVizCommand(input: string): { args: string } | null {
-  if (!input.startsWith("/")) return null;
-  const [word, ...rest] = input.slice(1).trim().split(/\s+/);
-  if (!VIZ_COMMANDS.includes(word?.toLowerCase() ?? "")) return null;
-  return { args: rest.join(" ") };
-}
-
-// `/context` (and aliases) — not a widget but a chat action: drops an "Add
-// context" panel into the stream to attach a text document to the session
-// (stored in Honcho, retrievable later). Returns {} on a match, else null.
-const CONTEXT_COMMANDS = ["context", "ctx", "doc"];
-
-export function matchContextCommand(input: string): Record<string, never> | null {
-  if (!input.startsWith("/")) return null;
-  const word = input.slice(1).trim().split(/\s+/)[0]?.toLowerCase();
-  return CONTEXT_COMMANDS.includes(word ?? "") ? {} : null;
-}
-
-// `/help` (and aliases) — list every widget's shortcut, or `/help <name>` for
-// one widget's how-to. Handled in the composer.
-const HELP_COMMANDS = ["help", "h", "?", "commands"];
-
-export type HelpMatch = { kind: "list" } | { kind: "widget"; entry: WidgetEntry };
-
-// Parse a `/help` line. Returns null if it isn't a help command; `{ kind: "list" }`
-// for bare `/help`; or `{ kind: "widget" }` when an argument names a known widget
-// (by command or type). An unknown argument falls back to the list.
-export function matchHelpCommand(input: string): HelpMatch | null {
-  if (!input.startsWith("/")) return null;
-  const [word, ...rest] = input.slice(1).trim().split(/\s+/);
-  if (!HELP_COMMANDS.includes(word?.toLowerCase() ?? "")) return null;
-  const key = rest[0]?.toLowerCase();
-  if (!key) return { kind: "list" };
-  const entry = WIDGETS.find((w) => w.spec.commands.includes(key) || w.spec.type === key);
-  return entry ? { kind: "widget", entry } : { kind: "list" };
-}
-
-// Render the shortcut list straight from WIDGETS, so it can never drift from the
-// registered widgets. Markdown: each canonical command as inline `code`, its
-// title in bold, no dash bullets — just a plain list of items.
-export function widgetHelpText(): string {
-  const rows = WIDGETS.filter((w) => !w.spec.draft).map(
-    (w) => `\`/${w.spec.commands[0]}\` — **${w.spec.title}**: ${w.spec.description}`,
-  );
-  return [
-    "**Widget shortcuts**",
-    "",
-    ...rows,
-    "",
-    "`/research` — web-sourced deeper advice on your current decision",
-    "`/viz` — visualise the current decision as a diagram",
-    "`/summary` — recap what you're deciding so far",
-    "`/context` — attach a text document as context for this chat",
-    "`/facts` — what I've learned about you this session",
-    "`/drafts` — experimental tools not yet in the main set",
-    "`/new` — start a fresh conversation",
-    "",
-    "Or just describe a decision and I'll pick a tool. Force one with " +
-      "`use <name>` (e.g. `use sc to plan what to do next`). Type " +
-      "`/help <name>` (e.g. `/help sc`) for a specific tool.",
-  ].join("\n");
-}
-
-// Render the *draft* widget list — experimental tools hidden from the main
-// `/help` and `/ex` menus and from the LLM router, but still openable by their
-// slash command. Shown by `/drafts`.
-export function widgetDraftText(): string {
-  const drafts = WIDGETS.filter((w) => w.spec.draft);
-  if (drafts.length === 0) return "No draft widgets right now.";
-  const rows = drafts.map(
-    (w) => `\`/${w.spec.commands[0]}\` — **${w.spec.title}**: ${w.spec.description}`,
-  );
-  return [
-    "**Draft widgets** (experimental — not auto-suggested; open by command)",
-    "",
-    ...rows,
-    "",
-    "Type `/help <name>` for how one works, or `/<name>` to open it.",
-  ].join("\n");
-}
-
-// `/drafts` (and aliases) — not a widget but a chat action: list the
-// experimental widgets that are hidden from the main menus. Returns {} on a
-// match, else null.
-const DRAFTS_COMMANDS = ["drafts", "draft", "experimental", "wip"];
-
-export function matchDraftsCommand(input: string): Record<string, never> | null {
-  if (!input.startsWith("/")) return null;
-  const word = input.slice(1).trim().split(/\s+/)[0]?.toLowerCase();
-  return DRAFTS_COMMANDS.includes(word ?? "") ? {} : null;
-}
+// Chat commands that aren't widgets (/help, /ex, /research, /new, …) live in
+// ../commands/, one file each — see ../commands/index.ts.
 
 // Detailed how-to for one widget — its title, the spec's `help` guide, all the
 // slash commands that open it, and an example prompt. Shown by `/help <name>`.
@@ -312,51 +118,19 @@ export function matchDraftsCommand(input: string): Record<string, never> | null 
 export function widgetHelpDetail(entry: WidgetEntry): string {
   const { spec } = entry;
   return [
-    `**\`/${spec.commands[0]}\` — ${spec.title}**`,
+    `## \`/${spec.commands[0]}\` — ${spec.title}`,
     "",
     spec.help,
     "",
-    `**Commands:** ${spec.commands.map((c) => `\`/${c}\``).join(", ")}`,
-    `**Example:** "${spec.example}"`,
+    `- **Commands:** ${spec.commands.map((c) => `\`/${c}\``).join(", ")}`,
+    `- **Example:** "${spec.example}"`,
   ].join("\n");
 }
 
-// `/ex` (and aliases) — example prompts. Bare `/ex` lists one example decision
-// per widget; `/ex <command>` runs that widget's example through the router (so
-// it gets a real LLM answer and surfaces the widget). Handled in the composer.
-const EXAMPLE_COMMANDS = ["ex", "example", "examples", "eg"];
-
-export type ExampleMatch =
-  | { kind: "list" }
-  | { kind: "run"; entry: WidgetEntry; example: string };
-
-// Parse an `/ex` line. Returns null if it isn't an example command at all, a
-// "list" request for bare `/ex`, or a "run" with the chosen widget + its example
-// when an argument names a known widget (by command or type). An unknown
-// argument falls back to "list" so the user sees the menu.
-export function matchExampleCommand(input: string): ExampleMatch | null {
-  if (!input.startsWith("/")) return null;
-  const [word, ...rest] = input.slice(1).trim().split(/\s+/);
-  if (!EXAMPLE_COMMANDS.includes(word?.toLowerCase() ?? "")) return null;
-
-  const key = rest[0]?.toLowerCase();
-  if (!key) return { kind: "list" };
-  const entry = WIDGETS.find(
-    (w) => w.spec.commands.includes(key) || w.spec.type === key,
-  );
-  return entry ? { kind: "run", entry, example: entry.spec.example } : { kind: "list" };
-}
-
-// Render the example list from WIDGETS so it can't drift. Canonical command per
-// spec, its title, and the example decision it's the obvious tool for.
-export function widgetExampleText(): string {
-  const rows = WIDGETS.filter((w) => !w.spec.draft).map(
-    (w) => `  /${w.spec.commands[0]} — ${w.spec.title}: "${w.spec.example}"`,
-  );
-  return [
-    "Example decisions — type /ex <name> to run one (e.g. /ex eis), or just",
-    "describe your own:",
-    "",
-    ...rows,
-  ].join("\n");
-}
+// Quick questions — the `/ex` example decisions, numbered in `/ex` list order:
+// `/q1` is the first core widget's example, `/q2` the second, and so on. `/q1`
+// or bare `q1` sends the full question through the router exactly as if the
+// user had typed it (see ../commands/quick.ts).
+export const QUICK_QUESTIONS: Record<string, string> = Object.fromEntries(
+  WIDGETS.filter((w) => !w.spec.draft).map((w, i) => [`q${i + 1}`, w.spec.example]),
+);

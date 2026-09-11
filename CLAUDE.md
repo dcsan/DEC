@@ -98,22 +98,39 @@ the router. Two pieces, deliberately split:
   here, slash commands still work but the router can never surface it from
   natural language.
 
-**Convo router** (`src/trpc/routers/chat.ts`): for free-text messages it
-classifies decision-vs-chat, and for decisions the LLM picks the best widget by
-`purpose` from `WIDGET_REGISTRY` and extracts the choices, returning
-`{ reply, widget, title, items }`. `ChatView` then drops that widget prefilled
-via `initial`. Heuristic fallback lives in `src/services/convoRouter.ts` (used
+**Convo router** (`src/trpc/routers/chat.ts`, prompts in `chat.prompts.ts`):
+for free-text messages it classifies decision-vs-chat. On the first message of
+a new chat it probes the dilemma (one short question per turn, max two) before
+routing; then the LLM picks the best widget by `purpose` from
+`WIDGET_REGISTRY` and extracts the choices, returning
+`{ bubbles, widget, title, question, items }` — `bubbles` render as separate
+chat messages, `question` is the decision distilled from the conversation.
+`ChatView` then drops that widget prefilled via `initial`. Heuristic fallback lives in `src/services/convoRouter.ts` (used
 when there's no API key). `ChatView` and the router stay generic over
 `WidgetOutput` — adding a widget never edits them.
 
 **Use the `widget-creator` skill** when adding/scaffolding a widget — it encodes
 the two-file + two-registry + prefill conventions and the shared visual shell.
 
+**Chat slash commands** (`/help`, `/research`, `/reflect`, `/random`, …) are
+**one file each** in `client/components/commands/`, auto-discovered via
+`import.meta.glob` — add a command by adding a file that default-exports a
+`ChatCommand` (`names`, `title`, `description`, `run(ctx, { args, line })`);
+never edit `ChatView` or another command for it. The command talks to the chat
+only through `CommandContext` (`commands/types.ts`): `say`/`echo`/`append`,
+`ask`, `newSession({ question, notice })` (asks *after* the fresh session
+renders), `busy(label, fn)` for server calls (thinking bubble + error bubble),
+`api` (typed tRPC client), `trace`, `scratch`. Shared pure helpers live in
+`commands/helpers.ts`; `index.ts`/`types.ts`/`helpers.ts` are the only
+non-command files there. Widget slash commands still come from each widget
+spec's `commands` (matched by `commands/widget.ts`).
+
 ### Conventions worth matching
 
-- Styling is **inline `style={{…}}` with `--dec-*` CSS variables**
+- Styling is **inline `style={{…}}` with `--vizithink-*` CSS variables**
   (`client/index.css`) — no Tailwind classes in components, no hardcoded hex
-  (match the theme tokens).
+  (match the theme tokens). Shared visual effects (aurora backdrop, card hover,
+  gradient text, custom range slider) live in `index.css` as `vt-*` classes.
 - Routes are **file-based** (`@tanstack/router-plugin`); the route tree is
   generated, so add a file under `client/routes/` and rebuild rather than
   editing `routeTree.gen.ts`.
