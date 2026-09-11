@@ -5,6 +5,8 @@ import { httpBatchLink } from "@trpc/client";
 import superjson from "superjson";
 import { RouterProvider, createRouter } from "@tanstack/react-router";
 import { trpc } from "./lib/trpc";
+import { llmTraceLink } from "./lib/llmTrace";
+import { LLM_TRACE_HEADER } from "../src/services/llm/traceTypes";
 import { routeTree } from "./routeTree.gen";
 import "@xyflow/react/dist/style.css";
 import "./index.css";
@@ -24,7 +26,16 @@ function App() {
   const [queryClient] = useState(() => new QueryClient());
   const [trpcClient] = useState(() =>
     trpc.createClient({
-      links: [httpBatchLink({ url: "/trpc", transformer: superjson })],
+      links: [
+        // Unwraps the LLM prompts/responses the server attaches to results
+        // (requested via the header below) for the /chat 🧠 sidebar.
+        llmTraceLink,
+        httpBatchLink({
+          url: "/trpc",
+          transformer: superjson,
+          headers: { [LLM_TRACE_HEADER]: "1" },
+        }),
+      ],
     }),
   );
 

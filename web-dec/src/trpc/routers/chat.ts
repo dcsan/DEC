@@ -5,7 +5,13 @@ import { routeHeuristic, type WidgetInfo } from "../../services/convoRouter";
 import { WIDGET_REGISTRY } from "../../services/widgetRegistry";
 import { getAttachedContext, recordTurns } from "../../services/honcho";
 import { logChatTurns } from "../../services/chatlog";
-import { ROUTER_SYSTEM, routerPrompt, RECOMMEND_SYSTEM, recommendPrompt } from "./chat.prompts";
+import {
+  ROUTER_SYSTEM,
+  routerPrompt,
+  RECOMMEND_SYSTEM,
+  recommendPrompt,
+  type ProbePlan,
+} from "./chat.prompts";
 
 // Standalone chat endpoint + conversation router for the /chat view.
 //
@@ -103,6 +109,15 @@ export const chatRouter = router({
         // Anonymous per-browser id — stamped on chat_logs rows so the admin
         // pages can group a visitor's sessions together.
         userId: z.string().min(1).max(200).optional(),
+        // A probing plan for this conversation's question, built by /apply from
+        // a review of an earlier conversation about it: the questions to ask
+        // (in order) instead of the router's own, plus coaching.
+        plan: z
+          .object({
+            questions: z.array(z.string().max(300)).max(3),
+            guidance: z.string().max(2000),
+          })
+          .optional(),
       }),
     )
     .mutation(async ({ ctx, input }): Promise<RouteResult> => {
@@ -204,6 +219,7 @@ export const chatRouter = router({
         WIDGET_REGISTRY,
         attached,
         firstTurn,
+        input.plan,
       );
       console.log(
         `[chat] router → ${result.widget ?? "(chat)"}`,
@@ -231,6 +247,9 @@ export async function route(
   // ask a couple of surprising questions about the dilemma, surface the tool on
   // the NEXT turn once the answers are in. The eval harness leaves this false.
   firstTurn = false,
+  // /apply's probing plan for this question — replaces the router's own choice
+  // of probing questions.
+  plan?: ProbePlan,
 ): Promise<RouteResult> {
   const validTypes = new Set(catalog.map((w) => w.type));
 
@@ -248,7 +267,7 @@ export async function route(
         schema: RouteReplySchema,
         schemaName: "route_reply",
         system: ROUTER_SYSTEM,
-        prompt: routerPrompt({ attachedContext, tools, transcript, text, firstTurn }),
+        prompt: routerPrompt({ attachedContext, tools, transcript, text, firstTurn, plan }),
         temperature: 0.4,
         title: "convo-router",
       });

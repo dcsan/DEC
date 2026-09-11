@@ -12,6 +12,9 @@ export interface Bindings {
   // command + the /research session-context tie-in). Without it those features
   // report that Honcho isn't configured. See src/services/honcho.ts.
   HONCHO_API_KEY?: string;
+  // Optional: you.com Research API key — /research uses it when set, else it
+  // falls back to an OpenRouter web-search call. See src/services/youResearch.ts.
+  YDC_API_KEY?: string;
   // Better Auth (Phase 5c) — the OAuth/OIDC server for the ChatGPT App Connect
   // flow. SECRET is a secret (.dev.vars / `wrangler secret put`); URL is the
   // public origin used as the OAuth issuer (the tunnel / prod host).

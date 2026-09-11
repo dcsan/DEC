@@ -1,10 +1,12 @@
-import { createRootRoute, Link, Outlet } from "@tanstack/react-router";
+import { createRootRoute, Link, Outlet, useRouterState } from "@tanstack/react-router";
+import { LlmTraceButton } from "../components/LlmTracePanel";
 
 export const Route = createRootRoute({
   component: RootComponent,
 });
 
 function RootComponent() {
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
   return (
     <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
       <header
@@ -49,6 +51,8 @@ function RootComponent() {
         >
           Chat
         </Link>
+        {/* 🧠 prompts sidebar toggle — the sidebar itself lives in ChatView */}
+        {pathname === "/chat" && <LlmTraceButton />}
       </header>
 
       <div style={{ flex: 1, minHeight: 0 }}>

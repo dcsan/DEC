@@ -112,6 +112,19 @@ when there's no API key). `ChatView` and the router stay generic over
 **Use the `widget-creator` skill** when adding/scaffolding a widget — it encodes
 the two-file + two-registry + prefill conventions and the shared visual shell.
 
+**Chat slash commands** (`/help`, `/research`, `/reflect`, `/random`, …) are
+**one file each** in `client/components/commands/`, auto-discovered via
+`import.meta.glob` — add a command by adding a file that default-exports a
+`ChatCommand` (`names`, `title`, `description`, `run(ctx, { args, line })`);
+never edit `ChatView` or another command for it. The command talks to the chat
+only through `CommandContext` (`commands/types.ts`): `say`/`echo`/`append`,
+`ask`, `newSession({ question, notice })` (asks *after* the fresh session
+renders), `busy(label, fn)` for server calls (thinking bubble + error bubble),
+`api` (typed tRPC client), `trace`, `scratch`. Shared pure helpers live in
+`commands/helpers.ts`; `index.ts`/`types.ts`/`helpers.ts` are the only
+non-command files there. Widget slash commands still come from each widget
+spec's `commands` (matched by `commands/widget.ts`).
+
 ### Conventions worth matching
 
 - Styling is **inline `style={{…}}` with `--vizithink-*` CSS variables**

@@ -1,6 +1,7 @@
 import type { Context as HonoContext } from "hono";
 import { createDb, type Db } from "../db/client";
 import type { Bindings } from "../env";
+import { LLM_TRACE_HEADER } from "../services/llm/traceTypes";
 
 export interface Context {
   db: Db;
@@ -11,6 +12,11 @@ export interface Context {
    * runtime, where there's no ExecutionContext.
    */
   waitUntil: (p: Promise<unknown>) => void;
+  /**
+   * The client asked (x-llm-trace: 1) to get this request's LLM prompts and
+   * responses back with the result — see the middleware in ./trpc.ts.
+   */
+  traceLlm: boolean;
 }
 
 // Builds the per-request tRPC context from the Hono request context.
@@ -34,5 +40,6 @@ export function createContext(c: HonoContext<{ Bindings: Bindings }>): Context {
     },
     env: c.env,
     waitUntil,
+    traceLlm: c.req.header(LLM_TRACE_HEADER) === "1",
   };
 }

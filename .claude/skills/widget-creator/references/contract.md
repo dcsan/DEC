@@ -47,8 +47,10 @@ template / `ProConWidget` for the pattern).
 
 ## Chat flow (why the contract is shaped this way)
 
-1. User types `/<command>` → `ChatView` matches it via `matchWidgetCommand` and
-   drops the widget inline into the stream.
+1. User types `/<command>` → the chat's command dispatcher
+   (`client/components/commands/widget.ts`, via `matchWidgetCommand`) matches
+   the spec's `commands` and drops the widget inline into the stream. Nothing
+   to register there — a spec's `commands` are picked up from `WIDGETS`.
 2. User fills the widget and clicks **Send**.
 3. The widget calls `onSend({ type, data, text })`.
 4. `ChatView` posts `{ text, widget: { type, data } }` to the server

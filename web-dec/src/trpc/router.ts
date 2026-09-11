@@ -10,6 +10,9 @@ import { researchRouter } from "./routers/research";
 import { vizRouter } from "./routers/viz";
 import { factsRouter } from "./routers/facts";
 import { summaryRouter } from "./routers/summary";
+import { reflectRouter } from "./routers/reflect";
+import { explainRouter } from "./routers/explain";
+import { applyRouter } from "./routers/apply";
 import { contextRouter } from "./routers/context";
 import { factorsRouter } from "./routers/factors";
 import { axesRouter } from "./routers/axes";
@@ -20,6 +23,7 @@ import { scenarioRouter } from "./routers/scenario";
 import { swotRouter } from "./routers/swot";
 import { eisenhowerRouter } from "./routers/eisenhower";
 import { waitlistRouter } from "./routers/waitlist";
+import { randomRouter } from "./routers/random";
 
 export const appRouter = router({
   board: boardRouter,
@@ -33,6 +37,11 @@ export const appRouter = router({
   viz: vizRouter,
   facts: factsRouter,
   summary: summaryRouter,
+  reflect: reflectRouter,
+  explain: explainRouter,
+  // Not `apply`: tRPC reserves apply/call/then as router keys (procedures are
+  // proxied as functions) and throws at Worker startup.
+  applyPlan: applyRouter,
   context: contextRouter,
   factors: factorsRouter,
   axes: axesRouter,
@@ -43,6 +52,7 @@ export const appRouter = router({
   swot: swotRouter,
   eisenhower: eisenhowerRouter,
   waitlist: waitlistRouter,
+  random: randomRouter,
 });
 
 export type AppRouter = typeof appRouter;

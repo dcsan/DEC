@@ -58,16 +58,38 @@ Otherwise (not a decision) set "widget", "title" and "question" to "",
 "items" to [], "generated" false, and reply helpfully in context.
 `.trim();
 
+// A probing plan for one specific question, built by /apply (routers/apply.ts)
+// from a review of an earlier conversation about it.
+export interface ProbePlan {
+  questions: string[];
+  guidance: string;
+}
+
+function planBlock(plan: ProbePlan): string {
+  const questions = plan.questions.map((q, i) => `${i + 1}. ${q}`).join("\n");
+  return `
+A review of an earlier conversation about this same question produced a better
+set of probing questions. When you ask a probing question, ask THESE, in this
+order, one per turn — skip any the user has already answered, and adapt the
+wording to what they've said. This overrides the generic advice below about
+which question to ask; the one-question-per-turn and two-question limits stand.
+${questions}
+Coaching: ${plan.guidance}
+`.trim();
+}
+
 export function routerPrompt(args: {
   attachedContext: string;
   tools: string; // "- type: title — purpose" lines
   transcript: string; // "User:/AI:" lines
   text: string; // latest user message
   firstTurn: boolean;
+  plan?: ProbePlan;
 }): string {
   const context = args.attachedContext
     ? `Context the user attached (weigh this when interpreting them):\n${args.attachedContext}\n\n`
     : "";
+  const plan = args.plan?.questions.length ? `${planBlock(args.plan)}\n\n` : "";
   return `
 ${context}Available tools (widgets):
 ${args.tools || "(none)"}
@@ -77,7 +99,7 @@ ${args.transcript || "(none)"}
 
 Latest user message: ${args.text}
 
-${args.firstTurn ? PRELUDE_INSTRUCTIONS : ROUTING_INSTRUCTIONS}
+${plan}${args.firstTurn ? PRELUDE_INSTRUCTIONS : ROUTING_INSTRUCTIONS}
 `.trim();
 }
 

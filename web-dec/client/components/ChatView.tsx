@@ -3,48 +3,21 @@
 // A free-text message goes to the server's convo router: if it's a decision, the
 // router chooses the most relevant widget and extracts the choices to prefill it
 // — both returned and rendered here. Otherwise it's interpreted in context.
+// Slash commands (/help, /research, /random, …) are one file each in
+// ./commands — ChatView only hands them a CommandContext.
 
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { trpc } from "../lib/trpc";
 import { getTempUserId } from "../lib/userId";
+import { getProbePlan } from "../lib/probePlans";
 import { Markdown } from "./Markdown";
-import {
-  allSlashCommands,
-  getWidget,
-  matchContextCommand,
-  matchDiffCommand,
-  matchDraftsCommand,
-  matchExampleCommand,
-  matchFactsCommand,
-  matchHelpCommand,
-  matchNewCommand,
-  matchResearchCommand,
-  matchSessionCommand,
-  matchSummaryCommand,
-  matchUseCommand,
-  matchVizCommand,
-  matchWidgetCommand,
-  widgetDraftText,
-  widgetExampleText,
-  widgetHelpDetail,
-  widgetHelpText,
-} from "./widgets/registry";
-import type { WidgetInit, WidgetOutput } from "./widgets/types";
-
-type ChatItem =
-  // A text message — from the user, a widget, or the assistant (server reply).
-  // `markdown` opts the bubble into basic markdown rendering (bold + inline code).
-  | { kind: "message"; id: string; role: "user" | "widget" | "assistant"; content: string; markdown?: boolean }
-  // An inline interactive widget instance, optionally prefilled by the router.
-  | { kind: "widget"; id: string; type: string; init?: WidgetInit }
-  // A /research result: plain-text advice plus clickable web sources.
-  | { kind: "research"; id: string; advice: string; sources: { title: string; url: string }[] }
-  // A /viz result: an LLM-drawn SVG system diagram of the current decision.
-  | { kind: "viz"; id: string; title: string; svg: string }
-  // An "Add context" panel: attach a text document to the session (→ Honcho).
-  | { kind: "context"; id: string };
-
-const uid = () => crypto.randomUUID();
+import { LlmTracePanel } from "./LlmTracePanel";
+import { setLlmTraceOpen, useLlmTrace, useLlmTraceOpen } from "../lib/llmTrace";
+import { getWidget } from "./widgets/registry";
+import type { WidgetOutput } from "./widgets/types";
+import { COMMANDS, findCommand, slashRows } from "./commands";
+import { openingQuestion, uid } from "./commands/helpers";
+import type { ChatItem, CommandContext, SessionScratch } from "./commands/types";
 
 // Shared style for the hamburger menu's items.
 const menuItemStyle: CSSProperties = {
@@ -72,6 +45,29 @@ export function ChatView({
   const [expanded, setExpanded] = useState(false);
   // Hamburger side menu (left of the composer) open/closed.
   const [menuOpen, setMenuOpen] = useState(false);
+  // 🧠 prompts sidebar (right-hand side): every LLM request + raw response.
+  // Toggled from the navbar button (routes/__root.tsx).
+  const traceOpen = useLlmTraceOpen();
+  const traceEntries = useLlmTrace();
+  // Trace markers for /reflect and /explain: the id of the newest trace entry
+  // when the session began / the last question was asked — calls after it came
+  // later. Ids, not timestamps: `startedAt` is the Worker's clock, not ours.
+  const traceMark = () => traceEntries[traceEntries.length - 1]?.id ?? null;
+  const sessionMarkRef = useRef<string | null>(traceMark());
+  // The user's last question (typed or sent from a widget), for /explain.
+  const lastAskRef = useRef<{ question: string; mark: string | null } | null>(null);
+  // Per-session scratch space for commands (e.g. /reflect's last critique,
+  // which /apply builds on). Reset by newSession().
+  const scratchRef = useRef<SessionScratch>({});
+  // A question to ask once a fresh session has rendered (newSession's `then`,
+  // used by /apply and /random), plus an optional notice to show above it.
+  const rerunRef = useRef<{ question: string; notice?: string } | null>(null);
+  // LLM calls since `mark` (all of them if it has been evicted from the capped
+  // store), optionally for one procedure, minus the /reflect + /explain calls.
+  const callsSince = (mark: string | null, path?: string) =>
+    traceEntries
+      .slice(traceEntries.findIndex((t) => t.id === mark) + 1)
+      .filter((t) => (!path || t.path === path) && t.title !== "reflect" && t.title !== "explain");
   // Slash-command autocomplete: highlighted row, and a dismiss flag (Escape).
   const [slashIndex, setSlashIndex] = useState(0);
   const [slashDismissed, setSlashDismissed] = useState(false);
@@ -92,28 +88,15 @@ export function ChatView({
   const [userId] = useState(getTempUserId);
   const trpcUtils = trpc.useUtils();
   const send = trpc.chat.send.useMutation();
-  const research = trpc.research.run.useMutation();
-  const viz = trpc.viz.run.useMutation();
-  const facts = trpc.facts.list.useMutation();
-  const diff = trpc.facts.diff.useMutation();
-  const summary = trpc.summary.run.useMutation();
-  // Explicit in-flight flag for the chat.send path (routing + widget recommend),
-  // toggled via try/finally in the callers. We do NOT use `send.isPending`: when
-  // the convo router is auto-fired from a mount effect (entering via a `?q=` idea
-  // bubble), React StrictMode tears down and recreates the useMutation observer
-  // between the call and its resolution, leaving `isPending` stuck true forever —
-  // which wedged the composer in a permanent "thinking" state. A plain state flag
-  // we own is immune to that.
-  const [sending, setSending] = useState(false);
-  // True whenever a server request is in flight — blocks new sends and grays the
-  // Send button so it's clear we're waiting on a response.
-  const busy =
-    sending ||
-    research.isPending ||
-    viz.isPending ||
-    facts.isPending ||
-    diff.isPending ||
-    summary.isPending;
+  // What's in flight, as the thinking bubble's label ("Thinking", "Researching",
+  // …), or null when idle. Blocks new sends and grays the Send button. A plain
+  // state flag we own, deliberately NOT `send.isPending`: when the convo router
+  // is auto-fired from a mount effect (entering via a `?q=` idea bubble), React
+  // StrictMode tears down and recreates the useMutation observer between the
+  // call and its resolution, leaving `isPending` stuck true forever — which
+  // wedged the composer in a permanent "thinking" state.
+  const [pending, setPending] = useState<string | null>(null);
+  const busy = pending !== null;
 
   // Keep the latest item in view as the stream grows.
   useEffect(() => {
@@ -170,11 +153,21 @@ export function ChatView({
     ...(extra ? [extra] : []),
   ];
 
+  // /apply's saved probing plan for a question, in the shape chat.send takes.
+  const planFor = (question: string) => {
+    const p = getProbePlan(question);
+    return p ? { questions: p.questions, guidance: p.guidance } : undefined;
+  };
+
   // Send a widget result to the server along with the original question that
   // surfaced it, so the server can recommend a decision with full context (not
   // just the widget's formatted output). Show the recommendation as a reply.
   const postWidgetResult = async (output: WidgetOutput, question?: string) => {
-    setSending(true);
+    lastAskRef.current = {
+      question: `Sent from the ${output.type} tool${question ? ` for "${question}"` : ""}:\n${output.text}`,
+      mark: traceMark(),
+    };
+    setPending("Thinking");
     try {
       const res = await send.mutateAsync({
         text: output.text,
@@ -185,20 +178,23 @@ export function ChatView({
       });
       appendBubbles(res.bubbles);
     } finally {
-      setSending(false);
+      setPending(null);
     }
   };
 
   // Route a free-text message: show the reply, and if the router chose a widget,
   // drop it into the stream prefilled with the extracted choices.
   const routeMessage = async (content: string) => {
-    setSending(true);
+    lastAskRef.current = { question: content, mark: traceMark() };
+    setPending("Thinking");
     try {
       const res = await send.mutateAsync({
         text: content,
         history: toHistory({ role: "user", content }),
         sessionId,
         userId,
+        // Improved probing questions /apply saved for this session's question.
+        plan: planFor(openingQuestion(items) ?? content),
       });
       appendBubbles(res.bubbles);
       if (res.widget && getWidget(res.widget)) {
@@ -214,7 +210,7 @@ export function ChatView({
         });
       }
     } finally {
-      setSending(false);
+      setPending(null);
     }
   };
 
@@ -230,275 +226,79 @@ export function ChatView({
     return undefined;
   };
 
-  // `/research [decision]` → run web-augmented deep research on the decision
-  // (explicit args win, else the current decision) using the full chat history,
-  // and append the sourced advice as an assistant message.
-  const runResearch = async (args: string) => {
-    const question = args.trim() || lastDecision();
-    if (!question) {
-      append({
-        kind: "message",
-        id: uid(),
-        role: "assistant",
-        content:
-          "Tell me what to research — describe a decision first, or run `/research <your decision>`.",
-      });
-      return;
-    }
-    append({ kind: "message", id: uid(), role: "user", content: `/research ${question}` });
-    try {
-      const res = await research.mutateAsync({ question, history: toHistory(), sessionId });
-      append({ kind: "research", id: uid(), advice: res.advice, sources: res.sources });
-    } catch (err) {
-      append({
-        kind: "message",
-        id: uid(),
-        role: "assistant",
-        content: err instanceof Error ? err.message : "Research failed. Please try again.",
-      });
-    }
-  };
-
-  // `/viz [decision]` → ask the LLM to draw an SVG system diagram of the current
-  // decision (explicit args win, else the current decision) and inject it inline.
-  const runViz = async (args: string) => {
-    const question = args.trim() || lastDecision();
-    if (!question) {
-      append({
-        kind: "message",
-        id: uid(),
-        role: "assistant",
-        content: "Nothing to visualise yet — describe a decision first, or run `/viz <your decision>`.",
-      });
-      return;
-    }
-    append({ kind: "message", id: uid(), role: "user", content: `/viz ${question}` });
-    try {
-      const res = await viz.mutateAsync({ question, history: toHistory() });
-      append({ kind: "viz", id: uid(), title: res.title, svg: res.svg });
-    } catch (err) {
-      append({
-        kind: "message",
-        id: uid(),
-        role: "assistant",
-        content: err instanceof Error ? err.message : "Could not generate a diagram. Please try again.",
-      });
-    }
-  };
-
   // `/new` → start a fresh conversation: clear the stream and rotate the session
-  // id so the server (Honcho) tracks this as a new, separate decision.
-  const newSession = () => {
+  // id so the server (Honcho) tracks this as a new, separate decision. With
+  // `then`, ask that question (after an optional notice) once the fresh session
+  // has rendered — see the effect below the `?q=` one.
+  const newSession = (then?: { question: string; notice?: string }) => {
+    sessionMarkRef.current = traceMark();
+    lastAskRef.current = null;
+    scratchRef.current = {};
+    rerunRef.current = then ?? null;
     setSessionId(uid());
     setItems([]);
     setDraft("");
   };
 
-  // `/facts` → ask Honcho what it has concluded about the user in this session
-  // and list each fact's content.
-  const runFacts = async () => {
-    append({ kind: "message", id: uid(), role: "user", content: "/facts" });
+  // Run a command's server call with the thinking bubble labelled and the
+  // composer blocked; a failure becomes an assistant bubble.
+  const runBusy = async <T,>(
+    label: string,
+    fn: () => Promise<T>,
+    failMessage = "Something went wrong. Please try again.",
+  ): Promise<T | undefined> => {
+    setPending(label);
     try {
-      const res = await facts.mutateAsync({ sessionId });
-      const body = res.facts.length
-        ? ["**What I know so far (this session)**", "", ...res.facts.map((f) => `• ${f}`)].join("\n")
-        : "I haven't learned any facts about you yet — chat a bit and I'll start to.";
-      append({ kind: "message", id: uid(), role: "assistant", content: body, markdown: true });
+      return await fn();
     } catch (err) {
       append({
         kind: "message",
         id: uid(),
         role: "assistant",
-        content: err instanceof Error ? err.message : "Could not fetch facts. Please try again.",
+        content: err instanceof Error ? err.message : failMessage,
       });
+      return undefined;
+    } finally {
+      setPending(null);
     }
   };
 
-  // `/diff` → compare ViziThink's conclusions about the user with the user's own
-  // self-conclusions, grouped into shared / ViziThink-only / self-only.
-  const runDiff = async () => {
-    append({ kind: "message", id: uid(), role: "user", content: "/diff" });
-    try {
-      const res = await diff.mutateAsync({ sessionId });
-      const sections: string[] = [];
-      if (res.both.length)
-        sections.push("**Both ViziThink and you**", ...res.both.map((f) => `• ${f}`), "");
-      if (res.onlyDec.length)
-        sections.push("**Only ViziThink infers about you**", ...res.onlyDec.map((f) => `• ${f}`), "");
-      if (res.onlySelf.length)
-        sections.push("**Only your self-view**", ...res.onlySelf.map((f) => `• ${f}`), "");
-      const body = sections.length
-        ? ["**Perspective diff (this session)**", "", ...sections].join("\n").trimEnd()
-        : "No conclusions on either side yet — chat a bit and I'll start to form a view of you.";
-      append({ kind: "message", id: uid(), role: "assistant", content: body, markdown: true });
-    } catch (err) {
-      append({
-        kind: "message",
-        id: uid(),
-        role: "assistant",
-        content: err instanceof Error ? err.message : "Could not compare perspectives. Please try again.",
-      });
-    }
-  };
-
-  // `/summary` → recall the session from Honcho and write a short recap.
-  const runSummary = async () => {
-    append({ kind: "message", id: uid(), role: "user", content: "/summary" });
-    try {
-      const res = await summary.mutateAsync({ sessionId, history: toHistory() });
-      append({ kind: "message", id: uid(), role: "assistant", content: res.summary });
-    } catch (err) {
-      append({
-        kind: "message",
-        id: uid(),
-        role: "assistant",
-        content: err instanceof Error ? err.message : "Could not summarise. Please try again.",
-      });
-    }
-  };
+  // Everything a slash command (./commands/*) can use. Built fresh for each
+  // run, so it reflects this render's state.
+  const commandContext = (): CommandContext => ({
+    items,
+    append,
+    say: (content, opts) =>
+      append({ kind: "message", id: uid(), role: "assistant", content, markdown: opts?.markdown }),
+    echo: (content) => append({ kind: "message", id: uid(), role: "user", content }),
+    ask: (question) => {
+      append({ kind: "message", id: uid(), role: "user", content: question });
+      return routeMessage(question);
+    },
+    newSession,
+    toHistory: () => toHistory(),
+    lastDecision,
+    sessionId,
+    userId,
+    api: trpcUtils.client,
+    busy: runBusy,
+    trace: { callsSince, sessionMark: sessionMarkRef.current, lastAsk: lastAskRef.current },
+    scratch: scratchRef.current,
+    commands: COMMANDS,
+  });
 
   // Handle one composer line — from the textarea (submit) or a widget's
   // onCommand (e.g. the `?` button sending "/help sc"). Draft management lives in
   // the callers, so a widget firing a command never clears the user's draft.
+  // Slash commands (and "use …", bare "q1") are matched against the command
+  // files in ./commands; anything else is chat for the convo router.
   const handleInput = (raw: string) => {
     const content = raw.trim();
-    if (
-      !content ||
-      sending ||
-      research.isPending ||
-      viz.isPending ||
-      facts.isPending ||
-      diff.isPending ||
-      summary.isPending
-    )
-      return;
+    if (!content || busy) return;
 
-    // `/new` → start a fresh session (clears the stream, new session id).
-    if (matchNewCommand(content)) {
-      newSession();
-      return;
-    }
-
-    // `/session` → show the current client session id (handled locally) so you
-    // can look this conversation up in Honcho.
-    if (matchSessionCommand(content)) {
-      append({ kind: "message", id: uid(), role: "user", content: "/session" });
-      append({
-        kind: "message",
-        id: uid(),
-        role: "assistant",
-        content: `**Session id**\n\n\`${sessionId}\``,
-        markdown: true,
-      });
-      return;
-    }
-
-    // `/facts` → list what Honcho has concluded about the user this session.
-    if (matchFactsCommand(content)) {
-      void runFacts();
-      return;
-    }
-
-    // `/diff` → compare ViziThink's view of the user with the user's self-view.
-    if (matchDiffCommand(content)) {
-      void runDiff();
-      return;
-    }
-
-    // `/summary` → recall + short recap of the current decision.
-    if (matchSummaryCommand(content)) {
-      void runSummary();
-      return;
-    }
-
-    // `/research [decision]` → web-augmented deeper advice (not a widget).
-    const res = matchResearchCommand(content);
-    if (res) {
-      void runResearch(res.args);
-      return;
-    }
-
-    // `/viz [decision]` → on-the-fly SVG diagram of the current decision.
-    const v = matchVizCommand(content);
-    if (v) {
-      void runViz(v.args);
-      return;
-    }
-
-    // `/context` → drop an "Add context" panel to attach a text document to the
-    // session (stored in Honcho, retrievable by later turns).
-    if (matchContextCommand(content)) {
-      append({ kind: "context", id: uid() });
-      return;
-    }
-
-    // `/drafts` → list the experimental widgets hidden from the main menus.
-    if (matchDraftsCommand(content)) {
-      append({
-        kind: "message",
-        id: uid(),
-        role: "assistant",
-        content: widgetDraftText(),
-        markdown: true,
-      });
-      return;
-    }
-
-    // `/help` → list all widget shortcuts; `/help <name>` (e.g. /help sc) → that
-    // widget's how-to. Handled locally (no server round-trip).
-    const help = matchHelpCommand(content);
-    if (help) {
-      append({
-        kind: "message",
-        id: uid(),
-        role: "assistant",
-        content: help.kind === "list" ? widgetHelpText() : widgetHelpDetail(help.entry),
-        markdown: true,
-      });
-      return;
-    }
-
-    // `/ex` → example prompts. Bare `/ex` lists one example per widget; `/ex
-    // <widget>` (e.g. `/ex eis`) sends that widget's example decision through the
-    // router exactly as if the user typed it — so they get a real LLM answer and
-    // the surfaced widget, prefilled.
-    const ex = matchExampleCommand(content);
-    if (ex) {
-      if (ex.kind === "list") {
-        append({ kind: "message", id: uid(), role: "assistant", content: widgetExampleText() });
-      } else {
-        append({ kind: "message", id: uid(), role: "user", content: ex.example });
-        void routeMessage(ex.example);
-      }
-      return;
-    }
-
-    // Explicit slash command → drop the matching widget into the stream,
-    // carrying any trailing args as the original question (e.g. `/eis taxes vs
-    // twitter` → question "taxes vs twitter") for the final recommendation.
-    const match = matchWidgetCommand(content);
-    if (match) {
-      append({
-        kind: "widget",
-        id: uid(),
-        type: match.entry.spec.type,
-        init: match.args ? { question: match.args } : undefined,
-      });
-      return;
-    }
-
-    // "use <widget> …" → force that widget, bypassing the router (e.g. "use sc
-    // to plan what to do next"). Echo the message (it's natural language), then
-    // drop the widget prefilled with the rest as the question.
-    const use = matchUseCommand(content);
-    if (use) {
-      append({ kind: "message", id: uid(), role: "user", content });
-      append({
-        kind: "widget",
-        id: uid(),
-        type: use.entry.spec.type,
-        init: use.args ? { question: use.args } : undefined,
-      });
+    const hit = findCommand(content);
+    if (hit) {
+      void hit.command.run(commandContext(), { args: hit.args, line: content });
       return;
     }
 
@@ -531,6 +331,20 @@ export function ChatView({
     handleInput(initialPrompt);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialPrompt]);
+
+  // newSession({ question }) (/apply, /random) asks a question in the fresh
+  // session. newSession() only queues the state change, so the ask waits for
+  // the render that has the new session id and an empty stream (else it would
+  // send the old history and log to the old session).
+  useEffect(() => {
+    const rerun = rerunRef.current;
+    if (!rerun) return;
+    rerunRef.current = null;
+    if (rerun.notice) append({ kind: "notice", id: uid(), content: rerun.notice });
+    append({ kind: "message", id: uid(), role: "user", content: rerun.question });
+    void routeMessage(rerun.question);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionId]);
 
   // `/chat?s=…` share link: replay the session's logged conversation from the
   // database (text only — widget submissions show as their plain-text rendering)
@@ -634,7 +448,7 @@ export function ChatView({
   const slashWord = draft.match(/^\/(\w*)$/)?.[1];
   const slashMatches =
     slashWord !== undefined && !slashDismissed
-      ? allSlashCommands().filter((c) => c.command.startsWith(slashWord.toLowerCase()))
+      ? slashRows().filter((c) => c.command.startsWith(slashWord.toLowerCase()))
       : [];
   const showSlash = slashMatches.length > 0;
   const slashSel = Math.min(slashIndex, slashMatches.length - 1);
@@ -655,348 +469,349 @@ export function ChatView({
   const sendFromWidget = (widgetId: string, output: WidgetOutput) => {
     const item = items.find((it) => it.id === widgetId);
     const question = item?.kind === "widget" ? item.init?.question : undefined;
+    setItems((cur) =>
+      cur.map((it) => (it.id === widgetId && it.kind === "widget" ? { ...it, submitted: output.text } : it)),
+    );
     void postWidgetResult(output, question);
   };
 
   return (
-    <div className="vt-aurora" style={{ display: "flex", flexDirection: "column", height: "100%", minHeight: 0 }}>
-      {/* Message stream */}
-      <div style={{ flex: 1, overflowY: "auto", padding: "16px 0" }}>
-        <div style={{ maxWidth: 880, margin: "0 auto", padding: "0 16px" }}>
-          {items.length === 0 && (
-            <div style={{ display: "flex", justifyContent: "flex-start", marginTop: 8, marginBottom: 12 }}>
-              <div
-                style={{
-                  maxWidth: "min(85%, 680px)",
-                  padding: "10px 13px",
-                  borderRadius: 12,
-                  fontSize: 14,
-                  lineHeight: 1.55,
-                  background: "var(--vizithink-surface-2)",
-                  color: "var(--vizithink-text)",
-                  border: "1px solid var(--vizithink-border-soft)",
-                }}
-              >
-                Describe a decision — "should I join a startup?" or "compare apples
-                to oranges" — and I'll surface a thinking framework to help.
-                <br />
-                Type <code style={{
-                  fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
-                  fontSize: "0.9em",
-                  padding: "1px 5px",
-                  borderRadius: 5,
-                  background: "var(--vizithink-surface)",
-                  border: "1px solid var(--vizithink-border-soft)",
-                }}>/help</code> for more.
-              </div>
-            </div>
-          )}
-
-          {items.map((it) => {
-            if (it.kind === "message") {
-              return <MessageBubble key={it.id} role={it.role} content={it.content} markdown={it.markdown} />;
-            }
-            if (it.kind === "research") {
-              return <ResearchBubble key={it.id} advice={it.advice} sources={it.sources} />;
-            }
-            if (it.kind === "viz") {
-              return <VizBubble key={it.id} title={it.title} svg={it.svg} />;
-            }
-            if (it.kind === "context") {
-              return <AddContextPanel key={it.id} sessionId={sessionId} />;
-            }
-            const entry = getWidget(it.type);
-            if (!entry) return null;
-            const Widget = entry.component;
-            return (
-              <div key={it.id} style={{ display: "flex", justifyContent: "flex-start", marginBottom: 12 }}>
-                <Widget
-                  initial={it.init}
-                  onSend={(output) => sendFromWidget(it.id, output)}
-                  onRemove={() => removeItem(it.id)}
-                  onCommand={handleInput}
-                  onMessage={(content, opts) =>
-                    append({
-                      kind: "message",
-                      id: uid(),
-                      role: opts?.role ?? "assistant",
-                      content,
-                      markdown: opts?.markdown ?? true,
-                    })
-                  }
-                />
-              </div>
-            );
-          })}
-          {(sending ||
-            research.isPending ||
-            viz.isPending ||
-            facts.isPending ||
-            diff.isPending ||
-            summary.isPending) && (
-            <ThinkingBubble
-              label={
-                research.isPending
-                  ? "Researching"
-                  : viz.isPending
-                    ? "Visualising"
-                    : facts.isPending
-                      ? "Recalling"
-                      : diff.isPending
-                        ? "Comparing"
-                        : summary.isPending
-                          ? "Summarising"
-                          : "Thinking"
-              }
-            />
-          )}
-          <div ref={endRef} />
-        </div>
-      </div>
-
-      {/* Composer pinned to the bottom */}
-      <div style={{ borderTop: "1px solid var(--vizithink-border-soft)", background: "var(--vizithink-surface)" }}>
-        <div style={{ maxWidth: 720, margin: "0 auto", padding: 12, position: "relative", display: "flex", alignItems: "flex-end", gap: 8 }}>
-          {/* Slash-command autocomplete popup */}
-          {showSlash && (
-            <div
-              role="listbox"
-              style={{
-                position: "absolute",
-                left: 12,
-                right: 12,
-                bottom: "calc(100% - 6px)",
-                zIndex: 22,
-                maxHeight: 260,
-                overflowY: "auto",
-                padding: 4,
-                borderRadius: 10,
-                border: "1px solid var(--vizithink-border)",
-                background: "var(--vizithink-surface)",
-                boxShadow: "0 4px 16px #0007",
-              }}
-            >
-              {slashMatches.map((c, i) => (
-                <button
-                  key={c.command}
-                  type="button"
-                  role="option"
-                  aria-selected={i === slashSel}
-                  // mousedown (not click) so the textarea doesn't blur first.
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    selectSlash(c.command);
-                  }}
-                  onMouseEnter={() => setSlashIndex(i)}
+    <div style={{ display: "flex", height: "100%", minHeight: 0 }}>
+      <div
+        className="vt-aurora"
+        style={{
+          flex: 1,
+          minWidth: 0,
+          overflow: "hidden",
+          position: "relative",
+          display: "flex",
+          flexDirection: "column",
+          height: "100%",
+          minHeight: 0,
+        }}
+      >
+        {/* Message stream */}
+        <div style={{ flex: 1, overflowY: "auto", padding: "16px 0" }}>
+          <div style={{ maxWidth: 880, margin: "0 auto", padding: "0 16px" }}>
+            {items.length === 0 && (
+              <div style={{ display: "flex", justifyContent: "flex-start", marginTop: 8, marginBottom: 12 }}>
+                <div
                   style={{
-                    display: "flex",
-                    alignItems: "baseline",
-                    gap: 8,
-                    width: "100%",
-                    padding: "6px 8px",
-                    borderRadius: 6,
-                    border: "none",
-                    textAlign: "left",
-                    cursor: "pointer",
-                    background: i === slashSel ? "var(--vizithink-accent-soft)" : "transparent",
+                    maxWidth: "min(85%, 680px)",
+                    padding: "10px 13px",
+                    borderRadius: 12,
+                    fontSize: 14,
+                    lineHeight: 1.55,
+                    background: "var(--vizithink-surface-2)",
                     color: "var(--vizithink-text)",
+                    border: "1px solid var(--vizithink-border-soft)",
                   }}
                 >
-                  <code style={{ fontSize: 12, fontWeight: 700, color: "var(--vizithink-text)", flexShrink: 0 }}>
-                    /{c.command}
-                  </code>
-                  <span style={{ fontSize: 12, fontWeight: 600 }}>{c.title}</span>
-                  <span style={{ fontSize: 11, color: "var(--vizithink-text-subtle)", marginLeft: "auto" }}>
-                    {c.description}
-                  </span>
-                </button>
-              ))}
+                  Describe a decision — "should I join a startup?" or "compare apples
+                  to oranges" — and I'll surface a thinking framework to help.
+                  <br />
+                  Type <code style={{
+                    fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+                    fontSize: "0.9em",
+                    padding: "1px 5px",
+                    borderRadius: 5,
+                    background: "var(--vizithink-surface)",
+                    border: "1px solid var(--vizithink-border-soft)",
+                  }}>/help</code> for more.
+                </div>
+              </div>
+            )}
+
+            {items.map((it) => {
+              if (it.kind === "message") {
+                return <MessageBubble key={it.id} role={it.role} content={it.content} markdown={it.markdown} />;
+              }
+              if (it.kind === "research") {
+                return <ResearchBubble key={it.id} advice={it.advice} sources={it.sources} />;
+              }
+              if (it.kind === "viz") {
+                return <VizBubble key={it.id} title={it.title} svg={it.svg} />;
+              }
+              if (it.kind === "notice") {
+                return <MessageBubble key={it.id} role="assistant" content={it.content} markdown />;
+              }
+              if (it.kind === "context") {
+                return <AddContextPanel key={it.id} sessionId={sessionId} />;
+              }
+              const entry = getWidget(it.type);
+              if (!entry) return null;
+              const Widget = entry.component;
+              return (
+                <div key={it.id} style={{ display: "flex", justifyContent: "flex-start", marginBottom: 12 }}>
+                  <Widget
+                    initial={it.init}
+                    onSend={(output) => sendFromWidget(it.id, output)}
+                    onRemove={() => removeItem(it.id)}
+                    onCommand={handleInput}
+                    onMessage={(content, opts) =>
+                      append({
+                        kind: "message",
+                        id: uid(),
+                        role: opts?.role ?? "assistant",
+                        content,
+                        markdown: opts?.markdown ?? true,
+                      })
+                    }
+                  />
+                </div>
+              );
+            })}
+            {pending && <ThinkingBubble label={pending} />}
+            <div ref={endRef} />
+          </div>
+        </div>
+
+        {/* Composer pinned to the bottom */}
+        <div style={{ borderTop: "1px solid var(--vizithink-border-soft)", background: "var(--vizithink-surface)" }}>
+          <div style={{ maxWidth: 720, margin: "0 auto", padding: 12, position: "relative", display: "flex", alignItems: "flex-end", gap: 8 }}>
+            {/* Slash-command autocomplete popup */}
+            {showSlash && (
+              <div
+                role="listbox"
+                style={{
+                  position: "absolute",
+                  left: 12,
+                  right: 12,
+                  bottom: "calc(100% - 6px)",
+                  zIndex: 22,
+                  maxHeight: 260,
+                  overflowY: "auto",
+                  padding: 4,
+                  borderRadius: 10,
+                  border: "1px solid var(--vizithink-border)",
+                  background: "var(--vizithink-surface)",
+                  boxShadow: "0 4px 16px #0007",
+                }}
+              >
+                {slashMatches.map((c, i) => (
+                  <button
+                    key={c.command}
+                    type="button"
+                    role="option"
+                    aria-selected={i === slashSel}
+                    // mousedown (not click) so the textarea doesn't blur first.
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      selectSlash(c.command);
+                    }}
+                    onMouseEnter={() => setSlashIndex(i)}
+                    style={{
+                      display: "flex",
+                      alignItems: "baseline",
+                      gap: 8,
+                      width: "100%",
+                      padding: "6px 8px",
+                      borderRadius: 6,
+                      border: "none",
+                      textAlign: "left",
+                      cursor: "pointer",
+                      background: i === slashSel ? "var(--vizithink-accent-soft)" : "transparent",
+                      color: "var(--vizithink-text)",
+                    }}
+                  >
+                    <code style={{ fontSize: 12, fontWeight: 700, color: "var(--vizithink-text)", flexShrink: 0 }}>
+                      /{c.command}
+                    </code>
+                    <span style={{ fontSize: 12, fontWeight: 600 }}>{c.title}</span>
+                    <span style={{ fontSize: 11, color: "var(--vizithink-text-subtle)", marginLeft: "auto" }}>
+                      {c.description}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+            {/* Hamburger side menu */}
+            <div style={{ position: "relative", flexShrink: 0 }}>
+              <button
+                type="button"
+                onClick={() => setMenuOpen((v) => !v)}
+                title="Menu"
+                aria-label="Open menu"
+                aria-haspopup="menu"
+                aria-expanded={menuOpen}
+                style={{
+                  height: 41,
+                  width: 40,
+                  fontSize: 16,
+                  borderRadius: 10,
+                  border: "1px solid var(--vizithink-border)",
+                  background: "var(--vizithink-surface-2)",
+                  color: "var(--vizithink-text-muted)",
+                  cursor: "pointer",
+                }}
+              >
+                ☰
+              </button>
+              {menuOpen && (
+                <>
+                  {/* click-away backdrop */}
+                  <div
+                    onClick={() => setMenuOpen(false)}
+                    style={{ position: "fixed", inset: 0, zIndex: 20 }}
+                  />
+                  <div
+                    role="menu"
+                    style={{
+                      position: "absolute",
+                      bottom: "calc(100% + 6px)",
+                      left: 0,
+                      zIndex: 21,
+                      minWidth: 190,
+                      padding: 4,
+                      borderRadius: 10,
+                      border: "1px solid var(--vizithink-border)",
+                      background: "var(--vizithink-surface)",
+                      boxShadow: "0 4px 16px #0007",
+                    }}
+                  >
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={() => {
+                        setMenuOpen(false);
+                        handleInput("/new");
+                      }}
+                      style={menuItemStyle}
+                    >
+                      ✚ New chat
+                    </button>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={() => {
+                        append({ kind: "context", id: uid() });
+                        setMenuOpen(false);
+                      }}
+                      style={menuItemStyle}
+                    >
+                      📎 Upload documents
+                    </button>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={() => {
+                        setMenuOpen(false);
+                        void shareSession();
+                      }}
+                      style={menuItemStyle}
+                    >
+                      🔗 Share chat
+                    </button>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={() => {
+                        setExpanded((v) => !v);
+                        setMenuOpen(false);
+                      }}
+                      style={menuItemStyle}
+                    >
+                      {expanded ? "⤡ Collapse input" : "⤢ Expand input"}
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
-          )}
-          {/* Hamburger side menu */}
-          <div style={{ position: "relative", flexShrink: 0 }}>
-            <button
-              type="button"
-              onClick={() => setMenuOpen((v) => !v)}
-              title="Menu"
-              aria-label="Open menu"
-              aria-haspopup="menu"
-              aria-expanded={menuOpen}
+            <textarea
+              ref={inputRef}
+              value={draft}
+              onChange={(e) => {
+                setDraft(e.target.value);
+                // Re-open the slash popup on each keystroke and reset the highlight.
+                setSlashDismissed(false);
+                setSlashIndex(0);
+                // Typing ends history recall — further edits are the user's own.
+                setHistIndex(null);
+              }}
+              onKeyDown={(e) => {
+                // When the slash popup is open, the arrow/enter/tab/esc keys drive
+                // it instead of the textarea.
+                if (showSlash) {
+                  if (e.key === "ArrowDown") {
+                    e.preventDefault();
+                    setSlashIndex((i) => (i + 1) % slashMatches.length);
+                    return;
+                  }
+                  if (e.key === "ArrowUp") {
+                    e.preventDefault();
+                    setSlashIndex((i) => (i - 1 + slashMatches.length) % slashMatches.length);
+                    return;
+                  }
+                  if (e.key === "Enter" || e.key === "Tab") {
+                    e.preventDefault();
+                    selectSlash(slashMatches[slashSel].command);
+                    return;
+                  }
+                  if (e.key === "Escape") {
+                    e.preventDefault();
+                    setSlashDismissed(true);
+                    return;
+                  }
+                }
+                // Slack-style recall of previously sent lines.
+                if (e.key === "ArrowUp" && recallHistory("up")) {
+                  e.preventDefault();
+                  return;
+                }
+                if (e.key === "ArrowDown" && recallHistory("down")) {
+                  e.preventDefault();
+                  return;
+                }
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  submit();
+                }
+              }}
+              placeholder="type /help or /ex for examples"
+              rows={expanded ? 4 : 1}
               style={{
-                height: 41,
-                width: 40,
-                fontSize: 16,
+                flex: 1,
+                resize: "none",
+                padding: "10px 12px",
+                fontSize: 14,
+                lineHeight: 1.4,
                 borderRadius: 10,
                 border: "1px solid var(--vizithink-border)",
                 background: "var(--vizithink-surface-2)",
-                color: "var(--vizithink-text-muted)",
-                cursor: "pointer",
+                color: "var(--vizithink-text)",
+                outline: "none",
+                fontFamily: "inherit",
+              }}
+            />
+            <button
+              type="button"
+              onClick={submit}
+              disabled={!draft.trim() || busy}
+              style={{
+                height: 41,
+                padding: "0 18px",
+                fontSize: 14,
+                fontWeight: 600,
+                borderRadius: 10,
+                border: "none",
+                background: draft.trim() && !busy ? "var(--vizithink-accent)" : "var(--vizithink-border)",
+                color: draft.trim() && !busy ? "#0f1115" : "var(--vizithink-text-subtle)",
+                cursor: draft.trim() && !busy ? "pointer" : "not-allowed",
               }}
             >
-              ☰
+              {busy ? "…" : "Send"}
             </button>
-            {menuOpen && (
-              <>
-                {/* click-away backdrop */}
-                <div
-                  onClick={() => setMenuOpen(false)}
-                  style={{ position: "fixed", inset: 0, zIndex: 20 }}
-                />
-                <div
-                  role="menu"
-                  style={{
-                    position: "absolute",
-                    bottom: "calc(100% + 6px)",
-                    left: 0,
-                    zIndex: 21,
-                    minWidth: 190,
-                    padding: 4,
-                    borderRadius: 10,
-                    border: "1px solid var(--vizithink-border)",
-                    background: "var(--vizithink-surface)",
-                    boxShadow: "0 4px 16px #0007",
-                  }}
-                >
-                  <button
-                    type="button"
-                    role="menuitem"
-                    onClick={() => {
-                      setMenuOpen(false);
-                      handleInput("/new");
-                    }}
-                    style={menuItemStyle}
-                  >
-                    ✚ New chat
-                  </button>
-                  <button
-                    type="button"
-                    role="menuitem"
-                    onClick={() => {
-                      append({ kind: "context", id: uid() });
-                      setMenuOpen(false);
-                    }}
-                    style={menuItemStyle}
-                  >
-                    📎 Upload documents
-                  </button>
-                  <button
-                    type="button"
-                    role="menuitem"
-                    onClick={() => {
-                      setMenuOpen(false);
-                      void shareSession();
-                    }}
-                    style={menuItemStyle}
-                  >
-                    🔗 Share chat
-                  </button>
-                  <button
-                    type="button"
-                    role="menuitem"
-                    onClick={() => {
-                      setExpanded((v) => !v);
-                      setMenuOpen(false);
-                    }}
-                    style={menuItemStyle}
-                  >
-                    {expanded ? "⤡ Collapse input" : "⤢ Expand input"}
-                  </button>
-                </div>
-              </>
-            )}
           </div>
-          <textarea
-            ref={inputRef}
-            value={draft}
-            onChange={(e) => {
-              setDraft(e.target.value);
-              // Re-open the slash popup on each keystroke and reset the highlight.
-              setSlashDismissed(false);
-              setSlashIndex(0);
-              // Typing ends history recall — further edits are the user's own.
-              setHistIndex(null);
-            }}
-            onKeyDown={(e) => {
-              // When the slash popup is open, the arrow/enter/tab/esc keys drive
-              // it instead of the textarea.
-              if (showSlash) {
-                if (e.key === "ArrowDown") {
-                  e.preventDefault();
-                  setSlashIndex((i) => (i + 1) % slashMatches.length);
-                  return;
-                }
-                if (e.key === "ArrowUp") {
-                  e.preventDefault();
-                  setSlashIndex((i) => (i - 1 + slashMatches.length) % slashMatches.length);
-                  return;
-                }
-                if (e.key === "Enter" || e.key === "Tab") {
-                  e.preventDefault();
-                  selectSlash(slashMatches[slashSel].command);
-                  return;
-                }
-                if (e.key === "Escape") {
-                  e.preventDefault();
-                  setSlashDismissed(true);
-                  return;
-                }
-              }
-              // Slack-style recall of previously sent lines.
-              if (e.key === "ArrowUp" && recallHistory("up")) {
-                e.preventDefault();
-                return;
-              }
-              if (e.key === "ArrowDown" && recallHistory("down")) {
-                e.preventDefault();
-                return;
-              }
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                submit();
-              }
-            }}
-            placeholder="type /help or /ex for examples"
-            rows={expanded ? 4 : 1}
-            style={{
-              flex: 1,
-              resize: "none",
-              padding: "10px 12px",
-              fontSize: 14,
-              lineHeight: 1.4,
-              borderRadius: 10,
-              border: "1px solid var(--vizithink-border)",
-              background: "var(--vizithink-surface-2)",
-              color: "var(--vizithink-text)",
-              outline: "none",
-              fontFamily: "inherit",
-            }}
-          />
-          <button
-            type="button"
-            onClick={submit}
-            disabled={!draft.trim() || busy}
-            style={{
-              height: 41,
-              padding: "0 18px",
-              fontSize: 14,
-              fontWeight: 600,
-              borderRadius: 10,
-              border: "none",
-              background: draft.trim() && !busy ? "var(--vizithink-accent)" : "var(--vizithink-border)",
-              color: draft.trim() && !busy ? "#0f1115" : "var(--vizithink-text-subtle)",
-              cursor: draft.trim() && !busy ? "pointer" : "not-allowed",
-            }}
-          >
-            {busy ? "…" : "Send"}
-          </button>
         </div>
       </div>
+      {traceOpen && <LlmTracePanel onClose={() => setLlmTraceOpen(false)} />}
     </div>
   );
 }
 
-// A /research reply: the advice as a plain-text bubble (same shell as an
-// assistant message) plus a sources list rendered as clickable links.
+// A /research reply: the advice as a Markdown bubble (same shell as an
+// assistant message; citations are inline links) plus a sources list rendered
+// as clickable links.
 function ResearchBubble({
   advice,
   sources,
@@ -1018,7 +833,7 @@ function ResearchBubble({
           border: "1px solid var(--vizithink-border-soft)",
         }}
       >
-        <div style={{ whiteSpace: "pre-wrap" }}>{advice}</div>
+        <Markdown>{advice}</Markdown>
         {sources.length > 0 && (
           <div style={{ marginTop: 10, paddingTop: 8, borderTop: "1px solid var(--vizithink-border-soft)" }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: "var(--vizithink-text-subtle)", marginBottom: 4 }}>

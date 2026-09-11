@@ -1,7 +1,13 @@
-# ViziThink — Marketing Plan
+# ViziThink — Marketing Plan (v2)
 
-*Companion doc: [first-100-users.md](./first-100-users.md) — the tactical playbook
-for the first cohort. This doc is the strategy it plugs into.*
+*Companion docs:* [business-plan.md](./business-plan.md) — the master reference
+(product, market, model). · [first-100-users.md](./first-100-users.md) — the
+tactical playbook for the first cohort. · [comps.md](./comps.md) — competitive /
+research brief. This doc is the **go-to-market strategy** those plug into.
+
+> **v2 changes:** sharper ICP and "trigger moments", a clearer messaging ladder
+> per channel, an explicit acquisition-loop priority order, and tighter
+> kill-criteria. v1's PLG loops, 90-day calendar, and metrics are preserved.
 
 ---
 
@@ -14,7 +20,7 @@ and conclude. The output isn't a wall of AI text; it's a picture you can act on.
 
 **The wedge:** every general chatbot can *discuss* your decision. None of them
 give you a *structured, visual, interactive* artifact. The anti-positioning
-writes itself: *"Stop reading AI essays about your decision. See it."*
+writes itself: **"Stop reading AI essays about your decision. See it."**
 
 ## 2. Positioning
 
@@ -37,26 +43,33 @@ personal decisions).
 | **Right tool, automatically** | "Describe the decision; it picks the framework." | The convo router classifies decision type → widget. |
 | **Frameworks made effortless** | "You've seen the Eisenhower matrix in a book. Now it fills itself in." | Slash commands `/2x2 /pc /eis /pm`, prefilled from chat. |
 
-Lead with **anti-slop** in channels full of AI fatigue (HN, Twitter/X), lead
-with **frameworks made effortless** in productivity communities (PKM, GTD,
-r/productivity) where the frameworks already have brand recognition.
+**Channel → pillar mapping:**
+- HN / Twitter-X (AI-fatigued, technical) → lead **anti-slop**.
+- r/productivity, PKM, GTD communities → lead **frameworks made effortless**.
+- PM / founder communities → lead **right tool, automatically** (it removes the
+  "which framework do I use?" friction they feel weekly).
 
-## 3. Audience (in priority order)
+## 3. Audience & trigger moments
 
-1. **Indie founders / solo operators** — make consequential decisions weekly
-   (pricing, pivot, hire, which feature), have no one to talk to, already pay
-   for AI tools, and hang out in public, reachable places (X, Indie Hackers,
-   HN). **Primary. The first 100 users come from here.**
-2. **Product managers / tech leads** — prioritisation is their job;
-   Eisenhower/2×2/RICE are native vocabulary. Reachable via PM newsletters and
-   communities. Likely the first *paying* segment (expense-able).
-3. **Productivity / PKM enthusiasts** — love frameworks for their own sake,
-   high virality (they screenshot tools), low willingness to pay. Good for
-   distribution, not revenue.
-4. **Life-decision consumers** ("should I move / change job / buy the house")
-   — the biggest TAM and the source of evergreen SEO traffic, but diffuse and
-   hard to reach early. Target via content, not outreach. **Year-one SEO play,
-   not a launch play.**
+Priority order (full segment economics in [business-plan.md](./business-plan.md)
+§4):
+
+1. **Indie founders / solo operators** — *Primary; the first 100 come from here.*
+   Weekly consequential decisions, already pay for AI tools, publicly reachable.
+2. **Product managers / tech leads** — *Likely first paying segment.*
+   Prioritisation is the job; framework vocabulary is native; budget is
+   expense-able.
+3. **Productivity / PKM enthusiasts** — *Distribution, not revenue.* High
+   virality (they screenshot tools), low willingness to pay.
+4. **Consultants / coaches** — *Underrated.* Co-create artifacts with clients;
+   white-label angle later.
+5. **Life-decision consumers** — *Year-one SEO play, not a launch play.* Biggest
+   TAM, diffuse, reach via content not outreach.
+
+**Trigger moments** (when the need is acute — aim messaging at these):
+pricing changes, a pivot call, a hire/no-hire, weekly sprint prioritisation, a
+job offer, "rent vs buy", a relocation, quitting to start something. These are
+the searches and the public dilemmas to meet people at.
 
 ## 4. Competitive frame
 
@@ -68,102 +81,96 @@ r/productivity) where the frameworks already have brand recognition.
 | Pen and paper / a friend | Actually our role model. We're the friend who happens to know 12 frameworks. |
 
 Nobody owns "AI + visual decision frameworks" yet. Speed-to-mindshare matters
-more than feature depth right now.
+more than feature depth right now. (Deeper competitive map: [comps.md](./comps.md).)
 
-## 5. Product-led growth loops (build these, in order)
+## 5. Product-led growth loops (build these, in priority order)
 
-The product produces inherently shareable artifacts. Marketing should mostly be
-making them travel.
+The product produces inherently shareable artifacts. Marketing is mostly making
+them travel. **Build top to bottom — earlier loops have higher leverage:**
 
 1. **Shareable result links** — every completed widget gets a public read-only
    URL (`vizithink.com/d/abc123`) with a clean OG image of the filled-in
-   framework. This is the single highest-leverage marketing feature; prioritise
-   it over any paid channel.
+   framework. **The single highest-leverage marketing feature; prioritise it over
+   any paid channel.**
 2. **Image export** — "Download as PNG" with a small `vizithink.com` watermark.
-   Screenshots of 2×2s travel extremely well on X and LinkedIn.
+   2×2 screenshots travel extremely well on X and LinkedIn.
 3. **"Decide with me" templates** — pre-baked decision links ("Should I quit my
    job?" → opens chat with that context) that double as SEO landing pages.
-4. **(Later) duel mode** — send a pros/cons or 2×2 to a friend/cofounder to
-   fill in their weights, compare. The multiplayer doc (`multiplayer.md`)
-   already points here.
+4. **(Later) duel mode** — send a pros/cons or 2×2 to a friend/cofounder to fill
+   in their weights, compare. Multiplayer ([multiplayer.md](./multiplayer.md))
+   points here; this is also the team-monetisation wedge.
 
 ## 6. Content & SEO strategy
 
-Two content tracks, both feeding the same funnel:
+Two tracks, one funnel:
 
-**Track A — framework pages (evergreen, high intent).** One page per
-framework: "Eisenhower matrix — interactive + AI-filled", "Pre-mortem
-template", "2×2 prioritization matrix maker". People search these *names*
-~10k+/mo combined, current results are static PDF templates, and we have a
-strictly better answer: an interactive widget that fills itself in. Each page
-embeds the live widget. This is the durable moat channel.
+**Track A — framework pages (evergreen, high intent).** One page per framework:
+"Eisenhower matrix — interactive + AI-filled", "Pre-mortem template", "2×2
+prioritization matrix maker". These *names* are searched ~10k+/mo combined;
+current results are static PDF templates; we have a strictly better answer — an
+interactive widget that fills itself in. Each page embeds the live widget. **The
+durable moat channel.**
 
-**Track B — decision pages (long-tail).** One page per common decision:
-"Should I quit my job to start a company?", "Rent vs buy", "Which framework for
-choosing between job offers". Each walks the decision through 2–3 frameworks
-and ends in the live tool. Generate the skeletons with the product itself
-(dogfooding = content).
+**Track B — decision pages (long-tail).** One page per common decision: "Should I
+quit my job to start a company?", "Rent vs buy", "Which framework for choosing
+between job offers". Each walks the decision through 2–3 frameworks and ends in
+the live tool. Generate skeletons with the product itself (dogfooding = content).
 
-**Cadence:** 1 framework page/week until all ~12 frameworks are covered, then
-2 decision pages/week. No blog-about-AI-trends content — only pages a searcher
-with a decision would land on.
+**Cadence:** 1 framework page/week until all ~12 are covered, then 2 decision
+pages/week. No "AI trends" blog content — only pages a searcher *with a decision*
+would land on.
 
 ## 7. Channels, by phase
 
 ### Phase 0 — Foundation (before any promotion)
-- Landing page = README content (already strong) + a 30-second screen
-  recording of "describe decision → widget appears → decide".
-- Shareable result links + OG images (loop #1 above).
-- Basic analytics: track `signup → first message → first widget completed →
-  shared/returned`. (See §9.)
-- Remove the fake testimonials from the README/landing page before launch —
-  HN/Reddit will find them and it will become the story. Replace with real
-  quotes as they arrive.
+- Landing page (README content is already strong) + a 30-second screen recording:
+  "describe decision → widget appears → decide".
+- Shareable result links + OG images (loop #1).
+- Analytics: `signup → first message → first widget completed → shared/returned`
+  (§9).
+- **Remove the fake testimonials** from README/landing before launch — HN/Reddit
+  will find them and it becomes the story. Replace with real quotes as they land.
 
 ### Phase 1 — Founder-led, communities (months 1–2)
-First 100 users. Fully specified in [first-100-users.md](./first-100-users.md).
+First 100 users, fully specified in [first-100-users.md](./first-100-users.md).
 Channels: direct DMs, X build-in-public, Indie Hackers, targeted subreddits,
 small Slack/Discord communities. Zero spend.
 
 ### Phase 2 — Launches (months 2–3)
-- **Product Hunt** — the artifact-heavy demo (GIFs of widgets filling in) suits
-  PH well. Aim for a Tuesday/Wednesday; line up 20–30 genuine users from
-  Phase 1 to comment with real use cases.
-- **Hacker News Show HN** — lead with the anti-slop angle and the tech
-  (Cloudflare Worker + tRPC + schema-driven LLM calls); HN rewards honest
-  architecture posts far more than marketing copy.
+- **Product Hunt** — artifact-heavy demo (GIFs of widgets filling in) suits PH.
+  Aim Tuesday/Wednesday; line up 20–30 genuine Phase-1 users to comment with real
+  use cases.
+- **Hacker News Show HN** — lead anti-slop + honest architecture (Cloudflare
+  Worker + tRPC + schema-driven LLM). HN rewards candor over copy.
 - One launch per platform, two weeks apart, each preceded by a week of
-  build-in-public posts about what was fixed from the last one.
+  build-in-public posts about what the last one taught you.
 
 ### Phase 3 — Compounding (months 3–6)
 - SEO tracks A & B start paying off (~month 4+).
-- Newsletter sponsorships in PM/productivity newsletters (Lenny's is the
-  ceiling; start with smaller ones — Product Compass, Department of Product —
-  at $200–500/slot) **only after** activation rate >40%, otherwise paid
-  traffic just leaks.
-- YouTube/Shorts: 60-second "one decision, one framework" clips. Screen
-  recordings only, no talking head needed.
+- Newsletter sponsorships in PM/productivity newsletters (start small — Product
+  Compass, Department of Product — $200–500/slot) **only after activation >40%**,
+  else paid traffic just leaks.
+- YouTube/Shorts: 60-second "one decision, one framework" screen recordings.
 
-**Explicitly not doing:** paid search/social ads (no margin clarity yet),
-LinkedIn thought-leadership grind, cold email at scale, affiliate programs.
-Revisit after retention is proven.
+**Explicitly not doing (yet):** paid search/social ads, LinkedIn
+thought-leadership grind, cold email at scale, affiliate programs. Revisit after
+retention is proven.
 
 ## 8. Pricing posture (marketing-relevant only)
 
-- **Free during the first-100 phase.** The asset being purchased is feedback
-  and testimonials, and LLM cost per user is cents (OpenRouter, short
-  structured calls).
-- Signal seriousness early with a visible-but-inactive "Pro — coming soon"
-  tier so free users know the deal.
-- Likely v1 paywall: decision history, `/research` (web-research API costs
-  real money — `research-more.md`), multiplayer/shared decisions, image export
-  without watermark. **Keep the core loop (chat → widget → decide) free
+*(Full model in [business-plan.md](./business-plan.md) §6.)*
+
+- **Free during the first-100 phase** — you're buying feedback and testimonials;
+  LLM cost per user is cents.
+- Signal seriousness with a visible-but-inactive "Pro — coming soon" tier.
+- Likely v1 paywall: decision history, `/research`, multiplayer/shared decisions,
+  unwatermarked export. **Keep the core loop (chat → widget → decide) free
   forever** — it's the growth engine.
-- Indicative price point: $8–12/mo consumer-ish, revisit when PMs show up.
+- Indicative: $8–12/mo consumer-ish; revisit upward when PMs/teams arrive.
 
 ## 9. Metrics
 
-North star: **decisions completed per week** (a widget sent back to chat with a
+North star: **decisions completed per week** (a widget sent back with a
 conclusion = one completed decision).
 
 | Funnel step | Definition | Target by month 3 |
@@ -174,22 +181,20 @@ conclusion = one completed decision).
 | Return → share | shares a result link or screenshot | >10% |
 
 A weekly cohort table of these four numbers is the entire dashboard. If
-**try → activate** is below 40%, fix the router and widget prefill before doing
-any more promotion — everything downstream is wasted otherwise.
+**try → activate** is below 40%, fix the router and widget prefill before any
+more promotion — everything downstream is wasted otherwise.
 
 ## 10. Risks & honest unknowns
 
-- **Frequency risk (the big one):** big decisions are rare; the product may be
-  a 4×/year tool. Mitigation: Eisenhower + prioritisation widgets target
-  *weekly* work decisions — push those in messaging to PMs/founders, keep the
-  "life decision" framing for SEO where infrequency doesn't matter.
+- **Frequency risk (the big one):** big decisions are rare; this may be a 4×/year
+  tool. Mitigation: Eisenhower + prioritisation widgets target *weekly* work
+  decisions — push those to founders/PMs, keep "life decision" framing for SEO.
 - **Fast-follow risk:** ChatGPT could ship interactive decision canvases.
-  Mitigation: own the framework-name SEO and the "decision buddy" identity
-  before that happens; depth (history, multiplayer, research) beats a feature
-  demo.
-- **Brand risk:** "ViziThink" is serviceable but `names-oai.md`/`names-gem.md`
-  show live ambivalence. Decide and freeze the name **before** Phase 2
-  launches — renaming after PH/HN throws away the earned mindshare.
+  Mitigation: own framework-name SEO and the "decision buddy" identity first;
+  depth (history, multiplayer, research) beats a feature demo.
+- **Brand risk:** "ViziThink" is unfrozen ([names-oai.md](./names-oai.md) /
+  [names-gem.md](./names-gem.md)). **Freeze the name before Phase 2** — renaming
+  after PH/HN throws away earned mindshare.
 
 ## 11. 90-day calendar (summary)
 
@@ -199,5 +204,5 @@ any more promotion — everything downstream is wasted otherwise.
 | 3–6 | First 100 users | per first-100-users.md; 15+ user conversations, 5 real testimonials |
 | 7–8 | Fix what they hit | activation >40%, top-3 friction items shipped |
 | 9 | Product Hunt | 300+ signups goal |
-| 11 | Show HN | traffic + 3 quality threads of feedback |
 | 10–13 | Framework SEO pages | 6 pages live, indexed |
+| 11 | Show HN | traffic + 3 quality threads of feedback |
